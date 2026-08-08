@@ -141,3 +141,19 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+# Dependencias
+node_modules/
+venv/
+__pycache__/
+
+# Variables de entorno y llaves privadas
+.env
+.env.local
+
+# Archivos compilados y temporales
+dist/
+build/
+*.apk
+.DS_Store
+.vscode/
+.idea/ 

@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  database:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: desparche_db_container
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: desparche_db
+    ports:
+      - "5432:5432"
