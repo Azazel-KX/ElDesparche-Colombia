@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="El Desparche · Descubre conciertos, festivales y experiencias inolvidables en Colombia. Reserva tu próximo plan.">
+  <meta name="theme-color" content="#130a2b">
+  <title>El Desparche · Eventos y reservas en línea</title>
+  <link rel="preconnect" href="https://static.figma.com" crossorigin>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- ====================================================================
+       NAVBAR
+       ================================================================= -->
+  <header>
+    <nav class="navbar" aria-label="Navegación principal">
+      <div class="navbar__left">
+        <button type="button" class="brand" data-nav="inicio">
+          <span class="brand__mark">
+            <img src="assets/7f55c.svg" alt="">
+          </span>
+          <span class="brand__name">El Desparche</span>
+        </button>
+
+        <div class="navbar__links">
+          <button type="button" class="navlink" data-nav="inicio" aria-current="page">Inicio</button>
+          <button type="button" class="navlink" data-nav="eventos">Eventos</button>
+        </div>
+      </div>
+
+      <!-- Estado: visitante -->
+      <div class="navbar__auth" id="auth-guest">
+        <button type="button" class="btn-ghost" data-auth-open="login">Iniciar sesión</button>
+        <button type="button" class="btn-solid" data-auth-open="register">Registrarse</button>
+      </div>
+
+      <!-- Estado: sesión iniciada -->
+      <div class="navbar__auth is-hidden" id="auth-user">
+        <p class="user-chip">
+          <span class="user-chip__avatar" id="user-initial">U</span>
+          <span class="user-chip__name" id="user-name">Usuario</span>
+        </p>
+        <button type="button" class="btn-ghost" id="btn-logout">Salir</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ====================================================================
+       VISTA: INICIO
+       ================================================================= -->
+  <main id="view-home">
+
+    <!-- Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__copy">
+        <p class="pill">TU PRÓXIMO PLAN EMPIEZA AQUÍ</p>
+        <h1 class="hero__title" id="hero-title">Vive más. Despárchate mejor.</h1>
+        <p class="hero__lead">Descubre conciertos, festivales y experiencias inolvidables cerca de ti.</p>
+        <button type="button" class="btn-cta" data-nav="eventos">Explorar eventos →</button>
+      </div>
+      <figure class="hero__media">
+        <img src="assets/33202.png" alt="Público disfrutando de un evento en vivo" width="590" height="420">
+      </figure>
+    </section>
+
+    <!-- Buscador -->
+    <section class="search-section" aria-labelledby="search-title">
+      <h2 class="search-section__title" id="search-title">¿Qué plan buscas?</h2>
+
+      <div class="filters">
+        <div class="searchbox">
+          <img class="searchbox__icon" src="assets/8c8c6.svg" alt="">
+          <label class="visually-hidden" for="home-search">Buscar eventos</label>
+          <input class="searchbox__input" type="search" id="home-search" placeholder="Buscar eventos">
+          <button type="button" class="searchbox__clear is-hidden" data-clear="home-search" aria-label="Limpiar búsqueda">✕</button>
+        </div>
+
+        <div class="drop" data-drop="pais" data-placeholder="País">
+          <button type="button" class="drop__toggle" aria-expanded="false" aria-haspopup="listbox">
+            <span class="drop__label">País</span>
+            <img src="assets/f81d4.svg" alt="">
+          </button>
+          <ul class="drop__menu is-hidden" role="listbox" aria-label="País"></ul>
+        </div>
+
+        <div class="drop" data-drop="depto" data-placeholder="Departamento">
+          <button type="button" class="drop__toggle" aria-expanded="false" aria-haspopup="listbox">
+            <span class="drop__label">Departamento</span>
+            <img src="assets/f81d4.svg" alt="">
+          </button>
+          <ul class="drop__menu is-hidden" role="listbox" aria-label="Departamento"></ul>
+        </div>
+
+        <div class="drop" data-drop="ciudadHome" data-placeholder="Ciudad">
+          <button type="button" class="drop__toggle" aria-expanded="false" aria-haspopup="listbox">
+            <span class="drop__label">Ciudad</span>
+            <img src="assets/f81d4.svg" alt="">
+          </button>
+          <ul class="drop__menu is-hidden" role="listbox" aria-label="Ciudad"></ul>
+        </div>
+
+        <div class="drop drop--narrow" data-drop="tipo" data-placeholder="Tipo">
+          <button type="button" class="drop__toggle" aria-expanded="false" aria-haspopup="listbox">
+            <span class="drop__label">Tipo</span>
+            <img src="assets/f81d4.svg" alt="">
+          </button>
+          <ul class="drop__menu is-hidden" role="listbox" aria-label="Tipo"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Eventos destacados -->
+    <section class="section" aria-labelledby="featured-title">
+      <div class="section__head">
+        <div class="section__head-copy">
+          <h2 class="section__title" id="featured-title">Eventos destacados</h2>
+          <p class="section__sub">Planes elegidos para que tu próximo desparche sea inolvidable.</p>
+        </div>
+        <button type="button" class="link-inline" data-nav="eventos">Ver todos los eventos →</button>
+      </div>
+      <div class="grid-events" id="home-grid"></div>
+    </section>
+
+    <!-- Pie completo -->
+    <footer class="footer">
+      <div class="footer__top">
+        <div class="footer__about">
+          <div class="footer__logo">
+            <span class="footer__logo-mark">
+              <img src="assets/14603.png" alt="">
+            </span>
+            <img class="footer__wordmark" src="assets/b48ef.png" alt="ElDesparche">
+          </div>
+          <p>Conectando la cultura urbana de Colombia. El punto de encuentro de los mejores conciertos, eventos y experiencias inolvidables en tu ciudad.</p>
+        </div>
+
+        <div class="footer__cols">
+          <section class="footer__col">
+            <h3>Sobre nosotros</h3>
+            <ul>
+              <li><a href="#">Comunidad</a></li>
+              <li><a href="#">Prensa</a></li>
+              <li><a href="#">Términos de servicio</a></li>
+            </ul>
+          </section>
+          <section class="footer__col">
+            <h3>Ayuda</h3>
+            <ul>
+              <li><a href="#">Soporte</a></li>
+              <li><a href="#">Organizar evento</a></li>
+              <li><a href="#">Preguntas frecuentes</a></li>
+            </ul>
+          </section>
+          <section class="footer__col">
+            <h3>Categorías</h3>
+            <ul>
+              <li><a href="#">Parchesotes</a></li>
+              <li><a href="#">Parches</a></li>
+              <li><a href="#">Parchesitos</a></li>
+            </ul>
+          </section>
+          <section class="footer__col">
+            <h3>Síguenos</h3>
+            <div class="footer__social">
+              <a href="#" aria-label="Instagram"><img src="assets/cadd5.svg" alt=""></a>
+              <a href="#" aria-label="Twitter"><img src="assets/fbe59.svg" alt=""></a>
+              <a href="#" aria-label="YouTube"><img src="assets/26b07.svg" alt=""></a>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="footer__legal">
+        <small>© 2026 ElDesparche. Todos los derechos reservados a nuestro grupo de proyecto integrador.</small>
+        <small>Tuluá, Colombia</small>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ====================================================================
+       VISTA: LISTADO
+       ================================================================= -->
+  <main id="view-listado" class="is-hidden">
+    <div class="page">
+      <div class="page__inner">
+
+        <div class="page__head">
+          <h1 class="page__title">Encuentra tu próximo plan</h1>
+          <p class="page__sub">Explora conciertos, teatro, festivales y experiencias en toda Colombia.</p>
+        </div>
+
+        <div class="filters">
+          <div class="searchbox">
+            <img class="searchbox__icon" src="assets/66766.svg" alt="">
+            <label class="visually-hidden" for="list-search">Buscar eventos</label>
+            <input class="searchbox__input" type="search" id="list-search" placeholder="Buscar">
+            <button type="button" class="searchbox__clear is-hidden" data-clear="list-search" aria-label="Limpiar búsqueda">✕</button>
+          </div>
+
+          <div class="drop" data-drop="ciudad" data-placeholder="Ciudad">
+            <button type="button" class="drop__toggle" aria-expanded="false" aria-haspopup="listbox">
+              <span class="drop__label">Todas</span>
+              <img src="assets/f81d4.svg" alt="">
+            </button>
+            <ul class="drop__menu is-hidden" role="listbox" aria-label="Ciudad"></ul>
+          </div>
+
+          <div class="drop" data-drop="fecha" data-placeholder="Fecha">
+            <button type="button" class="drop__toggle" aria-expanded="false" aria-haspopup="listbox">
+              <span class="drop__label">Todas las fechas</span>
+              <img src="assets/f81d4.svg" alt="">
+            </button>
+            <ul class="drop__menu is-hidden" role="listbox" aria-label="Fecha"></ul>
+          </div>
+
+          <div class="drop drop--wide" data-drop="estado" data-placeholder="Estado: Todos">
+            <button type="button" class="drop__toggle" aria-expanded="false" aria-haspopup="listbox">
+              <span class="drop__label">Todos</span>
+              <img src="assets/f81d4.svg" alt="">
+            </button>
+            <ul class="drop__menu is-hidden" role="listbox" aria-label="Estado"></ul>
+          </div>
+        </div>
+
+        <div class="results">
+          <p class="results__count" id="list-count" aria-live="polite">0 eventos</p>
+          <p class="results__order">Ordenar: Próximos primero</p>
+        </div>
+
+        <div class="grid-events grid-events--tight" id="list-grid"></div>
+
+        <div class="empty is-hidden" id="list-empty">
+          <p>No se encontraron eventos.</p>
+          <button type="button" id="list-reset">Limpiar filtros</button>
+        </div>
+
+        <nav class="pagination" id="list-pagination" aria-label="Paginación de resultados"></nav>
+      </div>
+    </div>
+
+    <footer class="footer-min">
+      <div class="footer-min__about">
+        <div class="brand">
+          <span class="brand__mark"><img src="assets/7f55c.svg" alt=""></span>
+          <span class="brand__name">El Desparche</span>
+        </div>
+        <p>Conectando la cultura urbana de Colombia con planes que vale la pena vivir.</p>
+      </div>
+      <div class="footer-min__cols">
+        <section class="footer-min__col">
+          <h3>SOBRE NOSOTROS</h3>
+          <span>Comunidad</span>
+          <span>Prensa</span>
+        </section>
+        <section class="footer-min__col">
+          <h3>AYUDA</h3>
+          <span>Soporte</span>
+          <span>Preguntas frecuentes</span>
+        </section>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ====================================================================
+       VISTA: DETALLE
+       ================================================================= -->
+  <main id="view-detalle" class="is-hidden">
+    <article class="page">
+      <div class="page__inner detail__inner">
+
+        <p class="breadcrumb">
+          <button type="button" data-nav="eventos">Eventos</button>
+          <span> / </span>
+          <span id="detail-crumb"></span>
+        </p>
+
+        <figure class="detail__hero">
+          <img id="detail-img" src="" alt="">
+        </figure>
+
+        <div class="detail__top">
+          <div class="detail__intro">
+            <span class="badge badge--lg" id="detail-status"></span>
+            <h1 class="detail__title" id="detail-title"></h1>
+            <p class="detail__desc" id="detail-desc"></p>
+          </div>
+
+          <aside class="reserve" aria-label="Reserva">
+            <p class="reserve__label">Precio base</p>
+            <p class="reserve__price" id="detail-price"></p>
+
+            <button type="button" class="reserve__btn" id="btn-reservar">Reservar</button>
+
+            <div class="reserve__done is-hidden" id="reserve-done" role="status">
+              <strong>¡Reserva realizada! 🎉</strong>
+              <span>Recibirás la confirmación por correo.</span>
+            </div>
+
+            <p class="reserve__note reserve__note--ok is-hidden" id="reserve-slots"></p>
+            <p class="reserve__note reserve__note--off is-hidden" id="reserve-off">Este evento no permite reservas</p>
+          </aside>
+        </div>
+
+        <section class="panel" aria-labelledby="detail-info-title">
+          <h2 class="panel__title" id="detail-info-title">Información del evento</h2>
+          <dl class="info-list" id="detail-info"></dl>
+        </section>
+
+        <section class="panel panel--gap" aria-labelledby="detail-map-title">
+          <h2 class="panel__title" id="detail-map-title">Ubicación</h2>
+          <p class="panel__meta" id="detail-venue"></p>
+          <div class="map-frame">
+            <iframe id="detail-map" title="Mapa de la ubicación del evento" src="" loading="lazy" allowfullscreen></iframe>
+          </div>
+          <a class="map-link" id="detail-map-link" href="#" target="_blank" rel="noreferrer noopener">Ver en OpenStreetMap →</a>
+        </section>
+
+        <p class="note">Cuando un evento está Finalizado o Cancelado, el botón «Reservar» se muestra deshabilitado.</p>
+      </div>
+    </article>
+
+    <footer class="footer-min">
+      <div class="footer-min__about">
+        <div class="brand">
+          <span class="brand__mark"><img src="assets/7f55c.svg" alt=""></span>
+          <span class="brand__name">El Desparche</span>
+        </div>
+        <p>Conectando la cultura urbana de Colombia con planes que vale la pena vivir.</p>
+      </div>
+      <div class="footer-min__cols">
+        <section class="footer-min__col">
+          <h3>SOBRE NOSOTROS</h3>
+          <span>Comunidad</span>
+          <span>Prensa</span>
+        </section>
+        <section class="footer-min__col">
+          <h3>AYUDA</h3>
+          <span>Soporte</span>
+          <span>Preguntas frecuentes</span>
+        </section>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ====================================================================
+       MODAL DE AUTENTICACIÓN
+       ================================================================= -->
+  <dialog class="modal" id="auth-modal" aria-labelledby="auth-heading">
+    <div class="modal__card">
+      <h2 class="visually-hidden" id="auth-heading">Acceso a tu cuenta</h2>
+
+      <div class="modal__brand">
+        <span class="modal__brand-mark"><img src="assets/14603.png" alt=""></span>
+        <img class="modal__wordmark" src="assets/b48ef.png" alt="ElDesparche">
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="login" aria-selected="true">Iniciar sesión</button>
+        <button type="button" role="tab" data-tab="register" aria-selected="false">Registrarse</button>
+      </div>
+
+      <form class="form" id="auth-form" novalidate>
+        <div class="field is-hidden" id="field-name">
+          <label for="auth-name">Nombre completo</label>
+          <input type="text" id="auth-name" name="name" placeholder="Tu nombre" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="auth-email">Correo electrónico</label>
+          <input type="email" id="auth-email" name="email" placeholder="correo@ejemplo.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="auth-password">Contraseña</label>
+          <input type="password" id="auth-password" name="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <p class="form__error is-hidden" id="auth-error" role="alert"></p>
+
+        <button type="submit" class="form__submit" id="auth-submit">Iniciar sesión</button>
+      </form>
+
+      <p class="modal__switch">
+        <span id="auth-switch-text">¿No tienes cuenta? </span>
+        <button type="button" id="auth-switch">Regístrate</button>
+      </p>
+    </div>
+  </dialog>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
