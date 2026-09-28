@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'node:path';
 
 export default defineConfig({
   root: '.',
@@ -24,6 +25,18 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    // Sitio multipagina: sin esto 'npm run build' solo empaqueta index.html
+    // y las demas paginas quedan fuera de dist/.
+    rollupOptions: {
+      input: {
+        index: resolve(import.meta.dirname, 'index.html'),
+        eventos: resolve(import.meta.dirname, 'eventos.html'),
+        evento: resolve(import.meta.dirname, 'evento.html'),
+        reservar: resolve(import.meta.dirname, 'reservar.html'),
+        confirmacion: resolve(import.meta.dirname, 'confirmacion.html'),
+        misReservas: resolve(import.meta.dirname, 'mis-reservas.html')
+      }
+    }
   }
 });

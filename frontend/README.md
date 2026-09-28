@@ -1,43 +1,60 @@
-# El Desparche · versión HTML5 + CSS3
+# El Desparche - Eventos y reservas en línea
 
-Proyecto HTML5 semántico, CSS3 externo y
-JavaScript sin dependencias. No requiere compilación ni `node_modules`.
+Página web de eventos y reservas hecha con **HTML5, CSS3 y JavaScript**.
+No usa frameworks ni librerías, y el CSS está escrito **mobile first**.
 
-## Estructura
+## Cómo abrirla
+
+Abre `index.html` con doble clic. También funciona con la extensión
+Live Server de VS Code.
+
+Las tipografías (Inter, Geist, Outfit, Kadwa y Source Sans 3) se cargan desde
+Google Fonts, así que con internet se ve igual al diseño original. Sin internet
+el navegador usa Arial y solo cambian las letras.
+
+## Archivos
 
 ```
-html5/
-├── index.html        Las tres vistas (inicio, listado, detalle) + modal de acceso
-├── css/
-│   └── styles.css    Todos los estilos: variables, grid, flexbox, media queries
-├── js/
-│   ├── data.js       Catálogo de eventos y catálogos de filtros
-│   └── app.js        Navegación, filtros, paginación, reserva y autenticación
-└── assets/           Imágenes e iconos (PNG / SVG)
+index.html          Página de inicio
+eventos.html        Listado de eventos con filtros
+evento.html         Detalle de un evento (recibe ?id=)
+reservar.html       Formulario de reserva
+confirmacion.html   Comprobante con el código QR
+mis-reservas.html   Tabla de reservas del usuario
+
+css/estilos.css     Todos los estilos (primero celular, luego las media queries)
+js/script.js        Datos de los eventos y toda la lógica
+img/                Imágenes e iconos
 ```
 
-## Cómo abrirlo
+## Cómo funciona
 
-Basta con abrir `index.html` en el navegador. Para que el mapa de OpenStreetMap
-cargue sin restricciones conviene servirlo por HTTP:
+- Cada página HTML tiene un atributo `data-pagina` en el `<body>`.
+  Al final de `script.js` hay un `if` que revisa ese atributo y ejecuta
+  la función de esa página.
+- Los eventos están en la lista `EVENTOS` al principio de `script.js`.
+  Para cambiar el contenido de la página solo se edita esa lista.
+- El usuario y las reservas se guardan en el navegador con `localStorage`,
+  así que no se pierden al cerrar la página.
+- El inicio de sesión es una **ventana emergente** (la etiqueta `<dialog>` de
+  HTML5). Está en todas las páginas porque `script.js` la agrega sola, así no
+  hay que repetir el mismo bloque de HTML en cada archivo.
+- Al registrarse se elige entre dos tipos de cuenta: **Usuario** (reserva
+  entradas) o **Agente** (publica eventos). El tipo se guarda junto con el
+  nombre y el correo, y al agente le aparece una etiqueta morada en la cabecera.
 
-```bash
-npx -y serve html5
-```
+## Puntos de las media queries
 
-## Accesibilidad
+| Ancho | Cambios |
+|---|---|
+| Menos de 600px | Diseño base: una columna, tabla en forma de tarjetas |
+| 600px o más | Filtros en fila, 2 tarjetas por fila |
+| 900px o más | Cabecera en una fila, portada en 2 columnas, 3 tarjetas por fila, tabla normal |
+| 1200px o más | 4 tarjetas por fila |
 
-- Etiquetas `label` asociadas a cada campo (ocultas visualmente cuando el diseño
-  no las muestra).
-- `aria-current`, `aria-expanded`, `aria-selected`, `aria-live` y `role="alert"`
-  en los puntos donde el contenido cambia de forma dinámica.
-- Las tarjetas de evento son operables con teclado (`Enter` / `Espacio`).
-- `Esc` cierra los desplegables y el modal.
-- Se respeta `prefers-reduced-motion`.
+## Notas
 
-## Puntos de quiebre responsive
+El inicio de sesión es solo una simulación: no hay servidor ni base de datos.
+Las reservas se guardan únicamente en el navegador de cada persona.
 
-- **900 px**: la tabla de información pasa a una columna y la tarjeta de reserva
-  ocupa todo el ancho.
-- **720 px**: la barra de navegación se envuelve, los desplegables ocupan el 100 %
-  y el botón principal se expande.
+© 2026 El Desparche - Proyecto integrador. Tuluá, Colombia.
