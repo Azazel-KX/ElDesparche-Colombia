@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservar - El Desparche</title>
+  <link rel="icon" href="img/14603.png">
+
+  <!-- Tipografías del diseño -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+
+<body data-pagina="reservar">
+
+  <!-- ===== CABECERA ===== -->
+  <header class="cabecera">
+    <div class="cabecera-izquierda">
+      <a class="logo" href="index.html">
+        <img class="logo-icono" src="img/14603.png" alt="">
+        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
+      </a>
+
+      <nav class="menu">
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a class="activo" href="eventos.html">Eventos</a></li>
+          <li><a href="mis-reservas.html">Mis reservas</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="sesion" id="sesion"></div>
+  </header>
+
+  <main class="fondo-gris">
+    <section class="seccion">
+
+      <p class="migas">
+        <a href="eventos.html">Eventos</a> /
+        <a id="miga-evento" href="#"></a> /
+        <span>Formulario de reserva</span>
+      </p>
+
+      <h1>Formulario de reserva</h1>
+
+      <!-- En computador el formulario y el resumen van lado a lado -->
+      <div class="reserva-columnas">
+
+        <!-- ===== DATOS DE LA RESERVA ===== -->
+        <form class="caja">
+          <h2 class="titulo-caja">Datos de la reserva</h2>
+
+          <!-- Resumen corto del evento -->
+          <div class="mini-evento">
+            <img id="mini-imagen" src="" alt="">
+            <div>
+              <p class="negrita" id="mini-titulo"></p>
+              <p id="mini-lugar"></p>
+              <p id="mini-fecha"></p>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="tickets">Número de tickets</label>
+            <div class="contador-tickets">
+              <button type="button" id="menos" aria-label="Quitar un ticket">−</button>
+              <output id="tickets">1</output>
+              <button type="button" id="mas" aria-label="Añadir un ticket">+</button>
+              <span class="limite">máx. 10 por persona</span>
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="observaciones">
+              Observaciones <span class="opcional">(opcional)</span>
+            </label>
+            <textarea id="observaciones" rows="4"
+              placeholder="¿Necesitas asistencia especial, alergias, preferencias de asiento?"></textarea>
+          </div>
+
+          <p class="aviso-morado" id="aviso-usuario"></p>
+        </form>
+
+        <!-- ===== RESUMEN DE PRECIOS ===== -->
+        <aside class="caja">
+          <h2 class="titulo-caja">Resumen de tu reserva</h2>
+
+          <img class="imagen-resumen" id="resumen-imagen" src="" alt="">
+          <p class="negrita" id="resumen-titulo"></p>
+          <p class="texto-gris" id="resumen-fecha"></p>
+
+          <dl class="resumen">
+            <div>
+              <dt>Precio unitario</dt>
+              <dd id="resumen-precio"></dd>
+            </div>
+            <div>
+              <dt>Cantidad</dt>
+              <dd id="resumen-cantidad"></dd>
+            </div>
+            <div>
+              <dt>Cargo por servicio</dt>
+              <dd id="resumen-cargo"></dd>
+            </div>
+            <div class="resumen-total">
+              <dt>Total</dt>
+              <dd id="resumen-total"></dd>
+            </div>
+          </dl>
+
+          <button class="boton boton-morado boton-ancho" type="button" id="confirmar">
+            Confirmar reserva
+          </button>
+
+          <p class="texto-pequeno">
+            Al confirmar aceptas los términos y condiciones de El Desparche.
+            La reserva no es transferible.
+          </p>
+        </aside>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== PIE DE PÁGINA ===== -->
+  <footer class="pie">
+    <div class="pie-columnas">
+      <div class="pie-marca">
+        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
+        <p>Conectando la cultura urbana de Colombia con planes que vale la pena vivir.</p>
+      </div>
+    </div>
+    <p class="pie-final"><span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span></p>
+  </footer>
+
+  <script type="module" src="js/script.js"></script>
+</body>
+</html>

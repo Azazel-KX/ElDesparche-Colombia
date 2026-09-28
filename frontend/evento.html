@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalle del evento - El Desparche</title>
+  <link rel="icon" href="img/14603.png">
+
+  <!-- Tipografías del diseño -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+
+<body data-pagina="evento">
+
+  <!-- ===== CABECERA ===== -->
+  <header class="cabecera">
+    <div class="cabecera-izquierda">
+      <a class="logo" href="index.html">
+        <img class="logo-icono" src="img/14603.png" alt="">
+        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
+      </a>
+
+      <nav class="menu">
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a class="activo" href="eventos.html">Eventos</a></li>
+          <li><a href="mis-reservas.html">Mis reservas</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="sesion" id="sesion"></div>
+  </header>
+
+  <main class="fondo-gris">
+    <article class="seccion">
+
+      <p class="migas">
+        <a href="eventos.html">Eventos</a> / <span id="miga-titulo"></span>
+      </p>
+
+      <figure class="portada-evento">
+        <img id="evento-imagen" src="" alt="">
+      </figure>
+
+      <!-- En computador estas dos columnas van lado a lado -->
+      <div class="detalle-columnas">
+        <div class="detalle-texto">
+          <p class="estado estado-grande" id="evento-estado"></p>
+          <h1 class="detalle-titulo" id="evento-titulo"></h1>
+          <p class="detalle-descripcion" id="evento-descripcion"></p>
+        </div>
+
+        <aside class="caja-reserva">
+          <h2>Precio base</h2>
+          <p class="precio-grande" id="evento-precio"></p>
+          <a class="boton boton-morado boton-ancho" id="boton-reservar" href="#">Reservar</a>
+          <p class="aviso" id="evento-cupos"></p>
+        </aside>
+      </div>
+
+      <!-- ===== FICHA DEL EVENTO ===== -->
+      <section class="caja">
+        <h2>Información del evento</h2>
+        <dl class="ficha" id="evento-ficha"></dl>
+      </section>
+
+      <!-- ===== UBICACIÓN ===== -->
+      <section class="caja">
+        <h2>Ubicación</h2>
+        <p class="texto-gris" id="evento-lugar"></p>
+        <iframe id="evento-mapa" title="Mapa del lugar del evento" src="" loading="lazy"></iframe>
+        <p><a class="enlace" id="evento-mapa-enlace" href="#" target="_blank" rel="noreferrer">Ver en OpenStreetMap →</a></p>
+      </section>
+
+    </article>
+  </main>
+
+  <!-- ===== PIE DE PÁGINA ===== -->
+  <footer class="pie">
+    <div class="pie-columnas">
+      <div class="pie-marca">
+        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
+        <p>Conectando la cultura urbana de Colombia con planes que vale la pena vivir.</p>
+      </div>
+
+      <div class="pie-enlaces">
+        <h3>Ayuda</h3>
+        <ul>
+          <li><a href="#">Soporte</a></li>
+          <li><a href="#">Preguntas frecuentes</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="pie-final"><span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span></p>
+  </footer>
+
+  <script type="module" src="js/script.js"></script>
+</body>
+</html>

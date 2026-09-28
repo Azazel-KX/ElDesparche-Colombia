@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reserva confirmada - El Desparche</title>
+  <link rel="icon" href="img/14603.png">
+
+  <!-- Tipografías del diseño -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+
+<body data-pagina="confirmacion">
+
+  <!-- ===== CABECERA ===== -->
+  <header class="cabecera">
+    <div class="cabecera-izquierda">
+      <a class="logo" href="index.html">
+        <img class="logo-icono" src="img/14603.png" alt="">
+        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
+      </a>
+
+      <nav class="menu">
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a class="activo" href="eventos.html">Eventos</a></li>
+          <li><a href="mis-reservas.html">Mis reservas</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="sesion" id="sesion"></div>
+  </header>
+
+  <main class="fondo-gris">
+    <section class="seccion seccion-centrada">
+
+      <img class="sello" src="img/bf734.svg" alt="">
+      <h1 class="titulo-exito">¡Tu reserva está lista!</h1>
+      <p class="subtitulo-exito">
+        Tu reserva ha sido registrada exitosamente. Guarda tu código o
+        presenta el QR en la entrada del evento.
+      </p>
+
+      <!-- En computador los detalles y el QR van lado a lado -->
+      <div class="confirmacion-columnas">
+        <div class="caja">
+          <h2 class="titulo-caja">Detalles de la reserva</h2>
+          <dl class="ficha" id="detalles"></dl>
+        </div>
+
+        <aside class="caja-qr">
+          <div class="qr" id="qr"></div>
+          <p class="codigo" id="codigo"></p>
+          <p class="texto-pequeno-claro">Presenta este QR en la entrada del evento</p>
+        </aside>
+      </div>
+
+      <div class="botones">
+        <a class="boton boton-morado" href="mis-reservas.html">Ver mis reservas</a>
+        <a class="boton boton-borde" href="index.html">Volver al inicio</a>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ===== PIE DE PÁGINA ===== -->
+  <footer class="pie">
+    <div class="pie-columnas">
+      <div class="pie-marca">
+        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
+        <p>Conectando la cultura urbana de Colombia con planes que vale la pena vivir.</p>
+      </div>
+    </div>
+    <p class="pie-final"><span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span></p>
+  </footer>
+
+  <script type="module" src="js/script.js"></script>
+</body>
+</html>
