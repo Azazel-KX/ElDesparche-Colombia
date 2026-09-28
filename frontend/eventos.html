@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eventos - El Desparche</title>
+  <link rel="icon" href="img/14603.png">
+
+  <!-- Tipografías del diseño -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+
+<body data-pagina="eventos">
+
+  <!-- ===== CABECERA ===== -->
+  <header class="cabecera">
+    <div class="cabecera-izquierda">
+      <a class="logo" href="index.html">
+        <img class="logo-icono" src="img/14603.png" alt="">
+        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
+      </a>
+
+      <nav class="menu">
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a class="activo" href="eventos.html">Eventos</a></li>
+          <li><a href="mis-reservas.html">Mis reservas</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="sesion" id="sesion"></div>
+  </header>
+
+  <main class="fondo-gris">
+    <section class="seccion">
+
+      <h1>Encuentra tu próximo plan</h1>
+      <p class="texto-gris">
+        Explora conciertos, teatro, festivales y experiencias en toda Colombia.
+      </p>
+
+      <!-- ===== FILTROS ===== -->
+      <form class="filtros">
+        <div class="caja-busqueda">
+          <img src="img/66766.svg" alt="">
+          <label class="oculto" for="busqueda">Buscar</label>
+          <input type="search" id="busqueda" placeholder="Buscar" autocomplete="off">
+        </div>
+
+        <div class="campo-filtro">
+          <label class="oculto" for="ciudad">Ciudad</label>
+          <select id="ciudad">
+            <option>Todas</option>
+            <option>Bogotá</option>
+            <option>Medellín</option>
+            <option>Cali</option>
+            <option>Barranquilla</option>
+            <option>Bucaramanga</option>
+            <option>Guatavita Reservoirs</option>
+          </select>
+        </div>
+
+        <div class="campo-filtro">
+          <label class="oculto" for="estado">Estado</label>
+          <select id="estado">
+            <option>Todos</option>
+            <option>Programado</option>
+            <option>En Boletería</option>
+            <option>En Vivo</option>
+            <option>Finalizado</option>
+            <option>Cancelado</option>
+          </select>
+        </div>
+      </form>
+
+      <p class="contador" id="contador"></p>
+      <p class="orden">Ordenar: Próximos primero</p>
+
+      <!-- El script escribe aquí las tarjetas -->
+      <div class="tarjetas" id="lista-eventos"></div>
+
+    </section>
+  </main>
+
+  <!-- ===== PIE DE PÁGINA ===== -->
+  <footer class="pie">
+    <div class="pie-columnas">
+      <div class="pie-marca">
+        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
+        <p>Conectando la cultura urbana de Colombia con planes que vale la pena vivir.</p>
+      </div>
+
+      <div class="pie-enlaces">
+        <h3>Sobre nosotros</h3>
+        <ul>
+          <li><a href="#">Comunidad</a></li>
+          <li><a href="#">Prensa</a></li>
+        </ul>
+      </div>
+
+      <div class="pie-enlaces">
+        <h3>Ayuda</h3>
+        <ul>
+          <li><a href="#">Soporte</a></li>
+          <li><a href="#">Preguntas frecuentes</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="pie-final"><span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span></p>
+  </footer>
+
+  <script type="module" src="js/script.js"></script>
+</body>
+</html>
