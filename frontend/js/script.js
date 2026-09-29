@@ -279,6 +279,27 @@ function claseEstado(estado) {
   return "estado-cancelado";
 }
 
+/* Devuelve el HTML completo de la etiqueta de estado.
+
+   ACCESIBILIDAD (WCAG 1.4.1 - el color no es el único medio): la señal
+   que distingue un estado de otro es SU PROPIO TEXTO ("Cancelado",
+   "Finalizado"...), que se lee igual aunque no se perciba el color.
+   Como refuerzo, cada estado tiene además un fondo distinto y el de
+   "Cancelado" lleva el borde punteado, porque es el que más se parece
+   al de "Finalizado".
+
+   El texto "Estado del evento:" está oculto a la vista pero sí se lee:
+   da contexto al escuchar la tarjeta. */
+function etiquetaEstado(estado, grande) {
+  var clases = "estado " + claseEstado(estado);
+  if (grande) {
+    clases = clases + " estado-grande";
+  }
+  return '<span class="' + clases + '">' +
+           '<span class="oculto">Estado del evento: </span>' + estado +
+         '</span>';
+}
+
 /* Lee un parámetro de la dirección: evento.html?id=3 -> "3" */
 function parametro(nombre) {
   var direccion = new URLSearchParams(window.location.search);
@@ -344,6 +365,170 @@ function guardarReservas(reservas) {
 
 
 /* ==========================================================================
+   3.b CONTROL DE TAMAÑO DEL TEXTO
+   Los botones A- y A+ cambian la variable CSS --escala-texto, por la que
+   se multiplican TODOS los font-size de la hoja de estilos.
+
+   ¿Por qué no se descuadra la página? Porque las medias consultas
+   (@media) miden el ANCHO DE LA PANTALLA, no la letra: las columnas de
+   la rejilla siguen siendo 1, 2, 3 o 4 igual que antes. Y las cajas que
+   tenían una altura fija (botones, buscador, listas) pasaron a
+   min-height, así que crecen hacia abajo en vez de recortar el texto.
+   ========================================================================== */
+
+/* Los cinco tamaños disponibles. 1 es el normal. */
+var ESCALAS = [0.9, 1, 1.15, 1.3, 1.5];
+
+function obtenerEscala() {
+  try {
+    var guardada = Number(localStorage.getItem("escalaTexto"));
+    if (ESCALAS.indexOf(guardada) !== -1) {
+      return guardada;
+    }
+  } catch (e) {
+    /* Modo privado o almacenamiento bloqueado: se usa el tamaño normal */
+  }
+  return 1;
+}
+
+function guardarEscala(escala) {
+  try {
+    localStorage.setItem("escalaTexto", String(escala));
+  } catch (e) {
+    /* Si no se puede guardar, el cambio igual funciona en esta página */
+  }
+}
+
+/* Aplica un tamaño y actualiza lo que ve y lo que escucha el usuario */
+function aplicarEscala(escala, avisar) {
+  document.documentElement.style.setProperty("--escala-texto", String(escala));
+
+  var porcentaje = Math.round(escala * 100) + "%";
+
+  var valor = document.getElementById("texto-valor");
+  if (valor) {
+    valor.textContent = porcentaje;
+  }
+
+  /* ESTADO: al llegar a los extremos el botón se desactiva de verdad
+     (disabled), no solo se pinta más claro. Así el lector de pantalla
+     lo anuncia como "no disponible" (WCAG 1.4.1). */
+  var posicion = ESCALAS.indexOf(escala);
+  var menos = document.getElementById("texto-menos");
+  var mas = document.getElementById("texto-mas");
+  var normal = document.getElementById("texto-normal");
+
+  if (menos) menos.disabled = posicion === 0;
+  if (mas) mas.disabled = posicion === ESCALAS.length - 1;
+  if (normal) normal.disabled = escala === 1;
+
+  /* Solo se anuncia cuando el cambio lo pidió el usuario, no al cargar */
+  if (avisar) {
+    var aviso = document.getElementById("aviso-tamano");
+    if (aviso) {
+      aviso.textContent = "Tamaño del texto: " + porcentaje + ".";
+    }
+  }
+}
+
+/* Mueve el tamaño un paso arriba o abajo dentro de la lista */
+function cambiarEscala(paso) {
+  var posicion = ESCALAS.indexOf(obtenerEscala()) + paso;
+
+  if (posicion < 0) posicion = 0;
+  if (posicion > ESCALAS.length - 1) posicion = ESCALAS.length - 1;
+
+  var escala = ESCALAS[posicion];
+  guardarEscala(escala);
+  aplicarEscala(escala, true);
+}
+
+/* ===== BOTÓN DE ACCESIBILIDAD QUE DESPLIEGA EL PANEL =====
+   Es el patrón "disclosure": un botón que abre y cierra un panel.
+   Lo importante para el lector de pantalla es aria-expanded, que le dice
+   si está abierto o cerrado; y el atributo hidden del panel, que cuando
+   está cerrado lo saca del orden de tabulación (si no, se podría llegar
+   con el teclado a botones invisibles). */
+function prepararPanelAccesibilidad() {
+  var boton = document.getElementById("abrir-accesibilidad");
+  var panel = document.getElementById("panel-accesibilidad");
+
+  if (!boton || !panel) return;
+
+  function abrirOcerrar(abierto) {
+    boton.setAttribute("aria-expanded", abierto ? "true" : "false");
+    panel.hidden = !abierto;
+  }
+
+  function cerrar(devolverFoco) {
+    /* Si el foco estaba dentro del panel hay que devolverlo al botón:
+       si no, al ocultarse el panel el foco se perdería y quien navega
+       con teclado quedaría sin punto de referencia (WCAG 2.4.3). */
+    if (devolverFoco && panel.contains(document.activeElement)) {
+      boton.focus();
+    }
+    abrirOcerrar(false);
+  }
+
+  boton.onclick = function () {
+    abrirOcerrar(boton.getAttribute("aria-expanded") !== "true");
+  };
+
+  /* La tecla Escape cierra el panel, como en cualquier menú */
+  document.addEventListener("keydown", function (evento) {
+    if (evento.key === "Escape" && boton.getAttribute("aria-expanded") === "true") {
+      cerrar(true);
+    }
+  });
+
+  /* Al pulsar fuera del panel también se cierra */
+  document.addEventListener("click", function (evento) {
+    if (boton.getAttribute("aria-expanded") !== "true") return;
+    if (!panel.contains(evento.target) && !boton.contains(evento.target)) {
+      cerrar(false);
+    }
+  });
+
+  /* Si el foco sale del panel con el tabulador, se cierra solo */
+  document.addEventListener("focusin", function (evento) {
+    if (boton.getAttribute("aria-expanded") !== "true") return;
+    if (!panel.contains(evento.target) && !boton.contains(evento.target)) {
+      abrirOcerrar(false);
+    }
+  });
+
+  abrirOcerrar(false);
+}
+
+/* Enciende los botones de la cabecera */
+function prepararTamanoTexto() {
+  var menos = document.getElementById("texto-menos");
+  var mas = document.getElementById("texto-mas");
+  var normal = document.getElementById("texto-normal");
+
+  /* Al ser <button> de verdad, ya funcionan con Enter y con la barra
+     espaciadora: no hace falta añadir nada para el teclado. */
+  if (menos) {
+    menos.onclick = function () { cambiarEscala(-1); };
+  }
+
+  if (mas) {
+    mas.onclick = function () { cambiarEscala(1); };
+  }
+
+  if (normal) {
+    normal.onclick = function () {
+      guardarEscala(1);
+      aplicarEscala(1, true);
+    };
+  }
+
+  /* false = no anunciar nada al cargar la página */
+  aplicarEscala(obtenerEscala(), false);
+}
+
+
+/* ==========================================================================
    4. CABECERA: mostrar "Entrar" o el nombre del usuario
    ========================================================================== */
 
@@ -360,12 +545,21 @@ function pintarSesion() {
       marca = '<span class="marca-agente">Agente</span>';
     }
 
+    /* La inicial del círculo es decorativa: el nombre completo ya va al
+       lado, así que se oculta al lector con aria-hidden para que no lea
+       la letra suelta antes del nombre. */
     caja.innerHTML =
       '<div class="usuario">' +
-        '<span class="usuario-inicial">' + usuario.nombre.charAt(0).toUpperCase() + '</span>' +
-        '<span class="usuario-nombre">' + usuario.nombre + '</span>' +
+        '<span class="usuario-inicial" aria-hidden="true">' +
+          usuario.nombre.charAt(0).toUpperCase() +
+        '</span>' +
+        '<span class="usuario-nombre">' +
+          '<span class="oculto">Sesión iniciada como </span>' + usuario.nombre +
+        '</span>' +
         marca +
-        '<button type="button" id="salir">Cerrar sesión</button>' +
+        '<button type="button" id="salir">' +
+          'Cerrar sesión<span class="oculto"> de ' + usuario.nombre + '</span>' +
+        '</button>' +
       '</div>';
 
     document.getElementById("salir").onclick = function () {
@@ -393,29 +587,59 @@ function pintarSesion() {
    5. TARJETAS DE EVENTOS
    ========================================================================== */
 
-/* Devuelve el HTML de una tarjeta */
+/* Devuelve el HTML de una tarjeta.
+   ESTRUCTURA SEMÁNTICA: cada tarjeta es un <li> con un <article> dentro,
+   porque un evento es contenido independiente que se entiende por sí solo.
+   El contenedor es una <ul>, así el lector de pantalla avisa cuántos
+   eventos hay ("lista de 8 elementos").
+
+   Antes toda la tarjeta era un <a> gigante y el lector leía de corrido
+   imagen + estado + título + ciudad + precio como si fuera el nombre del
+   enlace. Ahora el único enlace está en el <h3> y su nombre es solo el
+   título; el resto de la tarjeta se sigue pudiendo pulsar gracias al
+   ::after estirado que se define en el CSS. */
 function tarjetaEvento(evento) {
   return '' +
-    '<a class="tarjeta" href="evento.html?id=' + evento.id + '">' +
-      '<div class="tarjeta-imagen">' +
-        '<img src="' + evento.imagen + '" alt="' + evento.titulo + '">' +
-        '<span class="estado ' + claseEstado(evento.estado) + '">' + evento.estado + '</span>' +
-      '</div>' +
-      '<div class="tarjeta-texto">' +
-        '<h3>' + evento.titulo + '</h3>' +
-        '<p class="tarjeta-datos">' + evento.ciudad + ' · ' + evento.fechaCorta + '</p>' +
-        '<div class="tarjeta-pie">' +
-          '<span class="tarjeta-precio">' + textoPrecio(evento) + '</span>' +
-          '<span class="tarjeta-ver">Ver evento →</span>' +
+    '<li class="tarjeta">' +
+      '<article class="tarjeta-cuerpo">' +
+        '<div class="tarjeta-imagen">' +
+          '<img src="' + evento.imagen + '" ' +
+               'alt="Imagen promocional del evento ' + evento.titulo + ' en ' + evento.ciudad + '">' +
+          etiquetaEstado(evento.estado, false) +
         '</div>' +
-      '</div>' +
-    '</a>';
+        '<div class="tarjeta-texto">' +
+          '<h3 class="tarjeta-titulo">' +
+            '<a class="tarjeta-enlace" href="evento.html?id=' + evento.id + '">' +
+              evento.titulo +
+            '</a>' +
+          '</h3>' +
+          '<p class="tarjeta-datos">' +
+            '<span class="oculto">Ciudad y fecha: </span>' +
+            evento.ciudad + ' · ' + evento.fechaCorta +
+          '</p>' +
+          '<div class="tarjeta-pie">' +
+            '<span class="tarjeta-precio">' +
+              '<span class="oculto">Precio: </span>' + textoPrecio(evento) +
+            '</span>' +
+            /* Es puro adorno: el enlace real es el título, y repetirlo
+               obligaría al lector a decir "Ver evento" en cada tarjeta. */
+            '<span class="tarjeta-ver" aria-hidden="true">Ver evento →</span>' +
+          '</div>' +
+        '</div>' +
+      '</article>' +
+    '</li>';
 }
 
-/* Escribe una lista de eventos dentro de un contenedor */
+/* Escribe una lista de eventos dentro de un contenedor <ul> */
 function pintarTarjetas(contenedor, lista) {
   if (lista.length === 0) {
-    contenedor.innerHTML = '<p class="texto-gris">No se encontraron eventos.</p>';
+    contenedor.innerHTML =
+      '<li class="sin-resultados">' +
+        '<p class="texto-gris">' +
+          'No se encontraron eventos con esos filtros. Prueba con otra ' +
+          'búsqueda o quita alguno de los filtros.' +
+        '</p>' +
+      '</li>';
     return;
   }
 
@@ -424,6 +648,23 @@ function pintarTarjetas(contenedor, lista) {
     html = html + tarjetaEvento(lista[i]);
   }
   contenedor.innerHTML = html;
+}
+
+/* Escribe en la región role="status" cuántos eventos se encontraron.
+   Como la lista se filtra sin recargar la página, sin este aviso quien
+   usa lector de pantalla no se entera de que el resultado cambió
+   (WCAG 4.1.3 Mensajes de estado). */
+function avisarResultados(cuantos) {
+  var aviso = document.getElementById("resultado-busqueda");
+  if (!aviso) return;
+
+  if (cuantos === 0) {
+    aviso.textContent = "No se encontraron eventos.";
+  } else if (cuantos === 1) {
+    aviso.textContent = "Se encontró 1 evento.";
+  } else {
+    aviso.textContent = "Se encontraron " + cuantos + " eventos.";
+  }
 }
 
 
@@ -456,35 +697,52 @@ function paginaInicio() {
       }
     }
 
-    pintarTarjetas(contenedor, encontrados.slice(0, 8));
+    var mostrados = encontrados.slice(0, 8);
+    pintarTarjetas(contenedor, mostrados);
+    avisarResultados(mostrados.length);
   }
 
-  /* Llena una lista desplegable con opciones */
+  /* Llena una lista desplegable con opciones.
+     Si no hay opciones la lista queda desactivada (disabled): así el
+     lector de pantalla la anuncia como "no disponible" y el estado no
+     depende solo de que se vea más clarita (WCAG 1.4.1). */
   function llenarLista(lista, opciones, textoPorDefecto) {
     lista.innerHTML = '<option value="">' + textoPorDefecto + '</option>';
     for (var i = 0; i < opciones.length; i++) {
       lista.innerHTML = lista.innerHTML +
         '<option>' + opciones[i] + '</option>';
     }
+    lista.disabled = opciones.length === 0;
   }
 
   /* Al elegir país se llenan los departamentos */
   pais.onchange = function () {
     var lista = DEPARTAMENTOS[pais.value] || [];
-    llenarLista(departamento, lista, "Todos");
-    llenarLista(ciudad, [], "Todas");
+    llenarLista(departamento, lista, "Departamento: todos");
+    llenarLista(ciudad, [], "Ciudad: todas");
     actualizar();
   };
 
   /* Al elegir departamento se llenan las ciudades */
   departamento.onchange = function () {
     var lista = CIUDADES[departamento.value] || [];
-    llenarLista(ciudad, lista, "Todas");
+    llenarLista(ciudad, lista, "Ciudad: todas");
     actualizar();
   };
 
   ciudad.onchange = actualizar;
   busqueda.oninput = actualizar;
+
+  /* El filtrado es instantáneo, así que al pulsar Enter dentro del
+     buscador no hay que recargar la página: solo se vuelve a filtrar.
+     Sin esto, quien navega con teclado perdería el sitio donde iba. */
+  var formulario = busqueda.form;
+  if (formulario) {
+    formulario.onsubmit = function (evento) {
+      evento.preventDefault();
+      actualizar();
+    };
+  }
 
   actualizar();
 }
@@ -557,11 +815,14 @@ function paginaEvento() {
 
   var imagen = document.getElementById("evento-imagen");
   imagen.src = evento.imagen;
-  imagen.alt = evento.titulo;
+  /* El alt describe la imagen, no repite solamente el título */
+  imagen.alt = "Imagen promocional del evento " + evento.titulo + " en " + evento.ciudad;
 
+  /* La etiqueta se reemplaza entera para que lleve también el icono
+     del estado, no solo el color de fondo (WCAG 1.4.1). */
   var etiqueta = document.getElementById("evento-estado");
-  etiqueta.textContent = evento.estado;
-  etiqueta.className = "estado estado-grande " + claseEstado(evento.estado);
+  etiqueta.outerHTML = etiquetaEstado(evento.estado, true)
+    .replace('<span class="estado', '<span id="evento-estado" class="estado');
 
   /* Ficha con los datos del evento */
   var datos = [
@@ -929,38 +1190,62 @@ function crearModalAcceso() {
   modal.className = "modal";
   modal.id = "modal-acceso";
 
+  /* aria-labelledby apunta al título oculto de abajo: toda ventana
+     emergente necesita un nombre que el lector anuncie al abrirse.
+     <dialog> + showModal() ya se encarga solo de atrapar el foco dentro
+     de la ventana y de cerrarla con la tecla Escape (WCAG 2.1.2). */
+  modal.setAttribute("aria-labelledby", "titulo-modal");
+
   modal.innerHTML = '' +
     '<div class="modal-caja">' +
 
-      '<button type="button" class="modal-cerrar" id="cerrar-modal" aria-label="Cerrar">×</button>' +
+      '<h2 class="oculto" id="titulo-modal">Acceso a tu cuenta de El Desparche</h2>' +
 
-      /* Logo de El Desparche */
+      /* Botón solo con icono: el nombre accesible lo da aria-label y la
+         "×" se oculta al lector para que no lea "por" o "equis". */
+      '<button type="button" class="modal-cerrar" id="cerrar-modal" ' +
+              'aria-label="Cerrar la ventana de acceso">' +
+        '<span aria-hidden="true">×</span>' +
+      '</button>' +
+
+      /* Logo de El Desparche (decorativo: el título ya nombra la ventana) */
       '<div class="modal-logo">' +
-        '<img class="logo-icono" src="img/14603.png" alt="">' +
-        '<img class="logo-texto" src="img/b48ef.png" alt="El Desparche">' +
+        '<img class="logo-icono" src="img/14603.png" alt="" aria-hidden="true">' +
+        '<img class="logo-texto" src="img/b48ef.png" alt="" aria-hidden="true">' +
       '</div>' +
 
-      /* Pestañas */
-      '<div class="modal-pestanas">' +
-        '<button type="button" class="pestana activa" data-pestana="entrar">Iniciar sesión</button>' +
-        '<button type="button" class="pestana" data-pestana="registro">Registrarse</button>' +
+      /* Pestañas con el patrón ARIA de tabs: el contenedor es tablist,
+         cada botón es tab con aria-selected, y cada formulario es el
+         tabpanel que le corresponde. */
+      '<div class="modal-pestanas" role="tablist" aria-label="Entrar o registrarse">' +
+        '<button type="button" class="pestana activa" data-pestana="entrar" ' +
+                'role="tab" id="pestana-entrar" aria-selected="true" ' +
+                'aria-controls="form-entrar">Iniciar sesión</button>' +
+        '<button type="button" class="pestana" data-pestana="registro" ' +
+                'role="tab" id="pestana-registro" aria-selected="false" ' +
+                'aria-controls="form-registro">Registrarse</button>' +
       '</div>' +
 
       /* ----- Formulario de inicio de sesión ----- */
-      '<form id="form-entrar">' +
+      '<form id="form-entrar" role="tabpanel" aria-labelledby="pestana-entrar" novalidate>' +
         '<p class="modal-saludo">¡Qué bueno verte de nuevo! Entra para ver y gestionar tus reservas.</p>' +
 
         '<div class="campo">' +
           '<label for="correo-entrar">Correo electrónico</label>' +
-          '<input type="email" id="correo-entrar" placeholder="correo@ejemplo.com" autocomplete="email">' +
+          '<input type="email" id="correo-entrar" name="correo" required ' +
+                 'placeholder="correo@ejemplo.com" autocomplete="email" ' +
+                 'aria-describedby="error-entrar">' +
         '</div>' +
 
         '<div class="campo">' +
           '<label for="clave-entrar">Contraseña</label>' +
-          '<input type="password" id="clave-entrar" placeholder="Mínimo 6 caracteres" autocomplete="current-password">' +
+          '<input type="password" id="clave-entrar" name="clave" required ' +
+                 'minlength="6" placeholder="Mínimo 6 caracteres" ' +
+                 'autocomplete="current-password" aria-describedby="error-entrar">' +
         '</div>' +
 
-        '<p class="error" id="error-entrar"></p>' +
+        /* role="alert" hace que el lector lea el error en cuanto aparece */
+        '<p class="mensaje error" id="error-entrar" role="alert"></p>' +
 
         '<button type="submit" class="boton boton-morado boton-ancho">Iniciar sesión</button>' +
 
@@ -971,44 +1256,65 @@ function crearModalAcceso() {
       '</form>' +
 
       /* ----- Formulario de registro ----- */
-      '<form id="form-registro" hidden>' +
+      '<form id="form-registro" role="tabpanel" aria-labelledby="pestana-registro" hidden novalidate>' +
         '<p class="modal-saludo">Crea tu cuenta y empieza a despacharte.</p>' +
 
-        /* Dos tipos de cuenta */
-        '<p class="modal-subtitulo">¿Cómo quieres registrarte?</p>' +
+        /* Los dos tipos de cuenta son un grupo de radios: <fieldset> y
+           <legend> los agrupan de verdad, así el lector anuncia la
+           pregunta antes de cada opción ("Usuario, 1 de 2"). */
+        '<fieldset class="tipos-cuenta-grupo">' +
+          '<legend class="modal-subtitulo">¿Cómo quieres registrarte?</legend>' +
 
-        '<div class="tipos-cuenta">' +
-          '<label class="tipo-cuenta">' +
-            '<input type="radio" name="tipo-cuenta" value="usuario" checked>' +
-            '<span class="tipo-icono" aria-hidden="true">🎟️</span>' +
-            '<span class="tipo-nombre">Usuario</span>' +
-            '<span class="tipo-texto">Reserva entradas para los eventos que te gusten.</span>' +
-          '</label>' +
+          /* Cada radio se nombra SOLO con "Usuario" o "Agente"
+             (aria-labelledby) y la frase larga pasa a ser su descripción
+             (aria-describedby). Sin esto el lector leía de un tirón
+             "Usuario Reserva entradas para los eventos que te gusten"
+             como si todo fuera el nombre de la opción. */
+          '<div class="tipos-cuenta">' +
+            '<label class="tipo-cuenta">' +
+              '<input type="radio" name="tipo-cuenta" value="usuario" checked ' +
+                     'aria-labelledby="tipo-usuario-nombre" ' +
+                     'aria-describedby="tipo-usuario-texto">' +
+              '<span class="tipo-nombre" id="tipo-usuario-nombre">Usuario</span>' +
+              '<span class="tipo-texto" id="tipo-usuario-texto">' +
+                'Reserva entradas para los eventos que te gusten.</span>' +
+            '</label>' +
 
-          '<label class="tipo-cuenta">' +
-            '<input type="radio" name="tipo-cuenta" value="agente">' +
-            '<span class="tipo-icono" aria-hidden="true">🎤</span>' +
-            '<span class="tipo-nombre">Agente</span>' +
-            '<span class="tipo-texto">Publica y administra tus propios eventos.</span>' +
-          '</label>' +
-        '</div>' +
+            '<label class="tipo-cuenta">' +
+              '<input type="radio" name="tipo-cuenta" value="agente" ' +
+                     'aria-labelledby="tipo-agente-nombre" ' +
+                     'aria-describedby="tipo-agente-texto">' +
+              '<span class="tipo-nombre" id="tipo-agente-nombre">Agente</span>' +
+              '<span class="tipo-texto" id="tipo-agente-texto">' +
+                'Publica y administra tus propios eventos.</span>' +
+            '</label>' +
+          '</div>' +
+        '</fieldset>' +
 
         '<div class="campo">' +
           '<label for="nombre-registro">Nombre completo</label>' +
-          '<input type="text" id="nombre-registro" placeholder="Tu nombre" autocomplete="name">' +
+          '<input type="text" id="nombre-registro" name="nombre" required ' +
+                 'placeholder="Tu nombre" autocomplete="name" ' +
+                 'aria-describedby="error-registro">' +
         '</div>' +
 
         '<div class="campo">' +
           '<label for="correo-registro">Correo electrónico</label>' +
-          '<input type="email" id="correo-registro" placeholder="correo@ejemplo.com" autocomplete="email">' +
+          '<input type="email" id="correo-registro" name="correo" required ' +
+                 'placeholder="correo@ejemplo.com" autocomplete="email" ' +
+                 'aria-describedby="error-registro">' +
         '</div>' +
 
         '<div class="campo">' +
           '<label for="clave-registro">Contraseña</label>' +
-          '<input type="password" id="clave-registro" placeholder="Mínimo 6 caracteres" autocomplete="new-password">' +
+          '<input type="password" id="clave-registro" name="clave" required ' +
+                 'minlength="6" placeholder="Mínimo 6 caracteres" ' +
+                 'autocomplete="new-password" aria-describedby="ayuda-clave error-registro">' +
+          /* La regla se dice ANTES de equivocarse, no solo al fallar */
+          '<p class="ayuda-campo" id="ayuda-clave">Debe tener 6 caracteres como mínimo.</p>' +
         '</div>' +
 
-        '<p class="error" id="error-registro"></p>' +
+        '<p class="mensaje error" id="error-registro" role="alert"></p>' +
 
         '<button type="submit" class="boton boton-morado boton-ancho">Crear cuenta</button>' +
 
@@ -1045,24 +1351,59 @@ function crearModalAcceso() {
   document.getElementById("form-registro").onsubmit = registrar;
 }
 
-/* Muestra la pestaña de entrar o la de registro */
+/* Muestra la pestaña de entrar o la de registro.
+   Además de la clase "activa" (que es solo el aspecto), se actualiza
+   aria-selected, que es el ESTADO que anuncia el lector de pantalla. */
 function cambiarPestana(cual) {
   var pestanas = document.querySelectorAll("#modal-acceso .pestana");
 
   for (var i = 0; i < pestanas.length; i++) {
-    if (pestanas[i].getAttribute("data-pestana") === cual) {
-      pestanas[i].classList.add("activa");
-    } else {
-      pestanas[i].classList.remove("activa");
-    }
+    var elegida = pestanas[i].getAttribute("data-pestana") === cual;
+    pestanas[i].classList.toggle("activa", elegida);
+    pestanas[i].setAttribute("aria-selected", elegida ? "true" : "false");
   }
 
   document.getElementById("form-entrar").hidden = cual !== "entrar";
   document.getElementById("form-registro").hidden = cual !== "registro";
 
   /* Se limpian los mensajes de error al cambiar */
-  document.getElementById("error-entrar").textContent = "";
-  document.getElementById("error-registro").textContent = "";
+  limpiarError("error-entrar", ["correo-entrar", "clave-entrar"]);
+  limpiarError("error-registro", ["nombre-registro", "correo-registro", "clave-registro"]);
+}
+
+/* ===== MENSAJES DE ERROR ACCESIBLES =====
+   REGLA DE ORO (WCAG 1.4.1 y 3.3.1): el error no se transmite solo con
+   el color rojo. El mensaje lleva un icono, la palabra "Error:" delante
+   y el campo culpable queda marcado con aria-invalid="true". Al ir el
+   contenedor con role="alert", el lector lo lee en cuanto aparece. */
+function mostrarError(idMensaje, texto, idCampo) {
+  var caja = document.getElementById(idMensaje);
+
+  caja.innerHTML = '<span><strong>Error:</strong> ' + texto + '</span>';
+
+  /* El foco va al campo que falló para poder corregirlo enseguida */
+  if (idCampo) {
+    var campo = document.getElementById(idCampo);
+    if (campo) {
+      campo.setAttribute("aria-invalid", "true");
+      campo.focus();
+    }
+  }
+}
+
+/* Borra el mensaje y quita la marca de inválido de los campos */
+function limpiarError(idMensaje, campos) {
+  var caja = document.getElementById(idMensaje);
+  if (caja) {
+    caja.textContent = "";
+  }
+
+  for (var i = 0; i < campos.length; i++) {
+    var campo = document.getElementById(campos[i]);
+    if (campo) {
+      campo.removeAttribute("aria-invalid");
+    }
+  }
 }
 
 /* Abre la ventana emergente en la pestaña que se le indique */
@@ -1077,15 +1418,23 @@ function entrar(evento) {
 
   var correo = document.getElementById("correo-entrar").value.trim();
   var clave = document.getElementById("clave-entrar").value;
-  var error = document.getElementById("error-entrar");
 
-  if (correo === "" || clave === "") {
-    error.textContent = "Completa todos los campos.";
+  limpiarError("error-entrar", ["correo-entrar", "clave-entrar"]);
+
+  /* Los mensajes dicen QUÉ campo falta y CÓMO arreglarlo (WCAG 3.3.3) */
+  if (correo === "") {
+    mostrarError("error-entrar", "Escribe tu correo electrónico.", "correo-entrar");
+    return;
+  }
+
+  if (clave === "") {
+    mostrarError("error-entrar", "Escribe tu contraseña.", "clave-entrar");
     return;
   }
 
   if (clave.length < 6) {
-    error.textContent = "La contraseña debe tener mínimo 6 caracteres.";
+    mostrarError("error-entrar",
+      "La contraseña debe tener 6 caracteres como mínimo.", "clave-entrar");
     return;
   }
 
@@ -1106,16 +1455,28 @@ function registrar(evento) {
   var nombre = document.getElementById("nombre-registro").value.trim();
   var correo = document.getElementById("correo-registro").value.trim();
   var clave = document.getElementById("clave-registro").value;
-  var error = document.getElementById("error-registro");
   var tipo = document.querySelector('input[name="tipo-cuenta"]:checked').value;
 
-  if (nombre === "" || correo === "" || clave === "") {
-    error.textContent = "Completa todos los campos.";
+  limpiarError("error-registro", ["nombre-registro", "correo-registro", "clave-registro"]);
+
+  if (nombre === "") {
+    mostrarError("error-registro", "Escribe tu nombre completo.", "nombre-registro");
+    return;
+  }
+
+  if (correo === "") {
+    mostrarError("error-registro", "Escribe tu correo electrónico.", "correo-registro");
+    return;
+  }
+
+  if (clave === "") {
+    mostrarError("error-registro", "Escribe una contraseña.", "clave-registro");
     return;
   }
 
   if (clave.length < 6) {
-    error.textContent = "La contraseña debe tener mínimo 6 caracteres.";
+    mostrarError("error-registro",
+      "La contraseña debe tener 6 caracteres como mínimo.", "clave-registro");
     return;
   }
 
@@ -1132,6 +1493,8 @@ function registrar(evento) {
 
 crearModalAcceso();
 pintarSesion();
+prepararPanelAccesibilidad();
+prepararTamanoTexto();
 
 var pagina = document.body.getAttribute("data-pagina");
 

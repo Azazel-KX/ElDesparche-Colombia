@@ -1,31 +1,63 @@
+@charset "UTF-8";
+
 /* ==========================================================================
    El Desparche - Hoja de estilos
    Escrita MOBILE FIRST: primero los estilos del celular y al final
    las media queries que agrandan el diseño en tablet y computador.
    ========================================================================== */
 
-/* ===== VARIABLES DE COLOR ===== */
+/* ===== VARIABLES DE COLOR =====
+   Cada color usado como TEXTO cumple el contraste mínimo 4.5:1 que pide
+   el nivel AA de las WCAG (criterio 1.4.3 Contraste mínimo).
+   Los colores de marca (--verde, --naranja, --rojo) se conservan para
+   rellenos decorativos grandes; para texto se usan las variantes
+   "-texto", que son las versiones oscurecidas y verificadas. */
 :root {
-  --morado: #5b36f2;
+  --morado: #5b36f2;          /* 6.45:1 sobre blanco */
   --morado-claro: #eeeafe;
   --violeta: #a855f7;
   --oscuro: #130a2b;
   --oscuro-2: #120a2a;
   --borde-oscuro: #3b2666;
-  --texto-claro: #c0b8e0;
-  --texto-claro-2: #94a3b8;
+  --texto-claro: #c0b8e0;     /* 10.10:1 sobre --oscuro */
+  --texto-claro-2: #94a3b8;   /*  7.41:1 sobre --oscuro */
   --texto: #17213a;
-  --gris: #667085;
-  --gris-claro: #98a2b3;
+  --gris: #667085;            /* 4.97:1 sobre blanco */
+  --gris-claro: #5f697a;      /* 5.54:1 sobre blanco (antes #98a2b3: 2.58:1, NO cumplía) */
   --borde: #e3e6ee;
   --borde-suave: #f0f1f3;
   --fondo: #f6f7fb;
   --blanco: #fff;
+
+  /* Colores de marca (solo rellenos decorativos, nunca texto pequeño) */
   --verde: #20a66a;
   --verde-claro: #e8f8f0;
   --naranja: #f59e0b;
   --rojo: #e83e5b;
   --rojo-claro: #fdecef;
+
+  /* Versiones accesibles para texto y para las etiquetas de estado */
+  --borde-negro: #17213a;     /* borde de los campos del buscador: 15.97:1 sobre blanco */
+  --campo-desactivado: #dde1ea; /* relleno de una lista de filtro aún no disponible */
+  --violeta-texto: #7c3aed;   /* texto blanco encima: 5.70:1 (el --violeta original se quedaba en 3.96:1) */
+  --verde-texto: #0f7a4a;     /* 5.38:1 sobre blanco */
+  --naranja-texto: #8a4b00;   /* 6.80:1 sobre blanco */
+  --rojo-texto: #b3213c;      /* 6.56:1 sobre blanco */
+  --gris-texto: #4b5565;      /* 7.54:1 sobre blanco */
+  --vino-texto: #6d3a45;      /* 8.97:1 sobre blanco */
+  --error: #c0244a;           /* 5.85:1 sobre blanco */
+
+  /* Factor del control de tamano de texto de la cabecera.
+     Lo cambia el JavaScript entre 0.9 y 1.5; todos los font-size de esta
+     hoja se multiplican por el. Las medias consultas (media queries) siguen
+     midiendo el ANCHO de la pantalla, no la letra, asi que las columnas del
+     diseno no se mueven: solo crece el texto. */
+  --escala-texto: 1;
+
+  /* Color e grosor del anillo de foco (criterio 2.4.7 Foco visible) */
+  --foco: #5b36f2;
+  --foco-claro: #ffbf47;      /* 11.57:1 sobre --oscuro, para fondos oscuros */
+  --foco-grosor: 3px;
 }
 
 /* ===== BASE ===== */
@@ -36,7 +68,7 @@
 body {
   margin: 0;
   font-family: "Inter", Arial, Helvetica, sans-serif;
-  font-size: 16px;
+  font-size: calc(16px * var(--escala-texto));
   line-height: 1.5;
   color: var(--texto);
   background: var(--fondo);
@@ -48,7 +80,7 @@ img {
 }
 
 h1 {
-  font-size: 36px;
+  font-size: calc(36px * var(--escala-texto));
   line-height: 1.06;
   letter-spacing: -1px;
   margin: 0 0 12px;
@@ -56,13 +88,13 @@ h1 {
 }
 
 h2 {
-  font-size: 24px;
+  font-size: calc(24px * var(--escala-texto));
   margin: 0 0 12px;
   font-weight: 400;
 }
 
 h3 {
-  font-size: 16px;
+  font-size: calc(16px * var(--escala-texto));
   margin: 0 0 6px;
   font-weight: 600;
 }
@@ -73,6 +105,121 @@ p {
 
 a {
   color: var(--morado);
+}
+
+/* ==========================================================================
+   ACCESIBILIDAD: FOCO VISIBLE (WCAG 2.4.7 - nivel AA)
+   Regla de oro: NUNCA se usa "outline: none" sin poner un reemplazo
+   visible. Aquí se define un anillo de foco único para todo el sitio.
+   Se usa :focus-visible para que el anillo solo aparezca al navegar con
+   el teclado y no moleste al hacer clic con el ratón.
+   ========================================================================== */
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: var(--foco-grosor) solid var(--foco);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Sobre los fondos oscuros (cabecera y pie) el morado no se distingue,
+   así que allí el anillo se pinta en amarillo claro. */
+.cabecera a:focus-visible,
+.cabecera button:focus-visible,
+.pie a:focus-visible,
+.pie button:focus-visible,
+.modal-logo a:focus-visible,
+.modal-cerrar:focus-visible {
+  outline-color: var(--foco-claro);
+}
+
+/* Navegadores antiguos que no entienden :focus-visible: al menos
+   conservan el contorno que trae el navegador por defecto. */
+@supports not selector(:focus-visible) {
+  a:focus,
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: var(--foco-grosor) solid var(--foco);
+    outline-offset: 2px;
+  }
+}
+
+/* <main tabindex="-1"> recibe el foco al usar el enlace de salto, pero
+   no debe mostrar el anillo cuando se llega con el ratón. */
+main:focus {
+  outline: none;
+}
+
+main:focus-visible {
+  outline: var(--foco-grosor) solid var(--foco);
+  outline-offset: -4px;
+}
+
+/* ===== ENLACE DE SALTO AL CONTENIDO (WCAG 2.4.1 - nivel A) =====
+   Está fuera de la pantalla y baja a la vista en cuanto recibe el foco. */
+.salto-contenido {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -200%);
+  z-index: 200;
+  background: var(--morado);
+  color: var(--blanco);
+  font-weight: 600;
+  padding: 14px 22px;
+  border-radius: 0 0 10px 10px;
+  text-decoration: none;
+  transition: transform 0.15s ease-in-out;
+}
+
+.salto-contenido:focus {
+  transform: translate(-50%, 0);
+  outline: var(--foco-grosor) solid var(--foco-claro);
+  outline-offset: -6px;
+}
+
+/* ===== MOVIMIENTO REDUCIDO (WCAG 2.3.3) =====
+   Respeta a quien pidió en su sistema operativo menos animaciones. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .tarjeta:hover {
+    transform: none;
+  }
+}
+
+/* ===== MODO DE ALTO CONTRASTE DE WINDOWS (Robusto, WCAG 1.4.11) =====
+   En este modo el sistema reemplaza los colores; hay que asegurarse de
+   que los bordes y el foco sigan viéndose. */
+@media (forced-colors: active) {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: var(--foco-grosor) solid Highlight;
+  }
+
+  .estado,
+  .etiqueta-reserva,
+  .boton,
+  .tarjeta {
+    border: 1px solid ButtonText;
+  }
 }
 
 /* ==========================================================================
@@ -123,13 +270,200 @@ a {
   text-decoration: none;
   font-family: "Geist", "Inter", sans-serif;
   font-weight: 600;
-  font-size: 15px;
+  font-size: calc(15px * var(--escala-texto));
   white-space: nowrap;
 }
 
-.menu a:hover,
-.menu a.activo {
+.menu a:hover {
   color: var(--blanco);
+  text-decoration: underline;
+}
+
+/* La página actual NO se marca solo con el color: además lleva un
+   subrayado grueso, para quien no distingue el cambio de tono
+   (WCAG 1.4.1 - El color no es el único medio). */
+.menu a.activo,
+.menu a[aria-current="page"] {
+  color: var(--blanco);
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 6px;
+}
+
+/* Lado derecho de la cabecera: control de tamaño + zona de sesión */
+.cabecera-derecha {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ===== BOTÓN DE ACCESIBILIDAD Y SU PANEL DESPLEGABLE =====
+   A propósito NADA de este bloque lleva calc(var(--escala-texto)): estos
+   controles son el punto de referencia y deben quedarse quietos mientras
+   el resto de la página crece o se encoge. Así siempre se encuentran en
+   el mismo sitio y del mismo tamaño. */
+
+.accesibilidad {
+  position: relative;
+  margin-top: 14px;
+}
+
+.boton-accesibilidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  /* 44 px de alto: área mínima cómoda de pulsación (WCAG 2.5.8) */
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--blanco);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.boton-accesibilidad:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Panel abierto: el botón se queda resaltado para que se vea de dónde
+   salió el panel. No es la única señal (también está aria-expanded y el
+   propio panel visible), así que no depende del color. */
+.boton-accesibilidad[aria-expanded="true"] {
+  background: var(--blanco);
+  color: var(--oscuro);
+  border-color: var(--blanco);
+}
+
+/* La flechita gira al abrir: otra señal visual del estado, además de
+   aria-expanded. Es un <span> del marcado (no contenido generado con
+   ::after) para poder marcarlo con aria-hidden y que no se cuele en el
+   nombre accesible del botón. */
+.flecha-accesibilidad {
+  /* inline-block: transform no tiene efecto sobre elementos en línea */
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.boton-accesibilidad[aria-expanded="true"] .flecha-accesibilidad {
+  transform: rotate(180deg);
+}
+
+/* El panel flota por encima: al abrirse NO empuja ni descoloca nada
+   de la página, solo se superpone. */
+.panel-accesibilidad {
+  position: absolute;
+  top: calc(100% + 10px);
+  z-index: 120;
+  width: 260px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(19, 10, 43, 0.35);
+  padding: 18px;
+  color: var(--texto);
+
+  /* MÓVIL: la cabecera se apila y el botón queda pegado a la izquierda,
+     así que el panel se despliega hacia la DERECHA del botón. Anclarlo
+     con right:0 aquí lo sacaba fuera de la pantalla por la izquierda.
+     El margen de 20px es el padding lateral de la cabecera; se descuenta
+     dos veces para que el panel nunca toque ningún borde. */
+  left: 0;
+  right: auto;
+  max-width: calc(100vw - 40px);
+}
+
+/* El atributo hidden lo saca de la vista, del teclado y del lector */
+.panel-accesibilidad[hidden] {
+  display: none;
+}
+
+.panel-titulo {
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--texto);
+  margin: 0 0 12px;
+}
+
+.panel-ayuda {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--gris);
+  margin: 12px 0 0;
+}
+
+/* ===== CONTROL DE TAMAÑO DEL TEXTO (dentro del panel) ===== */
+.tamano-texto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.tamano-texto button {
+  /* 44x44 px: área mínima cómoda de pulsación (WCAG 2.5.8) */
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--texto);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tamano-texto button:hover:not(:disabled) {
+  background: var(--morado-claro);
+  color: var(--morado);
+}
+
+/* El botón "Normal" lleva texto, no una letra suelta */
+.tamano-texto .tamano-reinicio {
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* Botón al límite: se comunica con el atributo disabled (que el lector
+   anuncia como "no disponible"), no solo con que se vea más apagado. */
+.tamano-texto button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* La "A" pequeña y la grande dan una pista visual del efecto de cada
+   botón. Van con el selector descendiente para ganarle en especificidad
+   a ".tamano-texto button", que si no impondría su font-size a los dos. */
+.tamano-texto .tamano-menor { font-size: 13px; }
+.tamano-texto .tamano-mayor { font-size: 19px; }
+
+/* Porcentaje actual: es la señal visible del estado. El lector no lo lee
+   (aria-hidden) porque ya se lo anuncia la región role="status". */
+.tamano-valor {
+  min-width: 46px;
+  text-align: center;
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--morado);
+  white-space: nowrap;
 }
 
 /* Zona de sesión: botones de entrar o el nombre del usuario */
@@ -142,14 +476,16 @@ a {
 
 .boton-entrar,
 .boton-registro {
-  height: 44px;
+  /* min-height en vez de height: si el usuario agranda la letra, el boton
+     crece en vez de recortar el texto. */
+  min-height: 44px;
   padding: 0 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--blanco);
   color: var(--blanco);
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
@@ -183,14 +519,15 @@ a {
 }
 
 .usuario-inicial {
-  width: 28px;
-  height: 28px;
+  /* Medido en em: el circulo crece junto con su propia letra */
+  width: 2.15em;
+  height: 2.15em;
   border-radius: 50%;
-  background: var(--violeta);
+  background: var(--violeta-texto);
   color: var(--blanco);
   font-family: "Geist", "Inter", sans-serif;
   font-weight: 700;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -199,22 +536,27 @@ a {
 
 .usuario-nombre {
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   color: var(--blanco);
   white-space: nowrap;
 }
 
+/* Va sobre la cabecera oscura, así que usa un rojo claro
+   (#ff8fa3 = 7.28:1 sobre --oscuro) en lugar del rojo de marca,
+   que sobre ese fondo se quedaba en 3.05:1 y no cumplía AA. */
 .usuario button {
   background: none;
   border: none;
-  color: var(--rojo);
-  font-size: 13px;
-  padding: 6px 12px;
+  color: #ff8fa3;
+  font-size: calc(13px * var(--escala-texto));
+  padding: 8px 12px;
   cursor: pointer;
+  border-radius: 6px;
 }
 
 .usuario button:hover {
-  color: #ff6d84;
+  color: var(--blanco);
+  text-decoration: underline;
 }
 
 /* ==========================================================================
@@ -246,7 +588,7 @@ a {
 }
 
 .texto-pequeno {
-  font-size: 12px;
+  font-size: calc(12px * var(--escala-texto));
   color: var(--gris-claro);
   text-align: center;
   line-height: 1.4;
@@ -254,7 +596,7 @@ a {
 
 .enlace {
   color: var(--morado);
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   text-decoration: none;
   white-space: nowrap;
 }
@@ -263,13 +605,19 @@ a {
   text-decoration: underline;
 }
 
-/* Etiqueta oculta a la vista pero disponible para lectores de pantalla */
+/* Texto oculto a la vista pero SÍ disponible para los lectores de pantalla.
+   No se usa display:none ni visibility:hidden porque esos sí lo esconderían
+   también del lector. Se añade clip-path porque clip está obsoleto. */
 .oculto {
   position: absolute;
   width: 1px;
   height: 1px;
+  padding: 0;
+  margin: -1px;
+  border: 0;
   overflow: hidden;
   clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
@@ -285,7 +633,7 @@ a {
   border: none;
   border-radius: 12px;
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 15px;
+  font-size: calc(15px * var(--escala-texto));
   font-weight: 700;
   text-align: center;
   text-decoration: none;
@@ -313,9 +661,11 @@ a {
 }
 
 /* Botón desactivado (evento finalizado o cancelado) */
+/* El texto va en --gris-texto (6.04:1 sobre --borde); con --gris-claro
+   se quedaba en 4.44:1 y no llegaba al mínimo AA de 4.5:1. */
 .boton-desactivado {
   background: var(--borde);
-  color: var(--gris-claro);
+  color: var(--gris-texto);
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -332,11 +682,11 @@ a {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 64px;
+  min-height: 64px;
   background: var(--morado);
   border-radius: 14px;
   color: var(--blanco);
-  font-size: 15px;
+  font-size: calc(15px * var(--escala-texto));
   text-align: center;
   text-decoration: none;
 }
@@ -360,12 +710,12 @@ a {
   color: var(--morado);
   border-radius: 999px;
   padding: 7px 12px;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   margin-bottom: 20px;
 }
 
 .parrafo-grande {
-  font-size: 18px;
+  font-size: calc(18px * var(--escala-texto));
   color: var(--gris);
   margin-bottom: 24px;
 }
@@ -391,7 +741,7 @@ a {
 }
 
 .buscador h2 {
-  font-size: 20px;
+  font-size: calc(20px * var(--escala-texto));
   margin-bottom: 18px;
 }
 
@@ -402,20 +752,29 @@ a {
   margin: 18px 0;
 }
 
-/* Caja de búsqueda redondeada con el ícono de lupa */
+/* Caja de búsqueda redondeada con el ícono de lupa.
+   El borde es negro y de 2px para que se vea con claridad dónde empieza
+   y acaba el campo: antes era gris claro y el control se confundía con
+   el fondo de la sección. Da 15.97:1, muy por encima del mínimo 3:1 que
+   pide WCAG 1.4.11 para el contorno de un componente. */
 .caja-busqueda {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: var(--blanco);
-  border: 1px solid #999;
+  background-color: var(--blanco);
+  border: 2px solid var(--borde-negro);
   border-radius: 999px;
-  height: 54px;
+  min-height: 54px;
   padding: 0 6px;
 }
 
+/* El campo va sin contorno propio porque el anillo de foco se dibuja
+   sobre TODA la caja redondeada: así el reemplazo de "outline: none"
+   es claramente visible (WCAG 2.4.7). */
 .caja-busqueda:focus-within {
   border-color: var(--morado);
+  outline: var(--foco-grosor) solid var(--foco);
+  outline-offset: 2px;
 }
 
 .caja-busqueda img {
@@ -428,20 +787,29 @@ a {
   flex: 1;
   min-width: 0;
   border: none;
-  outline: none;
   background: none;
   font-family: "Source Sans 3", "Inter", sans-serif;
   font-weight: 600;
-  font-size: 16px;
+  font-size: calc(16px * var(--escala-texto));
   color: var(--texto);
 }
 
-/* Listas desplegables con la flechita a la derecha */
+/* Se quita el contorno SOLO del campo interior porque el contorno
+   equivalente ya lo pinta .caja-busqueda:focus-within (arriba). */
+.caja-busqueda input:focus,
+.caja-busqueda input:focus-visible {
+  outline: none;
+}
+
+/* Listas desplegables con la flechita a la derecha.
+   Mismo borde negro de 2px que la caja de búsqueda: el anterior era
+   var(--borde) #e3e6ee, que sobre blanco daba 1.19:1 y resultaba
+   invisible. */
 .filtros select {
   width: 100%;
-  height: 54px;
+  min-height: 54px;
   padding: 0 44px 0 16px;
-  border: 1px solid var(--borde);
+  border: 2px solid var(--borde-negro);
   border-radius: 14px;
   background-color: var(--blanco);
   background-image: url("../img/f81d4.svg");
@@ -449,7 +817,7 @@ a {
   background-position: right 16px center;
   background-size: 16px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   color: var(--texto);
   cursor: pointer;
   appearance: none;
@@ -460,8 +828,45 @@ a {
   border-color: var(--morado);
 }
 
-.filtros select:focus {
-  outline: 2px solid var(--morado);
+.filtros select:focus-visible {
+  outline: var(--foco-grosor) solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* Lista aún no disponible: el estado se comunica con el atributo
+   disabled (que el lector de pantalla anuncia como "no disponible")
+   y con el texto de ayuda de abajo, no solo con el gris. */
+.filtros select:disabled {
+  /* El relleno gris es lo que separa "disponible" de "aún no disponible";
+     el borde sigue siendo negro para que el campo no se pierda del todo.
+     El texto usa --gris-texto porque --gris-claro sobre este gris se
+     quedaba en 3.72:1, por debajo del 4.5:1 de AA. */
+  background-color: var(--campo-desactivado);
+  color: var(--gris-texto);
+  cursor: not-allowed;
+}
+
+/* Texto de ayuda enlazado con aria-describedby */
+.ayuda-campo {
+  font-size: calc(12px * var(--escala-texto));
+  color: var(--gris);
+  margin: 6px 0 0;
+}
+
+/* Cuando la lista ya está habilitada, la ayuda deja de tener sentido */
+.filtros select:not(:disabled) + .ayuda-campo {
+  display: none;
+}
+
+/* Aviso de cuántos eventos se encontraron (región role="status") */
+.resultado-busqueda {
+  font-size: calc(14px * var(--escala-texto));
+  color: var(--gris);
+  margin: 0 0 18px;
+}
+
+.resultado-busqueda:empty {
+  margin: 0;
 }
 
 /* ==========================================================================
@@ -474,34 +879,83 @@ a {
 }
 
 .titulo-seccion h2 {
-  font-size: 28px;
+  font-size: calc(28px * var(--escala-texto));
   margin-bottom: 6px;
 }
 
 .titulo-seccion p {
-  font-size: 15px;
+  font-size: calc(15px * var(--escala-texto));
 }
 
+/* Las tarjetas viven dentro de una <ul>: el lector de pantalla anuncia
+   "lista de N elementos", así se sabe cuántos eventos hay. */
 .tarjetas {
   display: grid;
   grid-template-columns: 1fr;
   gap: 20px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .tarjeta {
+  display: flex;
+}
+
+/* Cada tarjeta es un <article>: contenido independiente y reutilizable */
+.tarjeta-cuerpo {
+  position: relative;
+  width: 100%;
   background: var(--blanco);
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 8px 28px rgba(23, 33, 58, 0.08);
-  text-decoration: none;
   color: var(--texto);
   display: flex;
   flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.tarjeta:hover {
+.tarjeta-cuerpo:hover {
   box-shadow: 0 12px 40px rgba(23, 33, 58, 0.14);
   transform: translateY(-3px);
+}
+
+/* Un único enlace por tarjeta (una sola parada de tabulación) cuyo
+   ::after se estira sobre toda la tarjeta para que siga siendo
+   pulsable completa con el ratón. */
+.tarjeta-enlace {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tarjeta-enlace::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.tarjeta-enlace:hover {
+  text-decoration: underline;
+}
+
+/* El anillo de foco se dibuja alrededor de la tarjeta entera, no solo
+   del texto del título, para que se vea con claridad. */
+.tarjeta-enlace:focus-visible {
+  outline: none;
+}
+
+.tarjeta:has(.tarjeta-enlace:focus-visible) .tarjeta-cuerpo {
+  outline: var(--foco-grosor) solid var(--foco);
+  outline-offset: 3px;
+}
+
+/* Reserva para navegadores sin :has() */
+@supports not selector(:has(a)) {
+  .tarjeta-enlace:focus-visible {
+    outline: var(--foco-grosor) solid var(--foco);
+    outline-offset: 2px;
+  }
 }
 
 /* La imagen y la etiqueta de estado encima */
@@ -532,14 +986,15 @@ a {
   gap: 8px;
 }
 
-.tarjeta h3 {
+.tarjeta h3,
+.tarjeta-titulo {
   margin: 0;
-  font-size: 16px;
+  font-size: calc(16px * var(--escala-texto));
   line-height: 1.2;
 }
 
 .tarjeta-datos {
-  font-size: 12px;
+  font-size: calc(12px * var(--escala-texto));
   color: var(--gris);
   margin: 0;
 }
@@ -554,13 +1009,28 @@ a {
 }
 
 .tarjeta-precio {
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   margin: 0;
 }
 
 .tarjeta-ver {
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--morado);
+  margin: 0;
+}
+
+/* Mensaje de "no se encontraron eventos": ocupa todas las columnas
+   de la rejilla para que no quede encogido en un rincón. */
+.sin-resultados {
+  grid-column: 1 / -1;
+  background: var(--fondo);
+  border: 1px dashed var(--borde);
+  border-radius: 12px;
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.sin-resultados p {
   margin: 0;
 }
 
@@ -568,40 +1038,56 @@ a {
    ETIQUETA DE ESTADO DEL EVENTO
    ========================================================================== */
 
+/* REGLA DE ORO (WCAG 1.4.1): el estado NO se distingue solo por el color.
+   La señal principal es EL TEXTO de la propia etiqueta ("En Vivo",
+   "Cancelado"...), que se entiende igual sin percibir el color.
+   Como refuerzo, cada estado tiene un fondo distinto (todos con
+   contraste 4.5:1 o más sobre el texto blanco) y "Cancelado" lleva el
+   borde punteado, porque su tono es el que más se parece al de
+   "Finalizado", que antes compartían EL MISMO gris. */
+
 .estado {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  border: 2px solid transparent;
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 5px 10px;
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 11px;
+  font-size: calc(11px * var(--escala-texto));
   font-weight: 600;
   color: var(--blanco);
   margin: 0 0 14px;
 }
 
 .estado-grande {
-  padding: 9px 16px;
-  font-size: 14px;
+  padding: 8px 16px;
+  font-size: calc(14px * var(--escala-texto));
 }
 
-.estado-programado { background: var(--verde); }
-.estado-boleteria  { background: var(--naranja); }
-.estado-vivo       { background: var(--rojo); }
-.estado-finalizado { background: var(--gris-claro); }
-.estado-cancelado  { background: var(--gris-claro); }
+.estado-programado { background: var(--verde-texto); }   /* 5.38:1 */
+.estado-boleteria  { background: var(--naranja-texto); } /* 6.80:1 */
+.estado-vivo       { background: var(--rojo-texto); }    /* 6.56:1 */
+.estado-finalizado { background: var(--gris-texto); }    /* 7.54:1 */
+
+/* El borde de rayas da una cuarta señal, visible incluso en blanco y negro */
+.estado-cancelado {
+  background: var(--vino-texto);                         /* 8.97:1 */
+  border-style: dashed;
+  border-color: var(--blanco);
+}
 
 /* ==========================================================================
    PÁGINA DE EVENTOS (listado)
    ========================================================================== */
 
 .contador {
-  font-size: 20px;
+  font-size: calc(20px * var(--escala-texto));
   font-weight: 600;
   margin: 20px 0 2px;
 }
 
 .orden {
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   color: var(--gris);
   margin: 0 0 20px;
 }
@@ -611,7 +1097,7 @@ a {
    ========================================================================== */
 
 .migas {
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--morado);
   margin-bottom: 20px;
 }
@@ -632,12 +1118,12 @@ a {
 }
 
 .detalle-titulo {
-  font-size: 30px;
+  font-size: calc(30px * var(--escala-texto));
   line-height: 1.1;
 }
 
 .detalle-descripcion {
-  font-size: 16px;
+  font-size: calc(16px * var(--escala-texto));
   line-height: 1.55;
   color: var(--gris);
 }
@@ -650,7 +1136,7 @@ a {
 }
 
 .caja h2 {
-  font-size: 22px;
+  font-size: calc(22px * var(--escala-texto));
 }
 
 /* Caja lateral con el precio y el botón de reservar */
@@ -663,7 +1149,7 @@ a {
 }
 
 .caja-reserva h2 {
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--gris);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -671,13 +1157,13 @@ a {
 }
 
 .precio-grande {
-  font-size: 28px;
+  font-size: calc(28px * var(--escala-texto));
   margin-bottom: 16px;
 }
 
 .aviso {
   text-align: center;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--verde);
   margin: 14px 0 0;
 }
@@ -702,12 +1188,12 @@ a {
 
 .ficha dt {
   font-weight: 600;
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
 }
 
 .ficha dd {
   margin: 4px 0 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   line-height: 1.45;
   color: var(--gris);
 }
@@ -726,7 +1212,7 @@ iframe {
    ========================================================================== */
 
 .caja h2.titulo-caja {
-  font-size: 20px;
+  font-size: calc(20px * var(--escala-texto));
   font-weight: 600;
   margin-bottom: 20px;
 }
@@ -751,12 +1237,12 @@ iframe {
 
 .mini-evento p {
   margin: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--gris);
 }
 
 .mini-evento .negrita {
-  font-size: 15px;
+  font-size: calc(15px * var(--escala-texto));
   color: var(--texto);
 }
 
@@ -769,7 +1255,7 @@ iframe {
 }
 
 .campo label {
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   font-weight: 600;
 }
 
@@ -785,14 +1271,24 @@ iframe {
   border: 1px solid var(--borde);
   border-radius: 10px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   background: var(--blanco);
 }
 
-.campo input:focus,
-.campo textarea:focus {
-  outline: none;
+/* Antes aquí había "outline: none" y el foco solo se notaba por el
+   cambio de color del borde. Ahora se conserva el anillo visible. */
+.campo input:focus-visible,
+.campo textarea:focus-visible {
   border-color: var(--morado);
+  outline: var(--foco-grosor) solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* Campo con error: borde más grueso + el mensaje con icono de abajo */
+.campo input[aria-invalid="true"],
+.campo textarea[aria-invalid="true"] {
+  border-color: var(--error);
+  border-width: 2px;
 }
 
 .campo textarea {
@@ -808,14 +1304,16 @@ iframe {
 }
 
 .contador-tickets button {
-  width: 40px;
-  height: 40px;
+  width: 2em;
+  height: 2em;
+  min-width: 40px;
+  min-height: 40px;
   border: 1px solid var(--borde);
   border-radius: 10px;
   background: var(--blanco);
   color: var(--morado);
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 20px;
+  font-size: calc(20px * var(--escala-texto));
   font-weight: 700;
   cursor: pointer;
 }
@@ -826,14 +1324,14 @@ iframe {
 
 .contador-tickets output {
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 24px;
+  font-size: calc(24px * var(--escala-texto));
   font-weight: 700;
   min-width: 32px;
   text-align: center;
 }
 
 .limite {
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--gris);
 }
 
@@ -842,7 +1340,7 @@ iframe {
   color: var(--morado);
   border-radius: 10px;
   padding: 14px 16px;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   line-height: 1.5;
   margin: 0;
 }
@@ -867,7 +1365,7 @@ iframe {
   justify-content: space-between;
   gap: 12px;
   margin: 0 0 10px;
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
 }
 
 .resumen dt {
@@ -886,7 +1384,7 @@ iframe {
 
 .resumen-total dt {
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 16px;
+  font-size: calc(16px * var(--escala-texto));
   font-weight: 700;
   color: var(--texto);
 }
@@ -894,7 +1392,7 @@ iframe {
 .resumen-total dd {
   font-family: "Geist", "Inter", sans-serif;
   color: var(--morado);
-  font-size: 20px;
+  font-size: calc(20px * var(--escala-texto));
   font-weight: 700;
 }
 
@@ -913,13 +1411,13 @@ iframe {
 
 .titulo-exito {
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 30px;
+  font-size: calc(30px * var(--escala-texto));
   font-weight: 700;
   letter-spacing: 0;
 }
 
 .subtitulo-exito {
-  font-size: 16px;
+  font-size: calc(16px * var(--escala-texto));
   color: var(--gris);
   max-width: 480px;
   margin: 0 auto 28px;
@@ -966,14 +1464,14 @@ iframe {
   font-family: "Geist", "Inter", sans-serif;
   color: var(--blanco);
   font-weight: 700;
-  font-size: 15px;
+  font-size: calc(15px * var(--escala-texto));
   letter-spacing: 2px;
   margin: 0 0 6px;
 }
 
 .texto-pequeno-claro {
   color: var(--texto-claro);
-  font-size: 11px;
+  font-size: calc(11px * var(--escala-texto));
   margin: 0;
 }
 
@@ -1005,7 +1503,7 @@ iframe {
   justify-content: space-between;
   gap: 12px;
   padding: 7px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   text-align: right;
 }
 
@@ -1014,7 +1512,7 @@ iframe {
   content: attr(data-titulo);
   font-family: "Geist", "Inter", sans-serif;
   font-weight: 700;
-  font-size: 11px;
+  font-size: calc(11px * var(--escala-texto));
   text-transform: uppercase;
   color: var(--gris-claro);
   text-align: left;
@@ -1030,7 +1528,7 @@ iframe {
   border-radius: 999px;
   padding: 5px 12px;
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 12px;
+  font-size: calc(12px * var(--escala-texto));
   font-weight: 600;
 }
 
@@ -1042,7 +1540,7 @@ iframe {
   border-radius: 8px;
   padding: 8px 12px;
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 12px;
+  font-size: calc(12px * var(--escala-texto));
   font-weight: 600;
   cursor: pointer;
   margin-left: 6px;
@@ -1059,7 +1557,7 @@ iframe {
 }
 
 .sin-qr {
-  font-size: 12px;
+  font-size: calc(12px * var(--escala-texto));
   color: var(--gris-claro);
   font-style: italic;
 }
@@ -1073,7 +1571,7 @@ iframe {
 }
 
 .sin-reservas h2 {
-  font-size: 18px;
+  font-size: calc(18px * var(--escala-texto));
   font-weight: 600;
 }
 
@@ -1081,24 +1579,46 @@ iframe {
   background: var(--blanco);
   border-radius: 12px;
   padding: 16px 20px;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--gris);
   box-shadow: 0 2px 10px rgba(23, 33, 58, 0.04);
   margin-top: 20px;
 }
 
 /* ==========================================================================
-   MENSAJES DE ERROR
+   MENSAJES DE ERROR Y DE ÉXITO
+   REGLA DE ORO (WCAG 1.4.1): el mensaje no se distingue solo por el color.
+   Lleva un icono, un fondo, un borde lateral y la palabra "Error:" o
+   "Listo:" delante del texto (esa palabra la escribe el JavaScript).
+   En el HTML el contenedor va con role="alert" para que el lector de
+   pantalla lo anuncie en cuanto aparece.
    ========================================================================== */
 
-.error {
-  color: var(--rojo);
-  font-size: 13px;
+.mensaje {
+  font-size: calc(13px * var(--escala-texto));
+  line-height: 1.45;
+  border-radius: 8px;
+  border-left: 4px solid;
+  padding: 10px 12px;
   margin: 0 0 12px;
 }
 
-.error:empty {
-  margin: 0;
+.error {
+  color: var(--error);
+  background: var(--rojo-claro);
+  border-left-color: var(--error);
+}
+
+.exito {
+  color: var(--verde-texto);
+  background: var(--verde-claro);
+  border-left-color: var(--verde-texto);
+}
+
+/* Mientras no hay mensaje, el bloque no debe ocupar ni un píxel */
+.error:empty,
+.exito:empty {
+  display: none;
 }
 
 /* ==========================================================================
@@ -1140,13 +1660,19 @@ iframe {
   top: 14px;
   right: 14px;
   z-index: 2;
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  /* 44x44 px es el área mínima cómoda de pulsación (WCAG 2.5.8) */
+  width: 2em;
+  height: 2em;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   color: var(--blanco);
-  font-size: 20px;
+  font-size: calc(22px * var(--escala-texto));
   line-height: 1;
   cursor: pointer;
 }
@@ -1184,30 +1710,36 @@ iframe {
 
 .pestana {
   flex: 1;
-  padding: 10px 0;
+  padding: 12px 0;
   border: none;
   border-radius: 8px;
   background: none;
   font-family: inherit;
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   color: var(--gris);
   cursor: pointer;
 }
 
-.pestana.activa {
+/* La pestaña activa se marca con aria-selected="true" (lo que anuncia el
+   lector de pantalla) y, a la vista, con fondo + negrita + subrayado:
+   varias señales, no solo el color. */
+.pestana.activa,
+.pestana[aria-selected="true"] {
   background: var(--morado);
   color: var(--blanco);
   font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .modal-saludo {
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   color: var(--gris);
   margin-bottom: 20px;
 }
 
 .modal-subtitulo {
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   font-weight: 600;
   margin-bottom: 10px;
 }
@@ -1215,7 +1747,7 @@ iframe {
 /* Vínculo para cambiar de pestaña */
 .modal-pie {
   text-align: center;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--gris);
   margin: 16px 0 0;
 }
@@ -1225,7 +1757,7 @@ iframe {
   border: none;
   padding: 0;
   font-family: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--morado);
   font-weight: 600;
   text-decoration: underline;
@@ -1237,6 +1769,19 @@ iframe {
 }
 
 /* ===== LOS DOS TIPOS DE CUENTA ===== */
+
+/* El <fieldset> agrupa los radios de verdad (para el lector de pantalla),
+   pero sin el marco que trae por defecto, para no cambiar el diseño. */
+.tipos-cuenta-grupo {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tipos-cuenta-grupo > legend {
+  padding: 0;
+}
+
 .tipos-cuenta {
   display: flex;
   flex-direction: column;
@@ -1246,11 +1791,9 @@ iframe {
 
 /* Cada opción es una tarjeta que se puede pulsar */
 .tipo-cuenta {
-  display: grid;
-  grid-template-columns: 40px 1fr;
-  grid-template-rows: auto auto;
-  gap: 2px 12px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   border: 2px solid var(--borde);
   border-radius: 12px;
   padding: 14px;
@@ -1269,25 +1812,13 @@ iframe {
   height: 0;
 }
 
-.tipo-icono {
-  grid-row: 1 / 3;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--fondo);
-  border-radius: 10px;
-  font-size: 19px;
-}
-
 .tipo-nombre {
-  font-size: 15px;
+  font-size: calc(15px * var(--escala-texto));
   font-weight: 600;
 }
 
 .tipo-texto {
-  font-size: 12px;
+  font-size: calc(12px * var(--escala-texto));
   line-height: 1.4;
   color: var(--gris);
 }
@@ -1296,10 +1827,6 @@ iframe {
 .tipo-cuenta:has(input:checked) {
   border-color: var(--morado);
   background: var(--morado-claro);
-}
-
-.tipo-cuenta:has(input:checked) .tipo-icono {
-  background: var(--blanco);
 }
 
 .tipo-cuenta:has(input:checked) .tipo-nombre {
@@ -1314,12 +1841,12 @@ iframe {
 
 /* Etiqueta "Agente" al lado del nombre en la cabecera */
 .marca-agente {
-  background: var(--violeta);
+  background: var(--violeta-texto);
   color: var(--blanco);
   border-radius: 999px;
   padding: 3px 9px;
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 11px;
+  font-size: calc(11px * var(--escala-texto));
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1347,18 +1874,21 @@ iframe {
 
 .pie-marca p {
   font-family: "Geist", "Inter", sans-serif;
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
   line-height: 1.5;
   max-width: 340px;
 }
 
-.pie h3 {
+/* Los títulos del pie son <h2> (dan nombre a cada <nav> con
+   aria-labelledby) pero conservan el tamaño pequeño del diseño. */
+.pie h3,
+.pie-titulo {
   font-family: "Outfit", "Inter", sans-serif;
   font-weight: 800;
   color: var(--blanco);
   text-transform: uppercase;
-  font-size: 14px;
-  margin-bottom: 16px;
+  font-size: calc(14px * var(--escala-texto));
+  margin: 0 0 16px;
 }
 
 .pie ul {
@@ -1375,16 +1905,29 @@ iframe {
   font-family: "Geist", "Inter", sans-serif;
   color: var(--texto-claro);
   text-decoration: none;
-  font-size: 14px;
+  font-size: calc(14px * var(--escala-texto));
 }
 
 .pie a:hover {
   color: var(--blanco);
+  text-decoration: underline;
 }
 
 .redes {
   display: flex;
   gap: 12px;
+}
+
+/* El enlace de cada red social es solo un icono: su nombre accesible
+   viene del aria-label del <a>. Se le da tamaño de 44x44 px para que
+   sea fácil de pulsar en pantalla táctil (WCAG 2.5.8 Tamaño del área). */
+.redes a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
 }
 
 .redes img {
@@ -1400,7 +1943,7 @@ iframe {
   border-top: 1px solid var(--borde-oscuro);
   margin: 40px 0 0;
   padding-top: 24px;
-  font-size: 13px;
+  font-size: calc(13px * var(--escala-texto));
   color: var(--texto-claro-2);
 }
 
@@ -1410,7 +1953,7 @@ iframe {
    ========================================================================== */
 @media (min-width: 600px) {
 
-  h1 { font-size: 44px; }
+  h1 { font-size: calc(44px * var(--escala-texto)); }
 
   .seccion,
   .portada,
@@ -1447,8 +1990,8 @@ iframe {
   }
 
   .boton-portada {
-    width: 192px;
-    height: 117px;
+    min-width: 192px;
+    min-height: 117px;
   }
 
   .botones {
@@ -1481,7 +2024,7 @@ iframe {
    ========================================================================== */
 @media (min-width: 900px) {
 
-  h1 { font-size: 48px; }
+  h1 { font-size: calc(48px * var(--escala-texto)); }
 
   /* La cabecera pasa a una sola fila */
   .cabecera {
@@ -1504,8 +2047,22 @@ iframe {
     gap: 28px;
   }
 
-  .sesion {
+  .sesion,
+  .accesibilidad {
     margin-top: 0;
+  }
+
+  .cabecera-derecha {
+    flex-wrap: nowrap;
+    gap: 16px;
+  }
+
+  /* ESCRITORIO: aquí el botón está pegado al borde derecho, así que el
+     panel se despliega hacia la IZQUIERDA para no salirse de la pantalla
+     (justo al revés que en móvil). */
+  .panel-accesibilidad {
+    left: auto;
+    right: 0;
   }
 
   .seccion,
@@ -1559,7 +2116,7 @@ iframe {
   }
 
   .titulo-seccion h2 {
-    font-size: 32px;
+    font-size: calc(32px * var(--escala-texto));
   }
 
   .portada-evento img {
@@ -1567,7 +2124,7 @@ iframe {
   }
 
   .detalle-titulo {
-    font-size: 40px;
+    font-size: calc(40px * var(--escala-texto));
   }
 
   /* Detalle: descripción a la izquierda y caja de reserva a la derecha */
@@ -1626,7 +2183,7 @@ iframe {
   }
 
   .titulo-exito {
-    font-size: 32px;
+    font-size: calc(32px * var(--escala-texto));
   }
 
   .seccion-estrecha {
@@ -1667,7 +2224,7 @@ iframe {
     padding: 14px 16px;
     text-align: left;
     font-family: "Geist", "Inter", sans-serif;
-    font-size: 13px;
+    font-size: calc(13px * var(--escala-texto));
     font-weight: 700;
     color: var(--morado);
     white-space: nowrap;
@@ -1723,7 +2280,7 @@ iframe {
    ========================================================================== */
 @media (min-width: 1200px) {
 
-  h1 { font-size: 54px; letter-spacing: -1.62px; }
+  h1 { font-size: calc(54px * var(--escala-texto)); letter-spacing: -1.62px; }
 
   /* Cuatro tarjetas por fila */
   .tarjetas {
