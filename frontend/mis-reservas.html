@@ -1,70 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mis reservas - El Desparche</title>
-  <link rel="icon" href="img/14603.png">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mis reservas - El Desparche</title>
+    <link rel="icon" href="img/14603.png" />
 
-  <!-- Tipografías del diseño -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
+    <!-- Tipografías del diseño -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap"
+      rel="stylesheet"
+    />
 
-  <link rel="stylesheet" href="css/estilos.css">
-</head>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
 
-<body data-pagina="mis-reservas">
+  <body data-pagina="mis-reservas">
+    <!-- ===== CABECERA ===== -->
+    <header class="cabecera">
+      <div class="cabecera-izquierda">
+        <a class="logo" href="index.html">
+          <img class="logo-icono" src="img/14603.png" alt="" />
+          <img class="logo-texto" src="img/b48ef.png" alt="El Desparche" />
+        </a>
 
-  <!-- ===== CABECERA ===== -->
-  <header class="cabecera">
-    <div class="cabecera-izquierda">
-      <a class="logo" href="index.html">
-        <img class="logo-icono" src="img/14603.png" alt="">
-        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
-      </a>
-
-      <nav class="menu">
-        <ul>
-          <li><a href="index.html">Inicio</a></li>
-          <li><a href="eventos.html">Eventos</a></li>
-          <li><a class="activo" href="mis-reservas.html">Mis reservas</a></li>
-        </ul>
-      </nav>
-    </div>
-
-    <div class="sesion" id="sesion"></div>
-  </header>
-
-  <main class="fondo-gris">
-    <section class="seccion">
-
-      <h1>Mis reservas</h1>
-      <p class="texto-gris" id="saludo"></p>
-
-      <!-- El script escribe aquí la tabla o el mensaje de "sin reservas" -->
-      <div id="contenido-reservas"></div>
-
-      <p class="ayuda">
-        💬 ¿Necesitas ayuda con una reserva? Escríbenos a
-        <a href="mailto:soporte@eldesparche.co">soporte@eldesparche.co</a>
-        o visita nuestra sección de <a href="#">preguntas frecuentes</a>.
-      </p>
-
-    </section>
-  </main>
-
-  <!-- ===== PIE DE PÁGINA ===== -->
-  <footer class="pie">
-    <div class="pie-columnas">
-      <div class="pie-marca">
-        <img class="logo-texto" src="img/b48ef.png" alt="El Desparche">
-        <p>Conectando la cultura urbana de Colombia con planes que vale la pena vivir.</p>
+        <nav class="menu">
+          <ul>
+            <li><a href="index.html">Inicio</a></li>
+            <li><a href="eventos.html">Eventos</a></li>
+            <li><a class="activo" href="mis-reservas.html">Mis reservas</a></li>
+          </ul>
+        </nav>
       </div>
-    </div>
-    <p class="pie-final"><span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span></p>
-  </footer>
 
-  <script type="module" src="js/script.js"></script>
-</body>
+      <div class="sesion" id="sesion"></div>
+    </header>
+
+    <main class="fondo-gris">
+      <section class="seccion">
+        <h1>Mis reservas</h1>
+        <p class="texto-gris" id="saludo"></p>
+
+        <!-- El script escribe aquí la tabla o el mensaje de "sin reservas" -->
+        <div id="contenido-reservas"></div>
+
+        <p class="ayuda">
+          💬 ¿Necesitas ayuda con una reserva? Escríbenos a
+          <a href="mailto:soporte@eldesparche.online"
+            >soporte@eldesparche.online</a
+          >
+          o visita nuestra sección de <a href="#">preguntas frecuentes</a>.
+        </p>
+      </section>
+    </main>
+
+    <!-- ===== PIE DE PÁGINA ===== -->
+    <footer class="pie">
+      <div class="pie-columnas">
+        <div class="pie-marca">
+          <img class="logo-texto" src="img/b48ef.png" alt="El Desparche" />
+          <p>
+            Conectando la cultura urbana de Colombia con planes que vale la pena
+            vivir.
+          </p>
+        </div>
+      </div>
+      <p class="pie-final">
+        <span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span>
+      </p>
+    </footer>
+
+    <script type="module" src="js/script.js"></script>
+  </body>
 </html>
