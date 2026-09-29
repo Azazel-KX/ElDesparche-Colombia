@@ -37,6 +37,8 @@
   --rojo-claro: #fdecef;
 
   /* Versiones accesibles para texto y para las etiquetas de estado */
+  --borde-negro: #17213a;     /* borde de los campos del buscador: 15.97:1 sobre blanco */
+  --campo-desactivado: #dde1ea; /* relleno de una lista de filtro aún no disponible */
   --violeta-texto: #7c3aed;   /* texto blanco encima: 5.70:1 (el --violeta original se quedaba en 3.96:1) */
   --verde-texto: #0f7a4a;     /* 5.38:1 sobre blanco */
   --naranja-texto: #8a4b00;   /* 6.80:1 sobre blanco */
@@ -750,15 +752,17 @@ main:focus-visible {
   margin: 18px 0;
 }
 
-/* Caja de búsqueda redondeada con el ícono de lupa */
+/* Caja de búsqueda redondeada con el ícono de lupa.
+   El borde es negro y de 2px para que se vea con claridad dónde empieza
+   y acaba el campo: antes era gris claro y el control se confundía con
+   el fondo de la sección. Da 15.97:1, muy por encima del mínimo 3:1 que
+   pide WCAG 1.4.11 para el contorno de un componente. */
 .caja-busqueda {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: var(--blanco);
-  /* #767676 da 4.54:1 sobre blanco; el #999 anterior solo llegaba a
-     2.85:1 y no cumplía el mínimo 3:1 de WCAG 1.4.11 para bordes. */
-  border: 1px solid #767676;
+  background-color: var(--blanco);
+  border: 2px solid var(--borde-negro);
   border-radius: 999px;
   min-height: 54px;
   padding: 0 6px;
@@ -797,12 +801,15 @@ main:focus-visible {
   outline: none;
 }
 
-/* Listas desplegables con la flechita a la derecha */
+/* Listas desplegables con la flechita a la derecha.
+   Mismo borde negro de 2px que la caja de búsqueda: el anterior era
+   var(--borde) #e3e6ee, que sobre blanco daba 1.19:1 y resultaba
+   invisible. */
 .filtros select {
   width: 100%;
   min-height: 54px;
   padding: 0 44px 0 16px;
-  border: 1px solid var(--borde);
+  border: 2px solid var(--borde-negro);
   border-radius: 14px;
   background-color: var(--blanco);
   background-image: url("../img/f81d4.svg");
@@ -830,8 +837,12 @@ main:focus-visible {
    disabled (que el lector de pantalla anuncia como "no disponible")
    y con el texto de ayuda de abajo, no solo con el gris. */
 .filtros select:disabled {
-  background-color: var(--borde-suave);
-  color: var(--gris-claro);
+  /* El relleno gris es lo que separa "disponible" de "aún no disponible";
+     el borde sigue siendo negro para que el campo no se pierda del todo.
+     El texto usa --gris-texto porque --gris-claro sobre este gris se
+     quedaba en 3.72:1, por debajo del 4.5:1 de AA. */
+  background-color: var(--campo-desactivado);
+  color: var(--gris-texto);
   cursor: not-allowed;
 }
 
