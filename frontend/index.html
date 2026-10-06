@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/estilos.css?v=4">
+  <link rel="stylesheet" href="css/estilos.css?v=19">
 
   <!-- Aplica el tamaño de texto guardado antes del primer pintado, para que
        la página no dé un salto visual al cargar. -->
@@ -114,78 +114,121 @@
   <!-- tabindex="-1" permite que el enlace de salto mueva el foco hasta aquí -->
   <main id="contenido" role="main" tabindex="-1">
 
-    <!-- ===== PORTADA ===== -->
+    <!-- ===== PORTADA: imagen a sangre con el buscador encima =====
+         La foto va como fondo decorativo (alt="" + aria-hidden): lo que
+         cuenta la página ya lo dicen el título y el texto de debajo, así
+         que describirla otra vez solo haría al lector repetir. Encima
+         lleva una capa oscura que garantiza el contraste del texto. -->
     <section class="portada" aria-labelledby="titulo-portada">
-      <div class="portada-texto">
+
+      <div class="portada-fondo" aria-hidden="true">
+        <img src="img/33202.png" alt="">
+      </div>
+
+      <div class="portada-contenido">
         <p class="etiqueta">Tu próximo plan empieza aquí</p>
         <h1 id="titulo-portada">Vive más. Despárchate mejor.</h1>
         <p class="parrafo-grande">
           Descubre conciertos, festivales y experiencias inolvidables cerca de ti.
         </p>
-        <a class="boton-portada" href="eventos.html">
-          Explorar eventos <span aria-hidden="true">&rarr;</span>
-        </a>
-      </div>
 
-      <figure class="portada-imagen">
-        <img src="img/33202.png"
-             alt="Público con las manos en alto durante un concierto al aire libre al atardecer">
-      </figure>
+        <!-- role="search" marca esta región como el buscador del sitio -->
+        <form class="filtros" role="search" aria-label="Buscar eventos" novalidate>
+
+          <div class="caja-busqueda">
+            <img src="img/8c8c6.svg" alt="" aria-hidden="true">
+            <label class="oculto" for="busqueda">Buscar eventos por nombre o ciudad</label>
+            <input type="search" id="busqueda" name="busqueda"
+                   placeholder="¿Qué buscas?"
+                   autocomplete="off"
+                   aria-describedby="resultado-busqueda">
+          </div>
+
+          <div class="campo-filtro">
+            <label class="oculto" for="pais">Filtrar por país</label>
+            <select id="pais" name="pais">
+              <option value="">País: todos</option>
+              <option>Colombia</option>
+              <option>México</option>
+              <option>Argentina</option>
+            </select>
+          </div>
+
+          <div class="campo-filtro">
+            <label class="oculto" for="departamento">Filtrar por departamento</label>
+            <!-- Se habilita cuando ya se eligió un país: el estado se comunica
+                 con el atributo disabled, no solo con el color -->
+            <select id="departamento" name="departamento" disabled
+                    aria-describedby="ayuda-departamento">
+              <option value="">Departamento: todos</option>
+            </select>
+            <p class="ayuda-campo" id="ayuda-departamento">Elige primero un país.</p>
+          </div>
+
+          <div class="campo-filtro">
+            <label class="oculto" for="ciudad">Filtrar por ciudad</label>
+            <select id="ciudad" name="ciudad" disabled aria-describedby="ayuda-ciudad">
+              <option value="">Ciudad: todas</option>
+            </select>
+            <p class="ayuda-campo" id="ayuda-ciudad">Elige primero un departamento.</p>
+          </div>
+
+          <!-- El filtrado es instantáneo, así que este botón no "busca":
+               lleva el foco y la vista a los resultados, que quedan más
+               abajo. El texto oculto lo explica a quien no ve la página. -->
+          <button type="submit" class="boton-buscar">
+            Buscar<span class="oculto"> y ver los resultados</span>
+          </button>
+        </form>
+      </div>
     </section>
 
-    <!-- ===== BUSCADOR ===== -->
-    <section class="buscador" aria-labelledby="titulo-buscador">
-      <h2 id="titulo-buscador">¿Qué plan buscas?</h2>
+    <!-- ===== EVENTOS PRINCIPALES (carrusel) =====
+         Tira horizontal de carteles. Se mueve con scroll nativo y
+         scroll-snap, sin librerías. -->
+    <section class="principales" aria-labelledby="titulo-principales">
+      <div class="principales-cabecera">
+        <h2 id="titulo-principales">Eventos principales</h2>
 
-      <!-- role="search" marca esta región como el buscador del sitio -->
-      <form class="filtros" role="search" aria-labelledby="titulo-buscador" novalidate>
+        <!-- El carrusel avanza solo, y WCAG 2.2.2 exige poder pararlo.
+             El texto del botón cambia entre "Pausar" y "Reanudar", que es
+             más claro que dejarlo fijo y cambiar solo un estado. -->
+        <button type="button" class="boton-pausa" id="principales-pausa">
+          <span class="pausa-icono" aria-hidden="true">&#9616;&#9616;</span>
+          <span id="principales-pausa-texto">Pausar</span>
+          <span class="oculto"> el carrusel de eventos principales</span>
+        </button>
+      </div>
 
-        <div class="caja-busqueda">
-          <img src="img/8c8c6.svg" alt="" aria-hidden="true">
-          <label class="oculto" for="busqueda">Buscar eventos por nombre o ciudad</label>
-          <input type="search" id="busqueda" name="busqueda"
-                 placeholder="Buscar eventos"
-                 autocomplete="off"
-                 aria-describedby="resultado-busqueda">
+      <!-- El marco posiciona las flechas a los lados de los carteles -->
+      <div class="principales-marco">
+
+        <!-- Botones solo con icono: el nombre lo da aria-label -->
+        <button type="button" class="flecha flecha-izq" id="principales-atras"
+                aria-label="Ver carteles anteriores" aria-controls="principales">
+          <span aria-hidden="true">&larr;</span>
+        </button>
+
+        <!-- tabindex="0" hace que la tira se pueda recorrer con el teclado:
+             toda región con scroll propio debe ser alcanzable así. -->
+        <div class="principales-tira" role="group" tabindex="0"
+             aria-label="Eventos principales, lista desplazable en horizontal">
+          <ul class="principales-lista" id="principales"></ul>
         </div>
 
-        <div class="campo-filtro">
-          <label class="oculto" for="pais">Filtrar por país</label>
-          <select id="pais" name="pais">
-            <option value="">País: todos</option>
-            <option>Colombia</option>
-            <option>México</option>
-            <option>Argentina</option>
-          </select>
-        </div>
-
-        <div class="campo-filtro">
-          <label class="oculto" for="departamento">Filtrar por departamento</label>
-          <!-- Se habilita cuando ya se eligió un país: el estado se comunica
-               con el atributo disabled, no solo con el color -->
-          <select id="departamento" name="departamento" disabled
-                  aria-describedby="ayuda-departamento">
-            <option value="">Departamento: todos</option>
-          </select>
-          <p class="ayuda-campo" id="ayuda-departamento">Elige primero un país.</p>
-        </div>
-
-        <div class="campo-filtro">
-          <label class="oculto" for="ciudad">Filtrar por ciudad</label>
-          <select id="ciudad" name="ciudad" disabled aria-describedby="ayuda-ciudad">
-            <option value="">Ciudad: todas</option>
-          </select>
-          <p class="ayuda-campo" id="ayuda-ciudad">Elige primero un departamento.</p>
-        </div>
-      </form>
+        <button type="button" class="flecha flecha-der" id="principales-adelante"
+                aria-label="Ver carteles siguientes" aria-controls="principales">
+          <span aria-hidden="true">&rarr;</span>
+        </button>
+      </div>
     </section>
 
     <!-- ===== EVENTOS DESTACADOS ===== -->
     <section class="seccion-destacados" aria-labelledby="titulo-destacados">
       <div class="titulo-seccion">
         <div>
-          <h2 id="titulo-destacados">Eventos destacados</h2>
-          <p class="texto-gris">Planes elegidos para que tu próximo desparche sea inolvidable.</p>
+          <h2 id="titulo-destacados">Descubre eventos</h2>
+          <p class="texto-gris">Resultados de tu búsqueda. Usa los filtros de arriba para acotarlos.</p>
         </div>
         <a class="enlace" href="eventos.html">
           Ver todos los eventos <span aria-hidden="true">&rarr;</span>
@@ -268,6 +311,6 @@
     </p>
   </footer>
 
-  <script type="module" src="js/script.js?v=4"></script>
+  <script type="module" src="js/script.js?v=19"></script>
 </body>
 </html>
