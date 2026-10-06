@@ -1,0 +1,672 @@
+{
+  "version": "1.0",
+  "moneda": "COP",
+  "idioma": "es-CO",
+  "total": 12,
+  "destacados": [
+    1,
+    4,
+    8,
+    9,
+    2,
+    11
+  ],
+  "filtros": [
+    {
+      "clave": "busqueda",
+      "tipo": "texto",
+      "etiqueta": "Buscar eventos por nombre o ciudad",
+      "marcador": "Buscar eventos",
+      "minimoCaracteres": 0,
+      "buscaEn": [
+        "titulo",
+        "lugar.ciudad",
+        "lugar.nombre"
+      ]
+    },
+    {
+      "clave": "ubicacion",
+      "tipo": "jerarquico",
+      "etiqueta": "¿Dónde?",
+      "niveles": [
+        {
+          "clave": "pais",
+          "etiqueta": "País",
+          "campo": "lugar.pais"
+        },
+        {
+          "clave": "departamento",
+          "etiqueta": "Departamento",
+          "campo": "lugar.departamento",
+          "dependeDe": "pais"
+        },
+        {
+          "clave": "ciudad",
+          "etiqueta": "Ciudad",
+          "campo": "lugar.ciudad",
+          "dependeDe": "departamento"
+        }
+      ],
+      "opciones": {
+        "paises": [
+          "Colombia",
+          "México",
+          "Argentina"
+        ],
+        "departamentos": {
+          "Colombia": [
+            "Antioquia",
+            "Cundinamarca",
+            "Valle del Cauca",
+            "Santander"
+          ],
+          "México": [
+            "CDMX",
+            "Jalisco"
+          ],
+          "Argentina": [
+            "Buenos Aires"
+          ]
+        },
+        "ciudades": {
+          "Antioquia": [
+            "Medellín"
+          ],
+          "Cundinamarca": [
+            "Bogotá"
+          ],
+          "Valle del Cauca": [
+            "Cali"
+          ],
+          "Santander": [
+            "Bucaramanga"
+          ],
+          "CDMX": [
+            "Ciudad de México"
+          ],
+          "Jalisco": [
+            "Guadalajara"
+          ],
+          "Buenos Aires": [
+            "Buenos Aires"
+          ]
+        }
+      }
+    },
+    {
+      "clave": "categoria",
+      "tipo": "lista",
+      "etiqueta": "Categoría",
+      "campo": "categoria",
+      "opciones": [
+        {
+          "valor": "circo",
+          "etiqueta": "Circo"
+        },
+        {
+          "valor": "comedia",
+          "etiqueta": "Comedia"
+        },
+        {
+          "valor": "danza",
+          "etiqueta": "Danza"
+        },
+        {
+          "valor": "musica",
+          "etiqueta": "Música"
+        },
+        {
+          "valor": "teatro",
+          "etiqueta": "Teatro"
+        }
+      ]
+    },
+    {
+      "clave": "estado",
+      "tipo": "lista",
+      "etiqueta": "Estado",
+      "campo": "estado.clave",
+      "opciones": [
+        {
+          "valor": "programado",
+          "etiqueta": "Programado"
+        },
+        {
+          "valor": "boleteria",
+          "etiqueta": "En Boletería"
+        },
+        {
+          "valor": "vivo",
+          "etiqueta": "En Vivo"
+        },
+        {
+          "valor": "finalizado",
+          "etiqueta": "Finalizado"
+        },
+        {
+          "valor": "cancelado",
+          "etiqueta": "Cancelado"
+        }
+      ]
+    },
+    {
+      "clave": "precio",
+      "tipo": "opcion",
+      "etiqueta": "Precio",
+      "campo": "entrada.gratis",
+      "opciones": [
+        {
+          "valor": "todos",
+          "etiqueta": "Todos",
+          "condicion": null
+        },
+        {
+          "valor": "gratis",
+          "etiqueta": "Entrada libre",
+          "condicion": {
+            "entrada.gratis": true
+          }
+        },
+        {
+          "valor": "pago",
+          "etiqueta": "Con boletería",
+          "condicion": {
+            "entrada.gratis": false
+          }
+        }
+      ]
+    },
+    {
+      "clave": "fecha",
+      "tipo": "rango-fechas",
+      "etiqueta": "¿Cuándo?",
+      "campo": "fecha.inicio",
+      "marcador": {
+        "desde": "Desde",
+        "hasta": "Hasta"
+      }
+    }
+  ],
+  "eventos": [
+    {
+      "id": 1,
+      "slug": "festival-estereo-picnic",
+      "url": "evento.html?id=1",
+      "titulo": "Festival Estéreo Picnic",
+      "descripcion": "Cuatro días de música, cultura y experiencias inolvidables. Artistas nacionales e internacionales se encuentran en Bogotá para celebrar una nueva edición del festival más grande del país.",
+      "categoria": "musica",
+      "destacado": true,
+      "prioridad": 1,
+      "estado": {
+        "etiqueta": "En Boletería",
+        "clave": "boleteria",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "20-23 mar 2027",
+        "inicio": "20 de marzo de 2027 - 4:00 p. m.",
+        "fin": "23 de marzo de 2027 - 2:00 a. m."
+      },
+      "lugar": {
+        "nombre": "Parque La Florida",
+        "ciudad": "Bogotá",
+        "departamento": "Bogotá D.C.",
+        "pais": "Colombia",
+        "lat": 4.711,
+        "lon": -74.0721
+      },
+      "entrada": {
+        "precio": 480000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 3842,
+        "capacidad": "85.000 personas"
+      },
+      "medios": {
+        "imagen": "img/27459.png",
+        "alt": "Imagen promocional del evento Festival Estéreo Picnic en Bogotá"
+      },
+      "observaciones": "Ingreso para mayores de 14 años. Apertura de puertas a las 2:00 p. m."
+    },
+    {
+      "id": 2,
+      "slug": "morat-antes-de-que-amanezca",
+      "url": "evento.html?id=2",
+      "titulo": "Morat - Antes de que amanezca",
+      "descripcion": "Morat regresa a Colombia con su tour más íntimo y personal. Una noche cargada de emoción, canciones y momentos irrepetibles.",
+      "categoria": "musica",
+      "destacado": true,
+      "prioridad": 5,
+      "estado": {
+        "etiqueta": "En Vivo",
+        "clave": "vivo",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "18 oct 2026",
+        "inicio": "18 de octubre de 2026 - 8:00 p. m.",
+        "fin": "19 de octubre de 2026 - 12:00 a. m."
+      },
+      "lugar": {
+        "nombre": "Movistar Arena Medellín",
+        "ciudad": "Medellín",
+        "departamento": "Antioquia",
+        "pais": "Colombia",
+        "lat": 6.2442,
+        "lon": -75.5812
+      },
+      "entrada": {
+        "precio": 165000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 1200,
+        "capacidad": "14.000 personas"
+      },
+      "medios": {
+        "imagen": "img/6554e.png",
+        "alt": "Imagen promocional del evento Morat - Antes de que amanezca en Medellín"
+      },
+      "observaciones": "No se permite ingreso de menores de 12 años sin acompañante."
+    },
+    {
+      "id": 3,
+      "slug": "jazz-al-parque",
+      "url": "evento.html?id=3",
+      "titulo": "Jazz al Parque",
+      "descripcion": "El festival de jazz más importante de Bogotá vuelve al parque para deleitar a los amantes de la música con lo mejor del género.",
+      "categoria": "musica",
+      "destacado": false,
+      "prioridad": 0,
+      "estado": {
+        "etiqueta": "Programado",
+        "clave": "programado",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "7-8 nov 2026",
+        "inicio": "7 de noviembre de 2026 - 2:00 p. m.",
+        "fin": "8 de noviembre de 2026 - 10:00 p. m."
+      },
+      "lugar": {
+        "nombre": "Parque El Country",
+        "ciudad": "Bogotá",
+        "departamento": "Bogotá D.C.",
+        "pais": "Colombia",
+        "lat": 4.6604,
+        "lon": -74.0579
+      },
+      "entrada": {
+        "precio": 0,
+        "moneda": "COP",
+        "gratis": true,
+        "disponibles": 30000,
+        "capacidad": "30.000 personas"
+      },
+      "medios": {
+        "imagen": "img/d7016.png",
+        "alt": "Imagen promocional del evento Jazz al Parque en Bogotá"
+      },
+      "observaciones": "Evento gratuito. Aforo limitado."
+    },
+    {
+      "id": 4,
+      "slug": "circo-del-sol-kooza",
+      "url": "evento.html?id=4",
+      "titulo": "Circo del Sol - KOOZA",
+      "descripcion": "El Circo del Sol trae a Colombia KOOZA, un show de acrobacias, humor y magia que conquista todos los sentidos.",
+      "categoria": "circo",
+      "destacado": true,
+      "prioridad": 2,
+      "estado": {
+        "etiqueta": "En Boletería",
+        "clave": "boleteria",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "14 dic 2026",
+        "inicio": "14 de diciembre de 2026 - 7:00 p. m.",
+        "fin": "14 de diciembre de 2026 - 10:00 p. m."
+      },
+      "lugar": {
+        "nombre": "Centro de Eventos Valle Pacífico",
+        "ciudad": "Cali",
+        "departamento": "Valle del Cauca",
+        "pais": "Colombia",
+        "lat": 3.4516,
+        "lon": -76.532
+      },
+      "entrada": {
+        "precio": 210000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 820,
+        "capacidad": "5.000 personas"
+      },
+      "medios": {
+        "imagen": "img/12935.png",
+        "alt": "Imagen promocional del evento Circo del Sol - KOOZA en Cali"
+      },
+      "observaciones": "Espectáculo apto para todas las edades."
+    },
+    {
+      "id": 5,
+      "slug": "festival-mundial-de-salsa",
+      "url": "evento.html?id=5",
+      "titulo": "Festival Mundial de Salsa",
+      "descripcion": "La capital mundial de la salsa celebró su tradicional festival con los mejores bailarines y orquestas del planeta.",
+      "categoria": "danza",
+      "destacado": false,
+      "prioridad": 0,
+      "estado": {
+        "etiqueta": "Finalizado",
+        "clave": "finalizado",
+        "reservable": false
+      },
+      "fecha": {
+        "textoCorto": "25-28 sep 2026",
+        "inicio": "25 de septiembre de 2026 - 4:00 p. m.",
+        "fin": "28 de septiembre de 2026 - 4:00 a. m."
+      },
+      "lugar": {
+        "nombre": "Cali Exposhow",
+        "ciudad": "Cali",
+        "departamento": "Valle del Cauca",
+        "pais": "Colombia",
+        "lat": 3.4172,
+        "lon": -76.5246
+      },
+      "entrada": {
+        "precio": 85000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 0,
+        "capacidad": "40.000 personas"
+      },
+      "medios": {
+        "imagen": "img/337fd.png",
+        "alt": "Imagen promocional del evento Festival Mundial de Salsa en Cali"
+      },
+      "observaciones": "Evento finalizado. Gracias por su participación."
+    },
+    {
+      "id": 6,
+      "slug": "macondo-la-obra",
+      "url": "evento.html?id=6",
+      "titulo": "Macondo, la obra",
+      "descripcion": "Una adaptación teatral de la obra cumbre de García Márquez. Una producción colombiana que recorre los 100 años de Macondo en escena.",
+      "categoria": "teatro",
+      "destacado": false,
+      "prioridad": 0,
+      "estado": {
+        "etiqueta": "Programado",
+        "clave": "programado",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "2 oct 2026",
+        "inicio": "2 de octubre de 2026 - 7:30 p. m.",
+        "fin": "2 de octubre de 2026 - 10:00 p. m."
+      },
+      "lugar": {
+        "nombre": "Teatro Amira de la Rosa",
+        "ciudad": "Barranquilla",
+        "departamento": "Atlántico",
+        "pais": "Colombia",
+        "lat": 10.9685,
+        "lon": -74.7813
+      },
+      "entrada": {
+        "precio": 72000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 350,
+        "capacidad": "1.200 personas"
+      },
+      "medios": {
+        "imagen": "img/5fb48.png",
+        "alt": "Imagen promocional del evento Macondo, la obra en Barranquilla"
+      },
+      "observaciones": "Se recomienda llegar 30 minutos antes de la función."
+    },
+    {
+      "id": 7,
+      "slug": "lokillo-eso-era-antes",
+      "url": "evento.html?id=7",
+      "titulo": "Lokillo - Eso era antes",
+      "descripcion": "La gira Eso era antes de Lokillo fue cancelada por causas de fuerza mayor. Contacta al punto de venta para tu reembolso.",
+      "categoria": "comedia",
+      "destacado": false,
+      "prioridad": 0,
+      "estado": {
+        "etiqueta": "Cancelado",
+        "clave": "cancelado",
+        "reservable": false
+      },
+      "fecha": {
+        "textoCorto": "16 nov 2026",
+        "inicio": "16 de noviembre de 2026 - 8:00 p. m.",
+        "fin": "16 de noviembre de 2026 - 11:00 p. m."
+      },
+      "lugar": {
+        "nombre": "Coliseo El Campin Norte",
+        "ciudad": "Bucaramanga",
+        "departamento": "Santander",
+        "pais": "Colombia",
+        "lat": 7.1254,
+        "lon": -73.1198
+      },
+      "entrada": {
+        "precio": 68000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 0,
+        "capacidad": "8.000 personas"
+      },
+      "medios": {
+        "imagen": "img/67c1c.png",
+        "alt": "Imagen promocional del evento Lokillo - Eso era antes en Bucaramanga"
+      },
+      "observaciones": "Evento cancelado. Se realizarán devoluciones en los próximos 10 días hábiles."
+    },
+    {
+      "id": 8,
+      "slug": "ritvales-2026",
+      "url": "evento.html?id=8",
+      "titulo": "Ritvales 2026",
+      "descripcion": "El festival de experiencias alternativas más esperado del año vuelve a Medellín con una propuesta que une música, arte y tecnología.",
+      "categoria": "musica",
+      "destacado": true,
+      "prioridad": 3,
+      "estado": {
+        "etiqueta": "Programado",
+        "clave": "programado",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "1-2 nov 2026",
+        "inicio": "1 de noviembre de 2026 - 5:00 p. m.",
+        "fin": "2 de noviembre de 2026 - 3:00 a. m."
+      },
+      "lugar": {
+        "nombre": "Parque Norte",
+        "ciudad": "Medellín",
+        "departamento": "Antioquia",
+        "pais": "Colombia",
+        "lat": 6.2602,
+        "lon": -75.5701
+      },
+      "entrada": {
+        "precio": 295000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 7200,
+        "capacidad": "20.000 personas"
+      },
+      "medios": {
+        "imagen": "img/7d702.png",
+        "alt": "Imagen promocional del evento Ritvales 2026 en Medellín"
+      },
+      "observaciones": "Menores de 16 años deben ir acompañados de un adulto."
+    },
+    {
+      "id": 9,
+      "slug": "zona-estereo-urbano-2026",
+      "url": "evento.html?id=9",
+      "titulo": "Zona Estéreo Urbano 2026",
+      "descripcion": "Una noche de electrónica, rap y pop urbano en el corazón de Medellín. El festival que unifica todos los géneros urbanos en una sola tarima.",
+      "categoria": "musica",
+      "destacado": true,
+      "prioridad": 4,
+      "estado": {
+        "etiqueta": "En Boletería",
+        "clave": "boleteria",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "8 oct 2026",
+        "inicio": "8 de octubre de 2026 - 6:00 p. m.",
+        "fin": "9 de octubre de 2026 - 1:00 a. m."
+      },
+      "lugar": {
+        "nombre": "Estadio Atanasio Girardot",
+        "ciudad": "Medellín",
+        "departamento": "Antioquia",
+        "pais": "Colombia",
+        "lat": 6.2567,
+        "lon": -75.59
+      },
+      "entrada": {
+        "precio": 120000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 12000,
+        "capacidad": "45.000 personas"
+      },
+      "medios": {
+        "imagen": "img/33202.png",
+        "alt": "Imagen promocional del evento Zona Estéreo Urbano 2026 en Medellín"
+      },
+      "observaciones": "Evento con consumo mínimo en zonas VIP."
+    },
+    {
+      "id": 10,
+      "slug": "batallas-epicas-de-rap",
+      "url": "evento.html?id=10",
+      "titulo": "Batallas Épicas de Rap",
+      "descripcion": "Las mejores batallas de rap freestyle de Colombia se dan cita en Bogotá. Competencia oficial con clasificación nacional.",
+      "categoria": "musica",
+      "destacado": false,
+      "prioridad": 0,
+      "estado": {
+        "etiqueta": "Programado",
+        "clave": "programado",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "12 oct 2026",
+        "inicio": "12 de octubre de 2026 - 5:00 p. m.",
+        "fin": "12 de octubre de 2026 - 11:00 p. m."
+      },
+      "lugar": {
+        "nombre": "Teatro Jorge Eliécer Gaitán",
+        "ciudad": "Bogotá",
+        "departamento": "Bogotá D.C.",
+        "pais": "Colombia",
+        "lat": 4.6122,
+        "lon": -74.0739
+      },
+      "entrada": {
+        "precio": 45000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 900,
+        "capacidad": "3.500 personas"
+      },
+      "medios": {
+        "imagen": "img/1c2e7.png",
+        "alt": "Imagen promocional del evento Batallas Épicas de Rap en Bogotá"
+      },
+      "observaciones": "Evento abierto a todos los públicos. Menores deben ir con adulto."
+    },
+    {
+      "id": 11,
+      "slug": "cali-salsa-festival",
+      "url": "evento.html?id=11",
+      "titulo": "Cali Salsa Festival",
+      "descripcion": "El ritmo de Cali al máximo. Un festival que reúne las mejores orquestas y bailarines de salsa de todo el mundo en la sucursal del cielo.",
+      "categoria": "danza",
+      "destacado": true,
+      "prioridad": 6,
+      "estado": {
+        "etiqueta": "Programado",
+        "clave": "programado",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "19 oct 2026",
+        "inicio": "19 de octubre de 2026 - 3:00 p. m.",
+        "fin": "20 de octubre de 2026 - 2:00 a. m."
+      },
+      "lugar": {
+        "nombre": "Parque de la Música",
+        "ciudad": "Cali",
+        "departamento": "Valle del Cauca",
+        "pais": "Colombia",
+        "lat": 3.4333,
+        "lon": -76.5417
+      },
+      "entrada": {
+        "precio": 95000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 5600,
+        "capacidad": "25.000 personas"
+      },
+      "medios": {
+        "imagen": "img/94bcf.png",
+        "alt": "Imagen promocional del evento Cali Salsa Festival en Cali"
+      },
+      "observaciones": "Espectáculo de salsa caleña con artistas internacionales."
+    },
+    {
+      "id": 12,
+      "slug": "concierto-acustico-campestre",
+      "url": "evento.html?id=12",
+      "titulo": "Concierto Acústico Campestre",
+      "descripcion": "Una jornada de música acústica y naturaleza en los alrededores del embalse del Tominé. Un descanso del ruido de la ciudad.",
+      "categoria": "musica",
+      "destacado": false,
+      "prioridad": 0,
+      "estado": {
+        "etiqueta": "Programado",
+        "clave": "programado",
+        "reservable": true
+      },
+      "fecha": {
+        "textoCorto": "2 nov 2026",
+        "inicio": "2 de noviembre de 2026 - 11:00 a. m.",
+        "fin": "2 de noviembre de 2026 - 7:00 p. m."
+      },
+      "lugar": {
+        "nombre": "Hacienda La Fragua",
+        "ciudad": "Guatavita Reservoirs",
+        "departamento": "Cundinamarca",
+        "pais": "Colombia",
+        "lat": 4.934,
+        "lon": -73.832
+      },
+      "entrada": {
+        "precio": 55000,
+        "moneda": "COP",
+        "gratis": false,
+        "disponibles": 420,
+        "capacidad": "2.000 personas"
+      },
+      "medios": {
+        "imagen": "img/1cbb3.png",
+        "alt": "Imagen promocional del evento Concierto Acústico Campestre en Guatavita Reservoirs"
+      },
+      "observaciones": "Evento al aire libre. Se recomienda ropa cómoda y protector solar."
+    }
+  ]
+}
