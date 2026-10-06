@@ -1,5 +1,3 @@
-@charset "UTF-8";
-
 /* ==========================================================================
    El Desparche - Hoja de estilos
    Escrita MOBILE FIRST: primero los estilos del celular y al final
@@ -13,17 +11,17 @@
    rellenos decorativos grandes; para texto se usan las variantes
    "-texto", que son las versiones oscurecidas y verificadas. */
 :root {
-  --morado: #5b36f2;          /* 6.45:1 sobre blanco */
+  --morado: #5b36f2; /* 6.45:1 sobre blanco */
   --morado-claro: #eeeafe;
   --violeta: #a855f7;
   --oscuro: #130a2b;
   --oscuro-2: #120a2a;
   --borde-oscuro: #3b2666;
-  --texto-claro: #c0b8e0;     /* 10.10:1 sobre --oscuro */
-  --texto-claro-2: #94a3b8;   /*  7.41:1 sobre --oscuro */
+  --texto-claro: #c0b8e0; /* 10.10:1 sobre --oscuro */
+  --texto-claro-2: #94a3b8; /*  7.41:1 sobre --oscuro */
   --texto: #17213a;
-  --gris: #667085;            /* 4.97:1 sobre blanco */
-  --gris-claro: #5f697a;      /* 5.54:1 sobre blanco (antes #98a2b3: 2.58:1, NO cumplía) */
+  --gris: #667085; /* 4.97:1 sobre blanco */
+  --gris-claro: #5f697a; /* 5.54:1 sobre blanco */
   --borde: #e3e6ee;
   --borde-suave: #f0f1f3;
   --fondo: #f6f7fb;
@@ -37,15 +35,13 @@
   --rojo-claro: #fdecef;
 
   /* Versiones accesibles para texto y para las etiquetas de estado */
-  --borde-negro: #17213a;     /* borde de los campos del buscador: 15.97:1 sobre blanco */
-  --campo-desactivado: #dde1ea; /* relleno de una lista de filtro aún no disponible */
-  --violeta-texto: #7c3aed;   /* texto blanco encima: 5.70:1 (el --violeta original se quedaba en 3.96:1) */
-  --verde-texto: #0f7a4a;     /* 5.38:1 sobre blanco */
-  --naranja-texto: #8a4b00;   /* 6.80:1 sobre blanco */
-  --rojo-texto: #b3213c;      /* 6.56:1 sobre blanco */
-  --gris-texto: #4b5565;      /* 7.54:1 sobre blanco */
-  --vino-texto: #6d3a45;      /* 8.97:1 sobre blanco */
-  --error: #c0244a;           /* 5.85:1 sobre blanco */
+  --violeta-texto: #7c3aed; /* texto blanco encima: 5.70:1 (el --violeta original se quedaba en 3.96:1) */
+  --verde-texto: #0f7a4a; /* 5.38:1 sobre blanco */
+  --naranja-texto: #8a4b00; /* 6.80:1 sobre blanco */
+  --rojo-texto: #b3213c; /* 6.56:1 sobre blanco */
+  --gris-texto: #4b5565; /* 7.54:1 sobre blanco */
+  --vino-texto: #6d3a45; /* 8.97:1 sobre blanco */
+  --error: #c0244a; /* 5.85:1 sobre blanco */
 
   /* Factor del control de tamano de texto de la cabecera.
      Lo cambia el JavaScript entre 0.9 y 1.5; todos los font-size de esta
@@ -56,7 +52,7 @@
 
   /* Color e grosor del anillo de foco (criterio 2.4.7 Foco visible) */
   --foco: #5b36f2;
-  --foco-claro: #ffbf47;      /* 11.57:1 sobre --oscuro, para fondos oscuros */
+  --foco-claro: #ffbf47; /* 11.57:1 sobre --oscuro, para fondos oscuros */
   --foco-grosor: 3px;
 }
 
@@ -340,19 +336,20 @@ main:focus-visible {
   border-color: var(--blanco);
 }
 
-/* La flechita gira al abrir: otra señal visual del estado, además de
-   aria-expanded. Es un <span> del marcado (no contenido generado con
-   ::after) para poder marcarlo con aria-hidden y que no se cuele en el
-   nombre accesible del botón. */
-.flecha-accesibilidad {
-  /* inline-block: transform no tiene efecto sobre elementos en línea */
-  display: inline-block;
+.icono-accesibilidad {
+  font-size: 19px;
+  line-height: 1;
+}
+
+/* La flechita gira al abrir: otra señal visual del estado */
+.boton-accesibilidad::after {
+  content: "▾";
   font-size: 11px;
   line-height: 1;
   transition: transform 0.15s ease;
 }
 
-.boton-accesibilidad[aria-expanded="true"] .flecha-accesibilidad {
+.boton-accesibilidad[aria-expanded="true"]::after {
   transform: rotate(180deg);
 }
 
@@ -361,23 +358,16 @@ main:focus-visible {
 .panel-accesibilidad {
   position: absolute;
   top: calc(100% + 10px);
+  right: 0;
   z-index: 120;
   width: 260px;
+  max-width: calc(100vw - 32px);
   background: var(--blanco);
   border: 1px solid var(--borde);
   border-radius: 14px;
   box-shadow: 0 18px 44px rgba(19, 10, 43, 0.35);
   padding: 18px;
   color: var(--texto);
-
-  /* MÓVIL: la cabecera se apila y el botón queda pegado a la izquierda,
-     así que el panel se despliega hacia la DERECHA del botón. Anclarlo
-     con right:0 aquí lo sacaba fuera de la pantalla por la izquierda.
-     El margen de 20px es el padding lateral de la cabecera; se descuenta
-     dos veces para que el panel nunca toque ningún borde. */
-  left: 0;
-  right: auto;
-  max-width: calc(100vw - 40px);
 }
 
 /* El atributo hidden lo saca de la vista, del teclado y del lector */
@@ -451,8 +441,12 @@ main:focus-visible {
 /* La "A" pequeña y la grande dan una pista visual del efecto de cada
    botón. Van con el selector descendiente para ganarle en especificidad
    a ".tamano-texto button", que si no impondría su font-size a los dos. */
-.tamano-texto .tamano-menor { font-size: 13px; }
-.tamano-texto .tamano-mayor { font-size: 19px; }
+.tamano-texto .tamano-menor {
+  font-size: 13px;
+}
+.tamano-texto .tamano-mayor {
+  font-size: 19px;
+}
 
 /* Porcentaje actual: es la señal visible del estado. El lector no lo lee
    (aria-hidden) porque ya se lo anuncia la región role="status". */
@@ -752,17 +746,15 @@ main:focus-visible {
   margin: 18px 0;
 }
 
-/* Caja de búsqueda redondeada con el ícono de lupa.
-   El borde es negro y de 2px para que se vea con claridad dónde empieza
-   y acaba el campo: antes era gris claro y el control se confundía con
-   el fondo de la sección. Da 15.97:1, muy por encima del mínimo 3:1 que
-   pide WCAG 1.4.11 para el contorno de un componente. */
+/* Caja de búsqueda redondeada con el ícono de lupa */
 .caja-busqueda {
   display: flex;
   align-items: center;
   gap: 9px;
-  background-color: var(--blanco);
-  border: 2px solid var(--borde-negro);
+  background: var(--blanco);
+  /* #767676 da 4.54:1 sobre blanco; el #999 anterior solo llegaba a
+     2.85:1 y no cumplía el mínimo 3:1 de WCAG 1.4.11 para bordes. */
+  border: 1px solid #767676;
   border-radius: 999px;
   min-height: 54px;
   padding: 0 6px;
@@ -801,15 +793,12 @@ main:focus-visible {
   outline: none;
 }
 
-/* Listas desplegables con la flechita a la derecha.
-   Mismo borde negro de 2px que la caja de búsqueda: el anterior era
-   var(--borde) #e3e6ee, que sobre blanco daba 1.19:1 y resultaba
-   invisible. */
+/* Listas desplegables con la flechita a la derecha */
 .filtros select {
   width: 100%;
   min-height: 54px;
   padding: 0 44px 0 16px;
-  border: 2px solid var(--borde-negro);
+  border: 1px solid var(--borde);
   border-radius: 14px;
   background-color: var(--blanco);
   background-image: url("../img/f81d4.svg");
@@ -837,12 +826,8 @@ main:focus-visible {
    disabled (que el lector de pantalla anuncia como "no disponible")
    y con el texto de ayuda de abajo, no solo con el gris. */
 .filtros select:disabled {
-  /* El relleno gris es lo que separa "disponible" de "aún no disponible";
-     el borde sigue siendo negro para que el campo no se pierda del todo.
-     El texto usa --gris-texto porque --gris-claro sobre este gris se
-     quedaba en 3.72:1, por debajo del 4.5:1 de AA. */
-  background-color: var(--campo-desactivado);
-  color: var(--gris-texto);
+  background-color: var(--borde-suave);
+  color: var(--gris-claro);
   cursor: not-allowed;
 }
 
@@ -913,7 +898,9 @@ main:focus-visible {
   color: var(--texto);
   display: flex;
   flex-direction: column;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .tarjeta-cuerpo:hover {
@@ -1039,16 +1026,17 @@ main:focus-visible {
    ========================================================================== */
 
 /* REGLA DE ORO (WCAG 1.4.1): el estado NO se distingue solo por el color.
-   La señal principal es EL TEXTO de la propia etiqueta ("En Vivo",
-   "Cancelado"...), que se entiende igual sin percibir el color.
-   Como refuerzo, cada estado tiene un fondo distinto (todos con
-   contraste 4.5:1 o más sobre el texto blanco) y "Cancelado" lleva el
-   borde punteado, porque su tono es el que más se parece al de
-   "Finalizado", que antes compartían EL MISMO gris. */
+   Cada etiqueta lleva SIEMPRE tres señales a la vez:
+     1. el texto del estado ("En Vivo", "Cancelado"...),
+     2. un icono distinto para cada estado,
+     3. el color de fondo, ya oscurecido para cumplir el contraste 4.5:1.
+   Además, "Finalizado" y "Cancelado" antes compartían EL MISMO gris:
+   ahora se diferencian por color, icono y estilo de borde. */
 
 .estado {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   border: 2px solid transparent;
   border-radius: 999px;
   padding: 5px 10px;
@@ -1059,19 +1047,35 @@ main:focus-visible {
   margin: 0 0 14px;
 }
 
+/* El icono es decorativo: en el HTML lleva aria-hidden="true" para que
+   el lector de pantalla no lea "círculo negro" antes del texto. */
+.estado-icono {
+  font-size: 1em;
+  line-height: 1;
+}
+
 .estado-grande {
   padding: 8px 16px;
   font-size: calc(14px * var(--escala-texto));
+  gap: 7px;
 }
 
-.estado-programado { background: var(--verde-texto); }   /* 5.38:1 */
-.estado-boleteria  { background: var(--naranja-texto); } /* 6.80:1 */
-.estado-vivo       { background: var(--rojo-texto); }    /* 6.56:1 */
-.estado-finalizado { background: var(--gris-texto); }    /* 7.54:1 */
+.estado-programado {
+  background: var(--verde-texto);
+} /* 5.38:1 */
+.estado-boleteria {
+  background: var(--naranja-texto);
+} /* 6.80:1 */
+.estado-vivo {
+  background: var(--rojo-texto);
+} /* 6.56:1 */
+.estado-finalizado {
+  background: var(--gris-texto);
+} /* 7.54:1 */
 
 /* El borde de rayas da una cuarta señal, visible incluso en blanco y negro */
 .estado-cancelado {
-  background: var(--vino-texto);                         /* 8.97:1 */
+  background: var(--vino-texto); /* 8.97:1 */
   border-style: dashed;
   border-color: var(--blanco);
 }
@@ -1532,8 +1536,14 @@ iframe {
   font-weight: 600;
 }
 
-.reserva-reservada { background: var(--morado-claro); color: var(--morado); }
-.reserva-cancelada { background: var(--rojo-claro);   color: var(--rojo); }
+.reserva-reservada {
+  background: var(--morado-claro);
+  color: var(--morado);
+}
+.reserva-cancelada {
+  background: var(--rojo-claro);
+  color: var(--rojo);
+}
 
 .boton-mini {
   border: none;
@@ -1595,12 +1605,23 @@ iframe {
    ========================================================================== */
 
 .mensaje {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   font-size: calc(13px * var(--escala-texto));
   line-height: 1.45;
   border-radius: 8px;
   border-left: 4px solid;
   padding: 10px 12px;
   margin: 0 0 12px;
+}
+
+/* El icono es decorativo (aria-hidden en el HTML): el significado ya lo
+   lleva la palabra "Error:" o "Listo:" del propio texto. */
+.mensaje-icono {
+  flex-shrink: 0;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .error {
@@ -1791,9 +1812,11 @@ iframe {
 
 /* Cada opción es una tarjeta que se puede pulsar */
 .tipo-cuenta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto;
+  gap: 2px 12px;
+  align-items: center;
   border: 2px solid var(--borde);
   border-radius: 12px;
   padding: 14px;
@@ -1812,6 +1835,20 @@ iframe {
   height: 0;
 }
 
+.tipo-icono {
+  grid-row: 1 / 3;
+  width: 2.1em;
+  height: 2.1em;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fondo);
+  border-radius: 10px;
+  font-size: calc(19px * var(--escala-texto));
+}
+
 .tipo-nombre {
   font-size: calc(15px * var(--escala-texto));
   font-weight: 600;
@@ -1827,6 +1864,10 @@ iframe {
 .tipo-cuenta:has(input:checked) {
   border-color: var(--morado);
   background: var(--morado-claro);
+}
+
+.tipo-cuenta:has(input:checked) .tipo-icono {
+  background: var(--blanco);
 }
 
 .tipo-cuenta:has(input:checked) .tipo-nombre {
@@ -1947,13 +1988,13 @@ iframe {
   color: var(--texto-claro-2);
 }
 
-
 /* ==========================================================================
    TABLET - a partir de 600px de ancho
    ========================================================================== */
 @media (min-width: 600px) {
-
-  h1 { font-size: calc(44px * var(--escala-texto)); }
+  h1 {
+    font-size: calc(44px * var(--escala-texto));
+  }
 
   .seccion,
   .portada,
@@ -2018,13 +2059,13 @@ iframe {
   }
 }
 
-
 /* ==========================================================================
    COMPUTADOR - a partir de 900px de ancho
    ========================================================================== */
 @media (min-width: 900px) {
-
-  h1 { font-size: calc(48px * var(--escala-texto)); }
+  h1 {
+    font-size: calc(48px * var(--escala-texto));
+  }
 
   /* La cabecera pasa a una sola fila */
   .cabecera {
@@ -2055,14 +2096,6 @@ iframe {
   .cabecera-derecha {
     flex-wrap: nowrap;
     gap: 16px;
-  }
-
-  /* ESCRITORIO: aquí el botón está pegado al borde derecho, así que el
-     panel se despliega hacia la IZQUIERDA para no salirse de la pantalla
-     (justo al revés que en móvil). */
-  .panel-accesibilidad {
-    left: auto;
-    right: 0;
   }
 
   .seccion,
@@ -2274,13 +2307,14 @@ iframe {
   }
 }
 
-
 /* ==========================================================================
    PANTALLAS GRANDES - a partir de 1200px
    ========================================================================== */
 @media (min-width: 1200px) {
-
-  h1 { font-size: calc(54px * var(--escala-texto)); letter-spacing: -1.62px; }
+  h1 {
+    font-size: calc(54px * var(--escala-texto));
+    letter-spacing: -1.62px;
+  }
 
   /* Cuatro tarjetas por fila */
   .tarjetas {
