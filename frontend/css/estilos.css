@@ -1,3 +1,5 @@
+@charset "UTF-8";
+
 /* ==========================================================================
    El Desparche - Hoja de estilos
    Escrita MOBILE FIRST: primero los estilos del celular y al final
@@ -35,6 +37,8 @@
   --rojo-claro: #fdecef;
 
   /* Versiones accesibles para texto y para las etiquetas de estado */
+  --borde-negro: #17213a;     /* borde de los campos del buscador: 15.97:1 sobre blanco */
+  --campo-desactivado: #dde1ea; /* relleno de una lista de filtro aún no disponible */
   --violeta-texto: #7c3aed; /* texto blanco encima: 5.70:1 (el --violeta original se quedaba en 3.96:1) */
   --verde-texto: #0f7a4a; /* 5.38:1 sobre blanco */
   --naranja-texto: #8a4b00; /* 6.80:1 sobre blanco */
@@ -336,20 +340,19 @@ main:focus-visible {
   border-color: var(--blanco);
 }
 
-.icono-accesibilidad {
-  font-size: 19px;
-  line-height: 1;
-}
-
-/* La flechita gira al abrir: otra señal visual del estado */
-.boton-accesibilidad::after {
-  content: "▾";
+/* La flechita gira al abrir: otra señal visual del estado, además de
+   aria-expanded. Es un <span> del marcado y NO contenido generado con
+   ::after, porque el contenido de ::after entra en el nombre accesible
+   del botón en Chrome y el lector diría "Accesibilidad triángulo". */
+.flecha-accesibilidad {
+  /* inline-block: transform no afecta a los elementos en línea */
+  display: inline-block;
   font-size: 11px;
   line-height: 1;
   transition: transform 0.15s ease;
 }
 
-.boton-accesibilidad[aria-expanded="true"]::after {
+.boton-accesibilidad[aria-expanded="true"] .flecha-accesibilidad {
   transform: rotate(180deg);
 }
 
@@ -358,10 +361,15 @@ main:focus-visible {
 .panel-accesibilidad {
   position: absolute;
   top: calc(100% + 10px);
-  right: 0;
   z-index: 120;
   width: 260px;
-  max-width: calc(100vw - 32px);
+
+  /* MÓVIL: la cabecera se apila y el botón queda a la izquierda, así
+     que el panel se despliega hacia la DERECHA. Con right:0 se salía
+     de la pantalla por la izquierda. */
+  left: 0;
+  right: auto;
+  max-width: calc(100vw - 40px);
   background: var(--blanco);
   border: 1px solid var(--borde);
   border-radius: 14px;
@@ -672,30 +680,402 @@ main:focus-visible {
 
 /* Botón grande de la portada */
 .boton-portada {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   width: 100%;
-  min-height: 64px;
+  min-height: 56px;
+  padding: 0 34px;
   background: var(--morado);
-  border-radius: 14px;
+  border-radius: 999px;
   color: var(--blanco);
-  font-size: calc(15px * var(--escala-texto));
+  font-family: "Geist", "Inter", sans-serif;
+  font-weight: 700;
+  font-size: calc(16px * var(--escala-texto));
   text-align: center;
   text-decoration: none;
 }
 
+/* Se oscurece en vez de bajar la opacidad: con opacity el texto blanco
+   perdía contraste sobre el morado. #4a24d6 da 8.35:1. */
 .boton-portada:hover {
-  opacity: 0.9;
+  background: #4a24d6;
 }
 
 /* ==========================================================================
    PORTADA
    ========================================================================== */
 
+/* ===== PORTADA A SANGRE =====
+   La foto ocupa todo el bloque y el contenido va encima. */
 .portada {
+  position: relative;
+  isolation: isolate;        /* el contenido no se mezcla con el fondo */
+  overflow: hidden;
+  padding: 56px 20px 64px;
+  text-align: center;
+  color: var(--blanco);
+  background: var(--oscuro);  /* color de respaldo si la foto no carga */
+}
+
+/* La foto, detrás de todo */
+.portada-fondo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.portada-fondo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Zoom lento y continuo (efecto Ken Burns). Va de ida y vuelta para
+     que no pegue un salto al reiniciar. */
+  animation: portada-zoom 24s ease-in-out infinite alternate;
+}
+
+/* Capa oscura: es lo que garantiza que el texto se lea.
+   Con 0.82 de opacidad, el blanco llega a 11.38:1 INCLUSO si debajo
+   hubiera un píxel blanco puro; el mínimo AA es 4.5:1. */
+.portada::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    180deg,
+    rgba(19, 10, 43, 0.80) 0%,
+    rgba(19, 10, 43, 0.86) 55%,
+    rgba(19, 10, 43, 0.94) 100%
+  );
+}
+
+.portada-contenido {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Sobre el fondo oscuro, los textos de la portada van en claro */
+.portada h1 {
+  color: var(--blanco);
+}
+
+.portada .parrafo-grande {
+  color: var(--texto-claro);   /* 6.06:1 sobre la capa oscura */
+}
+
+.portada .etiqueta {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--blanco);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* --gris no se puede usar aquí: sobre la capa oscura da 2.29:1 */
+.portada .ayuda-campo {
+  color: var(--texto-claro);
+}
+
+@keyframes portada-zoom {
+  from { transform: scale(1); }
+  to   { transform: scale(1.08); }
+}
+
+/* Quien pidió menos animación en su sistema ve la foto quieta */
+@media (prefers-reduced-motion: reduce) {
+  .portada-fondo img { animation: none; }
+}
+
+/* ===== BUSCADOR DENTRO DE LA PORTADA ===== */
+.portada .filtros {
+  max-width: 1040px;
+  margin: 28px auto 0;
+  justify-content: center;
+}
+
+/* En tablet y escritorio el buscador es una rejilla, no una fila que se
+   desborda: asi el boton no se queda solo en el renglon de abajo.
+   align-items:start evita que los campos se estiren cuando uno de ellos
+   lleva texto de ayuda debajo. */
+@media (min-width: 700px) {
+  .portada .filtros {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 1fr 1fr auto;
+    align-items: start;
+    gap: 12px;
+  }
+
+  .portada .caja-busqueda,
+  .portada .campo-filtro {
+    flex: initial;
+    min-width: 0;
+  }
+}
+
+/* Botón de buscar: lleva el foco a los resultados */
+.boton-buscar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 30px;
+  border: 2px solid var(--borde-negro);
+  border-radius: 14px;
+  background: var(--morado);
+  color: var(--blanco);
+  font-family: "Geist", "Inter", sans-serif;
+  font-weight: 700;
+  font-size: calc(15px * var(--escala-texto));
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.boton-buscar:hover {
+  background: #4a24d6;
+}
+
+/* ===== CARRUSEL DE EVENTOS PRINCIPALES ===== */
+/* El bloque termina con un desvanecido hacia el blanco de la seccion
+   siguiente, en vez de con un corte seco. Asi tambien desaparece el
+   escalon entre el fondo gris de la pagina y el blanco de abajo.
+   El relleno inferior da el aire que necesita el degradado: sin el, el
+   desvanecido caeria encima de los carteles. */
+.principales {
+  background: linear-gradient(
+    180deg,
+    var(--oscuro) 0%,
+    var(--oscuro) 62%,
+    var(--blanco) 100%
+  );
+  padding: 32px 0 56px;
+}
+
+.principales-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 20px;
+  margin-bottom: 18px;
+}
+
+.principales-cabecera h2 {
+  color: var(--blanco);
+  font-family: "Geist", "Inter", sans-serif;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Botón de pausa del movimiento automático (WCAG 2.2.2) */
+.boton-pausa {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--blanco);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(13px * var(--escala-texto));
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton-pausa:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.pausa-icono {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* El marco solo existe para colgar las flechas a los lados de la tira */
+.principales-marco {
+  position: relative;
+}
+
+/* Botones solo con icono: 48x48 px de área de pulsación (WCAG 2.5.8 pide
+   24x24 como mínimo; 48 es cómodo también con el dedo). */
+.flecha {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  /* Blanco sólido: la flecha se ve sobre cualquier cartel que quede
+     debajo, sin depender del color de la foto. */
   background: var(--blanco);
-  padding: 36px 20px;
+  color: var(--texto);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.flecha-izq  { left: 6px; }
+.flecha-der  { right: 6px; }
+
+.flecha:hover {
+  background: var(--morado);
+  color: var(--blanco);
+}
+
+/* La tira se desplaza en horizontal con scroll nativo */
+.principales-tira {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 64px;
+
+  /* Se oculta la barra de desplazamiento, pero el elemento SIGUE siendo
+     desplazable: con rueda, con gesto tactil, con las flechas y con el
+     teclado (la tira lleva tabindex="0"). Solo desaparece el dibujo de
+     la barra, no la funcion. */
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* Edge antiguo */
+  /* El desplazamiento suave lo pide el JavaScript con scrollBy, no se
+     fuerza aqui: asi se puede desactivar si el sistema pide menos
+     animacion, y no se duplica la animacion. */
+  /* Sin hueco inferior: ya no hay barra que dejar ver */
+  padding: 4px 0 0;
+}
+
+/* Chrome, Edge y Safari necesitan su propio selector para ocultarla */
+.principales-tira::-webkit-scrollbar {
+  display: none;
+}
+
+.principales-lista {
+  display: flex;
+  gap: 40px;
+  list-style: none;
+  margin: 0;
+  /* El hueco lateral deja respirar al primer y último cartel, y evita
+     que las flechas los tapen del todo. */
+  padding: 0 64px;
+}
+
+.cartel {
+  flex: 0 0 clamp(165px, 44vw, 210px);
+  scroll-snap-align: start;
+  display: flex;
+}
+
+.cartel-cuerpo {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--blanco);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.cartel-imagen {
+  position: relative;
+  aspect-ratio: 3 / 4;   /* algo mas bajo que un afiche: asi el carrusel
+                            entero cabe en la zona de arriba */
+  overflow: hidden;
+}
+
+.cartel-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Fecha sobre el cartel, arriba a la izquierda */
+.cartel-fecha {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  margin: 0;
+  background: var(--blanco);
+  color: var(--texto);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(11px * var(--escala-texto));
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* Todos los carteles miden lo mismo, pero el texto no ocupa lo mismo en
+   todos: cuando el lugar cabe en una linea sobraban hasta 43px en blanco
+   al final y el cartel parecia cortado, mientras que otros quedaban
+   justos. Con justify-content: center el texto se centra en el hueco
+   disponible, asi el remate se ve igual de intencionado en todos. */
+.cartel-texto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 14px 20px;
+  text-align: center;
+}
+
+.cartel-titulo {
+  margin: 0;
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(13px * var(--escala-texto));
+  font-weight: 700;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.cartel-enlace {
+  color: var(--texto);
+  text-decoration: none;
+}
+
+/* Un solo enlace por tarjeta, estirado sobre todo el cartel: así hay una
+   sola parada de tabulación y el ratón puede pulsar en cualquier parte. */
+.cartel-enlace::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.cartel-enlace:hover {
+  text-decoration: underline;
+}
+
+.cartel-enlace:focus-visible {
+  outline: none;
+}
+
+.cartel:has(.cartel-enlace:focus-visible) .cartel-cuerpo {
+  outline: var(--foco-grosor) solid var(--foco-claro);
+  outline-offset: 3px;
+}
+
+@supports not selector(:has(a)) {
+  .cartel-enlace:focus-visible {
+    outline: var(--foco-grosor) solid var(--foco-claro);
+    outline-offset: 2px;
+  }
+}
+
+.cartel-lugar {
+  margin: 0;
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(11px * var(--escala-texto));
+  color: var(--gris);
+  text-transform: uppercase;
+  line-height: 1.3;
 }
 
 .etiqueta {
@@ -712,17 +1092,6 @@ main:focus-visible {
   font-size: calc(18px * var(--escala-texto));
   color: var(--gris);
   margin-bottom: 24px;
-}
-
-.portada-imagen {
-  margin: 24px 0 0;
-}
-
-.portada-imagen img {
-  width: 100%;
-  height: 230px;
-  object-fit: cover;
-  border-radius: 24px;
 }
 
 /* ==========================================================================
@@ -751,10 +1120,10 @@ main:focus-visible {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: var(--blanco);
-  /* #767676 da 4.54:1 sobre blanco; el #999 anterior solo llegaba a
-     2.85:1 y no cumplía el mínimo 3:1 de WCAG 1.4.11 para bordes. */
-  border: 1px solid #767676;
+  background-color: var(--blanco);
+  /* Borde negro de 2px (15.97:1) para que se vea con claridad dónde
+     empieza y acaba el campo. WCAG 1.4.11 pide 3:1 como mínimo. */
+  border: 2px solid var(--borde-negro);
   border-radius: 999px;
   min-height: 54px;
   padding: 0 6px;
@@ -798,7 +1167,9 @@ main:focus-visible {
   width: 100%;
   min-height: 54px;
   padding: 0 44px 0 16px;
-  border: 1px solid var(--borde);
+  /* El borde anterior, var(--borde) #e3e6ee, daba 1.19:1 sobre blanco
+     y resultaba invisible. */
+  border: 2px solid var(--borde-negro);
   border-radius: 14px;
   background-color: var(--blanco);
   background-image: url("../img/f81d4.svg");
@@ -826,8 +1197,11 @@ main:focus-visible {
    disabled (que el lector de pantalla anuncia como "no disponible")
    y con el texto de ayuda de abajo, no solo con el gris. */
 .filtros select:disabled {
-  background-color: var(--borde-suave);
-  color: var(--gris-claro);
+  /* El relleno gris separa "disponible" de "aún no disponible"; el
+     borde sigue negro para que el campo no se pierda. El texto usa
+     --gris-texto porque --gris-claro sobre este gris daba 3.72:1. */
+  background-color: var(--campo-desactivado);
+  color: var(--gris-texto);
   cursor: not-allowed;
 }
 
@@ -1036,7 +1410,6 @@ main:focus-visible {
 .estado {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
   border: 2px solid transparent;
   border-radius: 999px;
   padding: 5px 10px;
@@ -1047,17 +1420,9 @@ main:focus-visible {
   margin: 0 0 14px;
 }
 
-/* El icono es decorativo: en el HTML lleva aria-hidden="true" para que
-   el lector de pantalla no lea "círculo negro" antes del texto. */
-.estado-icono {
-  font-size: 1em;
-  line-height: 1;
-}
-
 .estado-grande {
   padding: 8px 16px;
   font-size: calc(14px * var(--escala-texto));
-  gap: 7px;
 }
 
 .estado-programado {
@@ -1605,23 +1970,12 @@ iframe {
    ========================================================================== */
 
 .mensaje {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
   font-size: calc(13px * var(--escala-texto));
   line-height: 1.45;
   border-radius: 8px;
   border-left: 4px solid;
   padding: 10px 12px;
   margin: 0 0 12px;
-}
-
-/* El icono es decorativo (aria-hidden en el HTML): el significado ya lo
-   lleva la palabra "Error:" o "Listo:" del propio texto. */
-.mensaje-icono {
-  flex-shrink: 0;
-  font-weight: 700;
-  line-height: 1.45;
 }
 
 .error {
@@ -1812,11 +2166,9 @@ iframe {
 
 /* Cada opción es una tarjeta que se puede pulsar */
 .tipo-cuenta {
-  display: grid;
-  grid-template-columns: 40px 1fr;
-  grid-template-rows: auto auto;
-  gap: 2px 12px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   border: 2px solid var(--borde);
   border-radius: 12px;
   padding: 14px;
@@ -1835,20 +2187,6 @@ iframe {
   height: 0;
 }
 
-.tipo-icono {
-  grid-row: 1 / 3;
-  width: 2.1em;
-  height: 2.1em;
-  min-width: 40px;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--fondo);
-  border-radius: 10px;
-  font-size: calc(19px * var(--escala-texto));
-}
-
 .tipo-nombre {
   font-size: calc(15px * var(--escala-texto));
   font-weight: 600;
@@ -1864,10 +2202,6 @@ iframe {
 .tipo-cuenta:has(input:checked) {
   border-color: var(--morado);
   background: var(--morado-claro);
-}
-
-.tipo-cuenta:has(input:checked) .tipo-icono {
-  background: var(--blanco);
 }
 
 .tipo-cuenta:has(input:checked) .tipo-nombre {
@@ -2025,14 +2359,17 @@ iframe {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .portada-imagen img,
   .portada-evento img {
     height: 320px;
   }
 
+  /* El buscador pasa a una fila y el botón se ajusta a su texto */
   .boton-portada {
-    min-width: 192px;
-    min-height: 117px;
+    width: auto;
+  }
+
+  .principales-lista {
+    gap: 48px;
   }
 
   .botones {
@@ -2098,6 +2435,13 @@ iframe {
     gap: 16px;
   }
 
+  /* ESCRITORIO: el botón está pegado al borde derecho, así que el
+     panel se despliega hacia la IZQUIERDA (al revés que en móvil). */
+  .panel-accesibilidad {
+    left: auto;
+    right: 0;
+  }
+
   .seccion,
   .portada,
   .buscador,
@@ -2111,27 +2455,55 @@ iframe {
     padding-bottom: 64px;
   }
 
-  /* La portada se divide en dos columnas */
+  /* La portada ocupa buena parte de la pantalla, como un escaparate */
   .portada {
+    min-height: 46vh;
     display: flex;
     align-items: center;
-    gap: 56px;
-    padding-top: 56px;
-    padding-bottom: 56px;
+    justify-content: center;
+    padding-top: 72px;
+    padding-bottom: 88px;
   }
 
-  .portada-texto {
-    flex: 1;
+  /* El carrusel se monta sobre el borde inferior de la foto */
+  .principales {
+    margin-top: -130px;
+    position: relative;
+    z-index: 2;
+    padding-top: 0;
+    padding-bottom: 72px;
+    /* Arriba transparente para que se vea la foto de la portada por
+       detras; de la mitad hacia abajo se funde con el blanco de la
+       seccion siguiente. */
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      transparent 42%,
+      rgba(255, 255, 255, 0.72) 76%,
+      var(--blanco) 100%
+    );
   }
 
-  .portada-imagen {
-    flex: 0 0 48%;
-    margin: 0;
+  .principales-cabecera {
+    padding: 0 48px;
   }
 
-  .portada-imagen img {
-    height: 400px;
+  .principales-cabecera h2 {
+    /* Queda sobre la foto, por eso va en blanco con sombra */
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
   }
+
+  .principales-lista {
+    gap: 64px;
+    padding: 0 96px;
+  }
+
+  .principales-tira {
+    scroll-padding: 0 96px;
+  }
+
+  .flecha-izq  { left: 16px; }
+  .flecha-der  { right: 16px; }
 
   /* Tres tarjetas por fila */
   .tarjetas {
