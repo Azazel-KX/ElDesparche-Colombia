@@ -157,3 +157,5 @@ build/
 .DS_Store
 .vscode/
 .idea/ 
+# Archivos de Visual Studio
+.vs/
