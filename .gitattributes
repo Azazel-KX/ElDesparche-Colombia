@@ -1,0 +1,13 @@
+# Normaliza saltos de línea: texto en LF dentro del repo
+* text=auto eol=lf
+
+# Binarios (no tocar)
+*.png binary
+*.jpg binary
+*.svg text
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.drawio text
+*.sqlite binary

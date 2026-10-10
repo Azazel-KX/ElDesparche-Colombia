@@ -127,6 +127,25 @@ test("registro valida los datos y no crea nada si fallan", async () => {
   assert.ok(res.json.detalles.tipo_cuenta, "ADMIN no puede auto-registrarse");
 });
 
+test("registro rechaza HTML en nombres, apellidos, alias y dirección (XSS)", async () => {
+  const veneno = '<img src=x onerror=alert(1)>';
+  const res = await llamar("/api/auth/register", {
+    metodo: "POST",
+    cuerpo: { ...clienteBase(6), nombres: veneno, apellidos: "<script>x</script>", alias: veneno, direccion: veneno },
+  });
+  assert.equal(res.estado, 400);
+  for (const campo of ["nombres", "apellidos", "alias", "direccion"]) {
+    assert.ok(res.json.detalles[campo], `${campo} debe rechazarse`);
+  }
+});
+
+test("registro acepta nombres con tildes, apóstrofe y guion", async () => {
+  const datos = { ...clienteBase(7), nombres: "María José", apellidos: "O'Neill-Núñez" };
+  const res = await llamar("/api/auth/register", { metodo: "POST", cuerpo: datos });
+  creados.push(datos.numero_identificacion);
+  assert.equal(res.estado, 201, JSON.stringify(res.json));
+});
+
 test("login correcto con usuario del seed", async () => {
   const res = await llamar("/api/auth/login", {
     metodo: "POST",
