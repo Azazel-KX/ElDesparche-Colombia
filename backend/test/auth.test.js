@@ -63,6 +63,14 @@ test("health responde ok", async () => {
   assert.equal(json.estado, "ok");
 });
 
+test("ciudades lista las del seed con su departamento", async () => {
+  const { estado, json } = await llamar("/api/ciudades");
+  assert.equal(estado, 200);
+  const bogota = json.ciudades.find((c) => c.nombre === "Bogotá");
+  assert.ok(bogota);
+  assert.equal(bogota.departamento, "Bogotá D.C.");
+});
+
 test("registro de cliente devuelve token y /me lo acepta", async () => {
   const datos = clienteBase(1);
   const reg = await llamar("/api/auth/register", { metodo: "POST", cuerpo: datos });
