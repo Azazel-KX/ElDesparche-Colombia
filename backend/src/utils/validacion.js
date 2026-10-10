@@ -1,0 +1,132 @@
+// Validación de la entrada de /api/auth. Devuelve { datos } o { errores: { campo: mensaje } }.
+// Las reglas espejan los CHECK de database/schema.sql para dar mensajes claros antes de llegar a la BD.
+
+const TIPOS_IDENTIFICACION = ["CC", "CE", "PAS", "PPT", "NIT"];
+const TIPOS_CUENTA = ["CLIENTE", "EMPRESA"]; // el ADMIN no se auto-registra
+
+const REGLAS_IDENTIFICACION = {
+  CC: /^[0-9]{6,10}$/,
+  CE: /^[0-9]{6,10}$/,
+  PPT: /^[0-9]+$/,
+  PAS: /^[A-Za-z0-9]{5,20}$/,
+  NIT: /^[0-9]{9}$/,
+};
+
+const RE_CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const RE_TELEFONO = /^(3[0-9]{9}|60[1-8][0-9]{7})$/;
+const RE_NIT = /^[0-9]{9}-[0-9]$/;
+const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+const LONGITUD_MIN_CONTRASENA = 8;
+
+function texto(valor) {
+  return typeof valor === "string" ? valor.trim() : "";
+}
+
+function numeroOpcional(valor) {
+  if (valor === undefined || valor === null || valor === "") return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function validarContrasena(contrasena, errores) {
+  if (typeof contrasena !== "string" || contrasena.length < LONGITUD_MIN_CONTRASENA) {
+    errores.contrasena = `La contraseña debe tener al menos ${LONGITUD_MIN_CONTRASENA} caracteres.`;
+  } else if (contrasena.length > 72) {
+    // bcrypt solo usa los primeros 72 bytes: se rechaza en vez de truncar en silencio.
+    errores.contrasena = "La contraseña no puede superar los 72 caracteres.";
+  }
+}
+
+function validarRegistro(body) {
+  const b = body || {};
+  const errores = {};
+
+  const tipo_cuenta = texto(b.tipo_cuenta).toUpperCase();
+  if (!TIPOS_CUENTA.includes(tipo_cuenta)) {
+    errores.tipo_cuenta = "El tipo de cuenta debe ser CLIENTE o EMPRESA.";
+  }
+
+  const tipo_identificacion = texto(b.tipo_identificacion).toUpperCase();
+  const numero_identificacion = texto(b.numero_identificacion);
+  if (!TIPOS_IDENTIFICACION.includes(tipo_identificacion)) {
+    errores.tipo_identificacion = `El tipo de identificación debe ser uno de: ${TIPOS_IDENTIFICACION.join(", ")}.`;
+  } else if (!REGLAS_IDENTIFICACION[tipo_identificacion].test(numero_identificacion)) {
+    errores.numero_identificacion = `El número no es válido para el tipo ${tipo_identificacion}.`;
+  }
+
+  const nombres = texto(b.nombres);
+  const apellidos = texto(b.apellidos);
+  if (!nombres || nombres.length > 60) errores.nombres = "Escribe tus nombres (máximo 60 caracteres).";
+  if (!apellidos || apellidos.length > 60) errores.apellidos = "Escribe tus apellidos (máximo 60 caracteres).";
+
+  const correo = texto(b.correo).toLowerCase();
+  if (!RE_CORREO.test(correo) || correo.length > 100) errores.correo = "Escribe un correo electrónico válido.";
+
+  validarContrasena(b.contrasena, errores);
+
+  const direccion = texto(b.direccion);
+  if (!direccion || direccion.length > 150) errores.direccion = "Escribe tu dirección (máximo 150 caracteres).";
+
+  const id_ciudad = Number(b.id_ciudad);
+  if (!Number.isInteger(id_ciudad) || id_ciudad <= 0) errores.id_ciudad = "Elige una ciudad válida.";
+
+  const telefono = texto(b.telefono);
+  if (telefono && !RE_TELEFONO.test(telefono)) {
+    errores.telefono = "El teléfono debe ser un celular (3XXXXXXXXX) o fijo (60X + 7 dígitos).";
+  }
+
+  const latitud = numeroOpcional(b.latitud);
+  const longitud = numeroOpcional(b.longitud);
+  if (Number.isNaN(latitud) || Number.isNaN(longitud) || (latitud === null) !== (longitud === null)) {
+    errores.coordenadas = "Si envías coordenadas deben ser latitud y longitud numéricas.";
+  } else if (latitud !== null && (latitud < -4.3 || latitud > 13.6 || longitud < -82 || longitud > -66.8)) {
+    errores.coordenadas = "Las coordenadas deben estar dentro de Colombia.";
+  }
+
+  const datos = {
+    tipo_cuenta, tipo_identificacion, numero_identificacion, nombres, apellidos,
+    correo, contrasena: b.contrasena, direccion, id_ciudad,
+    telefono: telefono || null, latitud, longitud,
+  };
+
+  if (tipo_cuenta === "CLIENTE") {
+    const fecha = texto(b.fecha_nacimiento);
+    const fechaValida = RE_FECHA.test(fecha) && !Number.isNaN(Date.parse(fecha));
+    if (!fechaValida) {
+      errores.fecha_nacimiento = "Escribe tu fecha de nacimiento con formato AAAA-MM-DD.";
+    } else if (new Date(fecha) >= new Date()) {
+      errores.fecha_nacimiento = "La fecha de nacimiento debe ser anterior a hoy.";
+    }
+    datos.fecha_nacimiento = fecha;
+    const alias = texto(b.alias);
+    if (alias.length > 30) errores.alias = "El alias no puede superar los 30 caracteres.";
+    datos.alias = alias || null;
+  }
+
+  if (tipo_cuenta === "EMPRESA") {
+    const nit = texto(b.nit);
+    if (!RE_NIT.test(nit)) errores.nit = "El NIT debe tener el formato 123456789-0.";
+    const razon_social = texto(b.razon_social);
+    const nombre_comercial = texto(b.nombre_comercial);
+    if (!razon_social || razon_social.length > 120) errores.razon_social = "Escribe la razón social (máximo 120 caracteres).";
+    if (!nombre_comercial || nombre_comercial.length > 100) errores.nombre_comercial = "Escribe el nombre comercial (máximo 100 caracteres).";
+    datos.nit = nit;
+    datos.razon_social = razon_social;
+    datos.nombre_comercial = nombre_comercial;
+    datos.descripcion = texto(b.descripcion) || null;
+  }
+
+  return Object.keys(errores).length ? { errores } : { datos };
+}
+
+function validarLogin(body) {
+  const b = body || {};
+  const errores = {};
+  const correo = texto(b.correo).toLowerCase();
+  if (!correo) errores.correo = "Escribe tu correo electrónico.";
+  if (typeof b.contrasena !== "string" || !b.contrasena) errores.contrasena = "Escribe tu contraseña.";
+  return Object.keys(errores).length ? { errores } : { datos: { correo, contrasena: b.contrasena } };
+}
+
+module.exports = { validarRegistro, validarLogin, LONGITUD_MIN_CONTRASENA };
