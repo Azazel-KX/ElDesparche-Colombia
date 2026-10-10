@@ -19,6 +19,14 @@ const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
 const LONGITUD_MIN_CONTRASENA = 8;
 
+// Lista blanca de caracteres para los textos que luego se muestran en pantalla.
+// Quita de raíz los símbolos < > " & que sirven para inyectar HTML; el frontend
+// además escapa todo lo que pinta (defensa en capas).
+const RE_PERSONA = /^[\p{L}\p{M}][\p{L}\p{M}\s.'’-]*$/u; // nombres y apellidos
+const RE_ALIAS = /^[\p{L}\p{N}_.-]+$/u;
+const RE_NOMBRE_EMPRESA = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N}\s.,&'’()-]*$/u;
+const RE_DIRECCION = /^[\p{L}\p{N}\s#.,°ºª/'’-]+$/u;
+
 function texto(valor) {
   return typeof valor === "string" ? valor.trim() : "";
 }
@@ -57,8 +65,12 @@ function validarRegistro(body) {
 
   const nombres = texto(b.nombres);
   const apellidos = texto(b.apellidos);
-  if (!nombres || nombres.length > 60) errores.nombres = "Escribe tus nombres (máximo 60 caracteres).";
-  if (!apellidos || apellidos.length > 60) errores.apellidos = "Escribe tus apellidos (máximo 60 caracteres).";
+  if (!nombres || nombres.length > 60 || !RE_PERSONA.test(nombres)) {
+    errores.nombres = "Escribe tus nombres (solo letras, espacios, punto, apóstrofe o guion; máximo 60).";
+  }
+  if (!apellidos || apellidos.length > 60 || !RE_PERSONA.test(apellidos)) {
+    errores.apellidos = "Escribe tus apellidos (solo letras, espacios, punto, apóstrofe o guion; máximo 60).";
+  }
 
   const correo = texto(b.correo).toLowerCase();
   if (!RE_CORREO.test(correo) || correo.length > 100) errores.correo = "Escribe un correo electrónico válido.";
@@ -66,7 +78,9 @@ function validarRegistro(body) {
   validarContrasena(b.contrasena, errores);
 
   const direccion = texto(b.direccion);
-  if (!direccion || direccion.length > 150) errores.direccion = "Escribe tu dirección (máximo 150 caracteres).";
+  if (!direccion || direccion.length > 150 || !RE_DIRECCION.test(direccion)) {
+    errores.direccion = "Escribe una dirección válida (letras, números, # . , - /; máximo 150).";
+  }
 
   const id_ciudad = Number(b.id_ciudad);
   if (!Number.isInteger(id_ciudad) || id_ciudad <= 0) errores.id_ciudad = "Elige una ciudad válida.";
@@ -100,7 +114,9 @@ function validarRegistro(body) {
     }
     datos.fecha_nacimiento = fecha;
     const alias = texto(b.alias);
-    if (alias.length > 30) errores.alias = "El alias no puede superar los 30 caracteres.";
+    if (alias && (alias.length > 30 || !RE_ALIAS.test(alias))) {
+      errores.alias = "El alias solo admite letras, números, _ . - y hasta 30 caracteres.";
+    }
     datos.alias = alias || null;
   }
 
@@ -109,12 +125,18 @@ function validarRegistro(body) {
     if (!RE_NIT.test(nit)) errores.nit = "El NIT debe tener el formato 123456789-0.";
     const razon_social = texto(b.razon_social);
     const nombre_comercial = texto(b.nombre_comercial);
-    if (!razon_social || razon_social.length > 120) errores.razon_social = "Escribe la razón social (máximo 120 caracteres).";
-    if (!nombre_comercial || nombre_comercial.length > 100) errores.nombre_comercial = "Escribe el nombre comercial (máximo 100 caracteres).";
+    if (!razon_social || razon_social.length > 120 || !RE_NOMBRE_EMPRESA.test(razon_social)) {
+      errores.razon_social = "Escribe la razón social (letras, números y . , & ( ) -; máximo 120).";
+    }
+    if (!nombre_comercial || nombre_comercial.length > 100 || !RE_NOMBRE_EMPRESA.test(nombre_comercial)) {
+      errores.nombre_comercial = "Escribe el nombre comercial (letras, números y . , & ( ) -; máximo 100).";
+    }
+    const descripcion = texto(b.descripcion);
+    if (descripcion.length > 1000) errores.descripcion = "La descripción no puede superar los 1000 caracteres.";
     datos.nit = nit;
     datos.razon_social = razon_social;
     datos.nombre_comercial = nombre_comercial;
-    datos.descripcion = texto(b.descripcion) || null;
+    datos.descripcion = descripcion || null;
   }
 
   return Object.keys(errores).length ? { errores } : { datos };

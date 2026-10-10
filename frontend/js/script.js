@@ -301,7 +301,7 @@ function etiquetaEstado(estado, grande) {
     clases = clases + " estado-grande";
   }
   return '<span class="' + clases + '">' +
-           '<span class="oculto">Estado del evento: </span>' + estado +
+           '<span class="oculto">Estado del evento: </span>' + esc(estado) +
          '</span>';
 }
 
@@ -333,6 +333,28 @@ function fechaDeHoy() {
     month: "long",
     year: "numeric"
   });
+}
+
+
+/* ==========================================================================
+   2.b TEXTO SEGURO
+   Todo dato que viene del usuario o de la base de datos (nombres, títulos,
+   direcciones...) debe pasar por esc() antes de armarse dentro de un
+   innerHTML. Sin esto, un nombre como <img src=x onerror=...> ejecutaría
+   código en la página de quien lo vea (XSS).
+   Cuando solo se muestra texto, es más simple usar textContent.
+   ========================================================================== */
+
+function esc(valor) {
+  if (valor === undefined || valor === null) {
+    return "";
+  }
+  return String(valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 
@@ -556,14 +578,14 @@ function pintarSesion() {
     caja.innerHTML =
       '<div class="usuario">' +
         '<span class="usuario-inicial" aria-hidden="true">' +
-          usuario.nombre.charAt(0).toUpperCase() +
+          esc(usuario.nombre.charAt(0).toUpperCase()) +
         '</span>' +
         '<span class="usuario-nombre">' +
-          '<span class="oculto">Sesión iniciada como </span>' + usuario.nombre +
+          '<span class="oculto">Sesión iniciada como </span>' + esc(usuario.nombre) +
         '</span>' +
         marca +
         '<button type="button" id="salir">' +
-          'Cerrar sesión<span class="oculto"> de ' + usuario.nombre + '</span>' +
+          'Cerrar sesión<span class="oculto"> de ' + esc(usuario.nombre) + '</span>' +
         '</button>' +
       '</div>';
 
@@ -608,19 +630,19 @@ function tarjetaEvento(evento) {
     '<li class="tarjeta">' +
       '<article class="tarjeta-cuerpo">' +
         '<div class="tarjeta-imagen">' +
-          '<img src="' + evento.imagen + '" ' +
-               'alt="Imagen promocional del evento ' + evento.titulo + ' en ' + evento.ciudad + '">' +
+          '<img src="' + esc(evento.imagen) + '" ' +
+               'alt="Imagen promocional del evento ' + esc(evento.titulo) + ' en ' + esc(evento.ciudad) + '">' +
           etiquetaEstado(evento.estado, false) +
         '</div>' +
         '<div class="tarjeta-texto">' +
           '<h3 class="tarjeta-titulo">' +
-            '<a class="tarjeta-enlace" href="evento.html?id=' + evento.id + '">' +
-              evento.titulo +
+            '<a class="tarjeta-enlace" href="evento.html?id=' + encodeURIComponent(evento.id) + '">' +
+              esc(evento.titulo) +
             '</a>' +
           '</h3>' +
           '<p class="tarjeta-datos">' +
             '<span class="oculto">Ciudad y fecha: </span>' +
-            evento.ciudad + ' · ' + evento.fechaCorta +
+            esc(evento.ciudad) + ' · ' + esc(evento.fechaCorta) +
           '</p>' +
           '<div class="tarjeta-pie">' +
             '<span class="tarjeta-precio">' +
@@ -685,21 +707,21 @@ function cartelPrincipal(evento) {
     '<li class="cartel">' +
       '<article class="cartel-cuerpo">' +
         '<div class="cartel-imagen">' +
-          '<img src="' + evento.imagen + '" ' +
-               'alt="Cartel del evento ' + evento.titulo + '">' +
+          '<img src="' + esc(evento.imagen) + '" ' +
+               'alt="Cartel del evento ' + esc(evento.titulo) + '">' +
           '<p class="cartel-fecha">' +
-            '<span class="oculto">Fechas: </span>' + evento.fechaCorta +
+            '<span class="oculto">Fechas: </span>' + esc(evento.fechaCorta) +
           '</p>' +
         '</div>' +
         '<div class="cartel-texto">' +
           '<h3 class="cartel-titulo">' +
-            '<a class="cartel-enlace" href="evento.html?id=' + evento.id + '">' +
-              evento.titulo +
+            '<a class="cartel-enlace" href="evento.html?id=' + encodeURIComponent(evento.id) + '">' +
+              esc(evento.titulo) +
             '</a>' +
           '</h3>' +
           '<p class="cartel-lugar">' +
             '<span class="oculto">Lugar: </span>' +
-            evento.lugar + ' · ' + evento.ciudad +
+            esc(evento.lugar) + ' · ' + esc(evento.ciudad) +
           '</p>' +
         '</div>' +
       '</article>' +
@@ -881,10 +903,10 @@ function paginaInicio() {
      lector de pantalla la anuncia como "no disponible" y el estado no
      depende solo de que se vea más clarita (WCAG 1.4.1). */
   function llenarLista(lista, opciones, textoPorDefecto) {
-    lista.innerHTML = '<option value="">' + textoPorDefecto + '</option>';
+    lista.innerHTML = '<option value="">' + esc(textoPorDefecto) + '</option>';
     for (var i = 0; i < opciones.length; i++) {
       lista.innerHTML = lista.innerHTML +
-        '<option>' + opciones[i] + '</option>';
+        '<option>' + esc(opciones[i]) + '</option>';
     }
     lista.disabled = opciones.length === 0;
   }
@@ -1024,7 +1046,7 @@ function paginaEvento() {
   var ficha = "";
   for (var i = 0; i < datos.length; i++) {
     ficha = ficha +
-      "<div><dt>" + datos[i][0] + "</dt><dd>" + datos[i][1] + "</dd></div>";
+      "<div><dt>" + esc(datos[i][0]) + "</dt><dd>" + esc(datos[i][1]) + "</dd></div>";
   }
   document.getElementById("evento-ficha").innerHTML = ficha;
 
@@ -1092,8 +1114,8 @@ function paginaReservar() {
   document.getElementById("resumen-fecha").textContent = evento.fechaInicio;
 
   document.getElementById("aviso-usuario").innerHTML =
-    "Hola, <strong>" + usuario.nombre + "</strong>. Tu reserva se registrará a tu nombre. " +
-    "Recibirás un correo con los detalles a <strong>" + usuario.correo + "</strong>.";
+    "Hola, <strong>" + esc(usuario.nombre) + "</strong>. Tu reserva se registrará a tu nombre. " +
+    "Recibirás un correo con los detalles a <strong>" + esc(usuario.correo) + "</strong>.";
 
   /* Actualiza el resumen de precios */
   function actualizarResumen() {
@@ -1246,7 +1268,7 @@ function paginaConfirmacion() {
 
   var html = "";
   for (var j = 0; j < datos.length; j++) {
-    html = html + "<div><dt>" + datos[j][0] + "</dt><dd>" + datos[j][1] + "</dd></div>";
+    html = html + "<div><dt>" + esc(datos[j][0]) + "</dt><dd>" + esc(datos[j][1]) + "</dd></div>";
   }
 
   document.getElementById("detalles").innerHTML = html;
@@ -1270,7 +1292,7 @@ function paginaMisReservas() {
   }
 
   document.getElementById("saludo").innerHTML =
-    "Hola, <strong>" + usuario.nombre + "</strong>. Aquí puedes ver y gestionar tus reservas.";
+    "Hola, <strong>" + esc(usuario.nombre) + "</strong>. Aquí puedes ver y gestionar tus reservas.";
 
   function pintar() {
     var reservas = obtenerReservas();
@@ -1303,20 +1325,20 @@ function paginaMisReservas() {
         acciones = '<span class="sin-qr">QR no disponible</span>';
       } else {
         acciones =
-          '<button class="boton-mini boton-qr" data-qr="' + r.codigo + '">Ver QR</button>' +
-          '<button class="boton-mini boton-cancelar" data-cancelar="' + r.codigo + '">Cancelar</button>';
+          '<button class="boton-mini boton-qr" data-qr="' + esc(r.codigo) + '">Ver QR</button>' +
+          '<button class="boton-mini boton-cancelar" data-cancelar="' + esc(r.codigo) + '">Cancelar</button>';
       }
 
       var claseReserva = r.estado === "Cancelada" ? "reserva-cancelada" : "reserva-reservada";
 
       html = html +
         '<tr>' +
-          '<td data-titulo="Evento"><a href="evento.html?id=' + r.idEvento + '">' + r.titulo + '</a></td>' +
-          '<td data-titulo="Fecha">' + r.fechaEvento + '</td>' +
-          '<td data-titulo="Lugar">' + r.lugar + '</td>' +
-          '<td data-titulo="Tickets">' + r.tickets + '</td>' +
+          '<td data-titulo="Evento"><a href="evento.html?id=' + encodeURIComponent(r.idEvento) + '">' + esc(r.titulo) + '</a></td>' +
+          '<td data-titulo="Fecha">' + esc(r.fechaEvento) + '</td>' +
+          '<td data-titulo="Lugar">' + esc(r.lugar) + '</td>' +
+          '<td data-titulo="Tickets">' + esc(r.tickets) + '</td>' +
           '<td data-titulo="Total">' + (r.total === 0 ? "Gratis" : pesos(r.total)) + '</td>' +
-          '<td data-titulo="Estado"><span class="etiqueta-reserva ' + claseReserva + '">' + r.estado + '</span></td>' +
+          '<td data-titulo="Estado"><span class="etiqueta-reserva ' + claseReserva + '">' + esc(r.estado) + '</span></td>' +
           '<td data-titulo="Acciones">' + acciones + '</td>' +
         '</tr>';
     }
@@ -1692,9 +1714,15 @@ function mostrarCamposDelTipo() {
 }
 
 /* ===== COMUNICACIÓN CON EL BACKEND =====
-   La dirección del API se puede cambiar definiendo window.DESPARCHE_API_URL
-   antes de cargar este archivo. */
-var API_URL = window.DESPARCHE_API_URL || "http://localhost:5000/api";
+   Con Vite (puerto 5173 o el túnel) se usa la ruta relativa "/api", que Vite
+   redirige al backend (ver vite.config.js): así no hay problemas de CORS y
+   funciona desde fuera de la máquina. Con un servidor estático simple
+   (por ejemplo "serve" en 4173) no hay proxy y se llama directo al puerto 5000.
+   Se puede forzar otra dirección definiendo window.DESPARCHE_API_URL antes
+   de cargar este archivo. */
+var API_ES_LOCAL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+var API_URL = window.DESPARCHE_API_URL ||
+  ((window.location.port === "5173" || !API_ES_LOCAL) ? "/api" : "http://localhost:5000/api");
 
 /* Llama al API y devuelve { estado, datos }. Si el servidor no responde,
    rechaza la promesa con un mensaje que se puede mostrar tal cual. */
@@ -1773,7 +1801,7 @@ function cambiarPestana(cual) {
 function mostrarError(idMensaje, texto, idCampo) {
   var caja = document.getElementById(idMensaje);
 
-  caja.innerHTML = '<span><strong>Error:</strong> ' + texto + '</span>';
+  caja.innerHTML = '<span><strong>Error:</strong> ' + esc(texto) + '</span>';
 
   /* El foco va al campo que falló para poder corregirlo enseguida */
   if (idCampo) {
