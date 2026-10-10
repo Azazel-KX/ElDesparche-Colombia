@@ -1425,7 +1425,7 @@ function crearModalAcceso() {
         '<div class="campo">' +
           '<label for="clave-entrar">Contraseña</label>' +
           '<input type="password" id="clave-entrar" name="clave" required ' +
-                 'minlength="6" placeholder="Mínimo 6 caracteres" ' +
+                 'placeholder="Tu contraseña" ' +
                  'autocomplete="current-password" aria-describedby="error-entrar">' +
         '</div>' +
 
@@ -1476,28 +1476,143 @@ function crearModalAcceso() {
           '</div>' +
         '</fieldset>' +
 
-        '<div class="campo">' +
-          '<label for="nombre-registro">Nombre completo</label>' +
-          '<input type="text" id="nombre-registro" name="nombre" required ' +
-                 'placeholder="Tu nombre" autocomplete="name" ' +
-                 'aria-describedby="error-registro">' +
-        '</div>' +
+        /* Los campos siguen la tabla USUARIO de la base de datos
+           (tipo y número de documento, nombres, apellidos, correo, clave,
+           ciudad y dirección). Lo propio de cada tipo de cuenta va en su
+           grupo: CLIENTE pide fecha de nacimiento; EMPRESA pide NIT y
+           razón social. */
+        '<fieldset class="grupo-campos">' +
+          '<legend class="modal-subtitulo">Tus datos</legend>' +
 
-        '<div class="campo">' +
-          '<label for="correo-registro">Correo electrónico</label>' +
-          '<input type="email" id="correo-registro" name="correo" required ' +
-                 'placeholder="correo@ejemplo.com" autocomplete="email" ' +
-                 'aria-describedby="error-registro">' +
-        '</div>' +
+          '<div class="campo">' +
+            '<label for="tipo-id-registro">Tipo de documento</label>' +
+            '<select id="tipo-id-registro" name="tipo_identificacion" required ' +
+                    'aria-describedby="error-registro">' +
+              '<option value="CC">Cédula de ciudadanía (CC)</option>' +
+              '<option value="CE">Cédula de extranjería (CE)</option>' +
+              '<option value="PAS">Pasaporte (PAS)</option>' +
+              '<option value="PPT">Permiso por protección temporal (PPT)</option>' +
+              '<option value="NIT">NIT</option>' +
+            '</select>' +
+          '</div>' +
 
-        '<div class="campo">' +
-          '<label for="clave-registro">Contraseña</label>' +
-          '<input type="password" id="clave-registro" name="clave" required ' +
-                 'minlength="6" placeholder="Mínimo 6 caracteres" ' +
-                 'autocomplete="new-password" aria-describedby="ayuda-clave error-registro">' +
-          /* La regla se dice ANTES de equivocarse, no solo al fallar */
-          '<p class="ayuda-campo" id="ayuda-clave">Debe tener 6 caracteres como mínimo.</p>' +
-        '</div>' +
+          '<div class="campo">' +
+            '<label for="numero-id-registro">Número de documento</label>' +
+            '<input type="text" id="numero-id-registro" name="numero_identificacion" required ' +
+                   'inputmode="numeric" maxlength="20" autocomplete="off" ' +
+                   'aria-describedby="error-registro">' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="nombres-registro">Nombres</label>' +
+            '<input type="text" id="nombres-registro" name="nombres" required ' +
+                   'maxlength="60" placeholder="Tus nombres" autocomplete="given-name" ' +
+                   'aria-describedby="error-registro">' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="apellidos-registro">Apellidos</label>' +
+            '<input type="text" id="apellidos-registro" name="apellidos" required ' +
+                   'maxlength="60" placeholder="Tus apellidos" autocomplete="family-name" ' +
+                   'aria-describedby="error-registro">' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="telefono-registro">Teléfono <span class="opcional">(opcional)</span></label>' +
+            '<input type="tel" id="telefono-registro" name="telefono" ' +
+                   'inputmode="numeric" maxlength="10" placeholder="3001234567" ' +
+                   'autocomplete="tel-national" aria-describedby="error-registro">' +
+          '</div>' +
+        '</fieldset>' +
+
+        '<fieldset class="grupo-campos">' +
+          '<legend class="modal-subtitulo">¿Dónde vives?</legend>' +
+
+          '<div class="campo">' +
+            '<label for="ciudad-registro">Ciudad</label>' +
+            '<select id="ciudad-registro" name="id_ciudad" required ' +
+                    'aria-describedby="error-registro">' +
+              '<option value="">Cargando ciudades…</option>' +
+            '</select>' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="direccion-registro">Dirección</label>' +
+            '<input type="text" id="direccion-registro" name="direccion" required ' +
+                   'maxlength="150" placeholder="Calle 10 # 5-20" autocomplete="street-address" ' +
+                   'aria-describedby="error-registro">' +
+          '</div>' +
+        '</fieldset>' +
+
+        /* Solo para cuenta de Usuario (tabla CLIENTE) */
+        '<fieldset class="grupo-campos" id="campos-usuario">' +
+          '<legend class="modal-subtitulo">Sobre ti</legend>' +
+
+          '<div class="campo">' +
+            '<label for="nacimiento-registro">Fecha de nacimiento</label>' +
+            '<input type="date" id="nacimiento-registro" name="fecha_nacimiento" required ' +
+                   'autocomplete="bday" aria-describedby="ayuda-nacimiento error-registro">' +
+            '<p class="ayuda-campo" id="ayuda-nacimiento">Algunos eventos tienen edad mínima.</p>' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="alias-registro">Alias <span class="opcional">(opcional)</span></label>' +
+            '<input type="text" id="alias-registro" name="alias" maxlength="30" ' +
+                   'placeholder="Cómo te verán los demás" autocomplete="nickname" ' +
+                   'aria-describedby="error-registro">' +
+          '</div>' +
+        '</fieldset>' +
+
+        /* Solo para cuenta de Agente (tabla EMPRESA) */
+        '<fieldset class="grupo-campos" id="campos-agente" hidden disabled>' +
+          '<legend class="modal-subtitulo">Datos de la empresa</legend>' +
+
+          '<div class="campo">' +
+            '<label for="nit-registro">NIT</label>' +
+            '<input type="text" id="nit-registro" name="nit" required ' +
+                   'maxlength="11" placeholder="900123456-7" autocomplete="off" ' +
+                   'aria-describedby="ayuda-nit error-registro">' +
+            '<p class="ayuda-campo" id="ayuda-nit">Nueve dígitos, guion y dígito de verificación.</p>' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="razon-registro">Razón social</label>' +
+            '<input type="text" id="razon-registro" name="razon_social" required ' +
+                   'maxlength="120" aria-describedby="error-registro">' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="comercial-registro">Nombre comercial</label>' +
+            '<input type="text" id="comercial-registro" name="nombre_comercial" required ' +
+                   'maxlength="100" aria-describedby="error-registro">' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="descripcion-registro">Descripción <span class="opcional">(opcional)</span></label>' +
+            '<textarea id="descripcion-registro" name="descripcion" rows="3" ' +
+                      'aria-describedby="error-registro"></textarea>' +
+          '</div>' +
+        '</fieldset>' +
+
+        '<fieldset class="grupo-campos">' +
+          '<legend class="modal-subtitulo">Tu cuenta</legend>' +
+
+          '<div class="campo">' +
+            '<label for="correo-registro">Correo electrónico</label>' +
+            '<input type="email" id="correo-registro" name="correo" required ' +
+                   'maxlength="100" placeholder="correo@ejemplo.com" autocomplete="email" ' +
+                   'aria-describedby="error-registro">' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="clave-registro">Contraseña</label>' +
+            '<input type="password" id="clave-registro" name="clave" required ' +
+                   'minlength="8" maxlength="72" placeholder="Mínimo 8 caracteres" ' +
+                   'autocomplete="new-password" aria-describedby="ayuda-clave error-registro">' +
+            /* La regla se dice ANTES de equivocarse, no solo al fallar */
+            '<p class="ayuda-campo" id="ayuda-clave">Debe tener 8 caracteres como mínimo.</p>' +
+          '</div>' +
+        '</fieldset>' +
 
         '<p class="mensaje error" id="error-registro" role="alert"></p>' +
 
@@ -1532,8 +1647,98 @@ function crearModalAcceso() {
     };
   }
 
+  /* Al cambiar entre Usuario y Agente se muestran los campos de cada uno */
+  var radiosTipo = modal.querySelectorAll('input[name="tipo-cuenta"]');
+  for (var j = 0; j < radiosTipo.length; j++) {
+    radiosTipo[j].onchange = mostrarCamposDelTipo;
+  }
+  mostrarCamposDelTipo();
+
+  /* Nadie puede haber nacido mañana */
+  document.getElementById("nacimiento-registro").max = new Date().toISOString().slice(0, 10);
+
   document.getElementById("form-entrar").onsubmit = entrar;
   document.getElementById("form-registro").onsubmit = registrar;
+}
+
+/* Ids de todos los campos del registro (para limpiar las marcas de error) */
+var CAMPOS_REGISTRO = [
+  "tipo-id-registro", "numero-id-registro", "nombres-registro", "apellidos-registro",
+  "telefono-registro", "ciudad-registro", "direccion-registro", "nacimiento-registro",
+  "alias-registro", "nit-registro", "razon-registro", "comercial-registro",
+  "descripcion-registro", "correo-registro", "clave-registro"
+];
+
+/* Muestra los campos propios del tipo de cuenta elegido y oculta los otros.
+   Un <fieldset disabled> no se valida ni se envía, y el lector de pantalla
+   lo ignora; por eso se usa junto con hidden. */
+function mostrarCamposDelTipo() {
+  var esAgente = document.querySelector('input[name="tipo-cuenta"]:checked').value === "agente";
+  var usuario = document.getElementById("campos-usuario");
+  var agente = document.getElementById("campos-agente");
+
+  usuario.hidden = esAgente;
+  usuario.disabled = esAgente;
+  agente.hidden = !esAgente;
+  agente.disabled = !esAgente;
+
+  /* Un agente normalmente se identifica con NIT */
+  var tipoId = document.getElementById("tipo-id-registro");
+  if (esAgente && tipoId.value !== "NIT") {
+    tipoId.value = "NIT";
+  } else if (!esAgente && tipoId.value === "NIT") {
+    tipoId.value = "CC";
+  }
+}
+
+/* ===== COMUNICACIÓN CON EL BACKEND =====
+   La dirección del API se puede cambiar definiendo window.DESPARCHE_API_URL
+   antes de cargar este archivo. */
+var API_URL = window.DESPARCHE_API_URL || "http://localhost:5000/api";
+
+/* Llama al API y devuelve { estado, datos }. Si el servidor no responde,
+   rechaza la promesa con un mensaje que se puede mostrar tal cual. */
+function llamarApi(ruta, opciones) {
+  return fetch(API_URL + ruta, opciones).then(
+    function (respuesta) {
+      return respuesta.json().then(
+        function (datos) { return { estado: respuesta.status, datos: datos }; },
+        function () { return { estado: respuesta.status, datos: {} }; }
+      );
+    },
+    function () {
+      throw new Error("No se pudo conectar con el servidor. Inténtalo de nuevo en unos minutos.");
+    }
+  );
+}
+
+/* Llena la lista de ciudades (una sola vez) con las que hay en la base de datos */
+var ciudadesCargadas = false;
+
+function cargarCiudades() {
+  if (ciudadesCargadas) {
+    return;
+  }
+
+  var lista = document.getElementById("ciudad-registro");
+
+  llamarApi("/ciudades").then(function (resultado) {
+    if (resultado.estado !== 200 || !resultado.datos.ciudades) {
+      throw new Error("No se pudo cargar la lista de ciudades.");
+    }
+
+    lista.innerHTML = '<option value="">Elige tu ciudad</option>';
+    resultado.datos.ciudades.forEach(function (ciudad) {
+      var opcion = document.createElement("option");
+      opcion.value = ciudad.id_ciudad;
+      opcion.textContent = ciudad.nombre + " (" + ciudad.departamento + ")";
+      lista.appendChild(opcion);
+    });
+    ciudadesCargadas = true;
+  }).catch(function (error) {
+    lista.innerHTML = '<option value="">No se pudieron cargar las ciudades</option>';
+    mostrarError("error-registro", error.message);
+  });
 }
 
 /* Muestra la pestaña de entrar o la de registro.
@@ -1551,9 +1756,13 @@ function cambiarPestana(cual) {
   document.getElementById("form-entrar").hidden = cual !== "entrar";
   document.getElementById("form-registro").hidden = cual !== "registro";
 
+  if (cual === "registro") {
+    cargarCiudades();
+  }
+
   /* Se limpian los mensajes de error al cambiar */
   limpiarError("error-entrar", ["correo-entrar", "clave-entrar"]);
-  limpiarError("error-registro", ["nombre-registro", "correo-registro", "clave-registro"]);
+  limpiarError("error-registro", CAMPOS_REGISTRO);
 }
 
 /* ===== MENSAJES DE ERROR ACCESIBLES =====
@@ -1597,6 +1806,55 @@ function abrirAcceso(cual) {
   document.getElementById("modal-acceso").showModal();
 }
 
+/* Guarda la sesión que devolvió el API y recarga la página.
+   Se mantiene el formato que ya usan las demás pantallas (nombre, correo y
+   tipo "usuario" | "agente") y se agrega el token para las próximas llamadas. */
+function iniciarSesionLocal(respuesta) {
+  var u = respuesta.usuario;
+
+  guardarUsuario({
+    nombre: u.nombres + " " + u.apellidos,
+    correo: u.correo,
+    tipo: u.tipo_usuario === "EMPRESA" ? "agente" : "usuario",
+    rol: u.tipo_usuario,
+    id: u.numero_identificacion,
+    token: respuesta.token
+  });
+
+  window.location.reload();
+}
+
+/* Envía el formulario al API. Mientras espera, el botón queda desactivado
+   para que un doble clic no cree la cuenta dos veces. */
+function enviarFormulario(formulario, ruta, cuerpo, idError, campos) {
+  var boton = formulario.querySelector('button[type="submit"]');
+  boton.disabled = true;
+
+  llamarApi(ruta, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(cuerpo)
+  }).then(function (resultado) {
+    if (resultado.estado === 200 || resultado.estado === 201) {
+      iniciarSesionLocal(resultado.datos);
+      return;
+    }
+
+    /* Si el API dice qué campo falló, se marca ese campo */
+    var detalles = resultado.datos.detalles || {};
+    var clave = Object.keys(detalles)[0];
+    var mensaje = (clave && typeof detalles[clave] === "string")
+      ? detalles[clave]
+      : (resultado.datos.error || "No se pudo completar la solicitud.");
+
+    mostrarError(idError, mensaje, campos[clave]);
+    boton.disabled = false;
+  }).catch(function (error) {
+    mostrarError(idError, error.message);
+    boton.disabled = false;
+  });
+}
+
 /* Iniciar sesión */
 function entrar(evento) {
   evento.preventDefault();
@@ -1617,57 +1875,105 @@ function entrar(evento) {
     return;
   }
 
-  if (clave.length < 6) {
-    mostrarError("error-entrar",
-      "La contraseña debe tener 6 caracteres como mínimo.", "clave-entrar");
-    return;
-  }
-
-  /* El nombre se saca de la parte del correo anterior a la arroba */
-  guardarUsuario({
-    nombre: correo.split("@")[0],
-    correo: correo,
-    tipo: "usuario"
-  });
-
-  window.location.reload();
+  enviarFormulario(
+    evento.target,
+    "/auth/login",
+    { correo: correo, contrasena: clave },
+    "error-entrar",
+    { correo: "correo-entrar", contrasena: "clave-entrar" }
+  );
 }
 
-/* Crear cuenta */
+/* Crear cuenta: los campos y las reglas siguen la base de datos */
 function registrar(evento) {
   evento.preventDefault();
 
-  var nombre = document.getElementById("nombre-registro").value.trim();
-  var correo = document.getElementById("correo-registro").value.trim();
-  var clave = document.getElementById("clave-registro").value;
-  var tipo = document.querySelector('input[name="tipo-cuenta"]:checked').value;
+  limpiarError("error-registro", CAMPOS_REGISTRO);
 
-  limpiarError("error-registro", ["nombre-registro", "correo-registro", "clave-registro"]);
+  var valor = function (id) {
+    return document.getElementById(id).value.trim();
+  };
+  var esAgente = document.querySelector('input[name="tipo-cuenta"]:checked').value === "agente";
 
-  if (nombre === "") {
-    mostrarError("error-registro", "Escribe tu nombre completo.", "nombre-registro");
-    return;
+  var datos = {
+    tipo_cuenta: esAgente ? "EMPRESA" : "CLIENTE",
+    tipo_identificacion: valor("tipo-id-registro"),
+    numero_identificacion: valor("numero-id-registro"),
+    nombres: valor("nombres-registro"),
+    apellidos: valor("apellidos-registro"),
+    telefono: valor("telefono-registro"),
+    id_ciudad: valor("ciudad-registro"),
+    direccion: valor("direccion-registro"),
+    correo: valor("correo-registro"),
+    contrasena: document.getElementById("clave-registro").value
+  };
+
+  if (esAgente) {
+    datos.nit = valor("nit-registro");
+    datos.razon_social = valor("razon-registro");
+    datos.nombre_comercial = valor("comercial-registro");
+    datos.descripcion = valor("descripcion-registro");
+  } else {
+    datos.fecha_nacimiento = valor("nacimiento-registro");
+    datos.alias = valor("alias-registro");
   }
 
-  if (correo === "") {
-    mostrarError("error-registro", "Escribe tu correo electrónico.", "correo-registro");
-    return;
+  /* Revisión rápida en el navegador, en el orden en que aparecen los campos.
+     El API repite estas reglas (y las de la base de datos), así que aquí
+     solo se evita un viaje al servidor por un campo vacío. */
+  var faltantes = [
+    ["numero_identificacion", "Escribe tu número de documento.", "numero-id-registro"],
+    ["nombres", "Escribe tus nombres.", "nombres-registro"],
+    ["apellidos", "Escribe tus apellidos.", "apellidos-registro"],
+    ["id_ciudad", "Elige tu ciudad.", "ciudad-registro"],
+    ["direccion", "Escribe tu dirección.", "direccion-registro"]
+  ];
+  if (esAgente) {
+    faltantes.push(["nit", "Escribe el NIT de la empresa.", "nit-registro"]);
+    faltantes.push(["razon_social", "Escribe la razón social.", "razon-registro"]);
+    faltantes.push(["nombre_comercial", "Escribe el nombre comercial.", "comercial-registro"]);
+  } else {
+    faltantes.push(["fecha_nacimiento", "Escribe tu fecha de nacimiento.", "nacimiento-registro"]);
+  }
+  faltantes.push(["correo", "Escribe tu correo electrónico.", "correo-registro"]);
+
+  for (var i = 0; i < faltantes.length; i++) {
+    if (datos[faltantes[i][0]] === "") {
+      mostrarError("error-registro", faltantes[i][1], faltantes[i][2]);
+      return;
+    }
   }
 
-  if (clave === "") {
+  if (datos.contrasena === "") {
     mostrarError("error-registro", "Escribe una contraseña.", "clave-registro");
     return;
   }
 
-  if (clave.length < 6) {
+  if (datos.contrasena.length < 8) {
     mostrarError("error-registro",
-      "La contraseña debe tener 6 caracteres como mínimo.", "clave-registro");
+      "La contraseña debe tener 8 caracteres como mínimo.", "clave-registro");
     return;
   }
 
-  guardarUsuario({ nombre: nombre, correo: correo, tipo: tipo });
-
-  window.location.reload();
+  /* Nombre de cada campo del API -> id del campo en pantalla */
+  enviarFormulario(evento.target, "/auth/register", datos, "error-registro", {
+    tipo_cuenta: "tipo-id-registro",
+    tipo_identificacion: "tipo-id-registro",
+    numero_identificacion: "numero-id-registro",
+    nombres: "nombres-registro",
+    apellidos: "apellidos-registro",
+    telefono: "telefono-registro",
+    id_ciudad: "ciudad-registro",
+    direccion: "direccion-registro",
+    coordenadas: "direccion-registro",
+    fecha_nacimiento: "nacimiento-registro",
+    alias: "alias-registro",
+    nit: "nit-registro",
+    razon_social: "razon-registro",
+    nombre_comercial: "comercial-registro",
+    correo: "correo-registro",
+    contrasena: "clave-registro"
+  });
 }
 
 
