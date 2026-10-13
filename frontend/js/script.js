@@ -1981,6 +1981,35 @@ function registrar(evento) {
 }
 
 
+function prepararMenuMovil() {
+  var cabecera = document.querySelector(".cabecera");
+  var boton = document.getElementById("boton-menu");
+  if (!cabecera || !boton) return;
+
+  cabecera.classList.add("cabecera-plegable");
+
+  function abrir(abierto) {
+    cabecera.classList.toggle("menu-abierto", abierto);
+    boton.setAttribute("aria-expanded", abierto ? "true" : "false");
+  }
+
+  boton.onclick = function () {
+    abrir(boton.getAttribute("aria-expanded") !== "true");
+  };
+
+  document.addEventListener("keydown", function (evento) {
+    if (evento.key === "Escape" && boton.getAttribute("aria-expanded") === "true") {
+      abrir(false);
+      boton.focus();
+    }
+  });
+
+  window.addEventListener("resize", function () {
+    if (window.innerWidth >= 900) abrir(false);
+  });
+}
+
+
 /* ==========================================================================
    14. ARRANQUE
    Revisa en qué página estamos y ejecuta lo que corresponde.
@@ -1988,6 +2017,7 @@ function registrar(evento) {
 
 crearModalAcceso();
 pintarSesion();
+prepararMenuMovil();
 prepararPanelAccesibilidad();
 prepararTamanoTexto();
 

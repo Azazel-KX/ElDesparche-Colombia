@@ -229,6 +229,61 @@ main:focus-visible {
   padding: 14px 20px;
 }
 
+.boton-menu {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--blanco);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton-menu:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.boton-menu-icono {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.boton-menu-icono span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.boton-menu[aria-expanded="true"] .boton-menu-icono span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.boton-menu[aria-expanded="true"] .boton-menu-icono span:nth-child(2) {
+  opacity: 0;
+}
+
+.boton-menu[aria-expanded="true"] .boton-menu-icono span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.cabecera-plegable:not(.menu-abierto) .menu,
+.cabecera-plegable:not(.menu-abierto) .cabecera-derecha {
+  display: none;
+}
+
 .logo {
   display: flex;
   align-items: center;
@@ -2530,6 +2585,18 @@ iframe {
     gap: 20px;
     min-height: 88px;
     padding: 0 40px;
+  }
+
+  .boton-menu {
+    display: none;
+  }
+
+  .cabecera-plegable:not(.menu-abierto) .menu {
+    display: block;
+  }
+
+  .cabecera-plegable:not(.menu-abierto) .cabecera-derecha {
+    display: flex;
   }
 
   .cabecera-izquierda {
