@@ -1395,8 +1395,7 @@ function crearModalAcceso() {
 
       /* Logo de El Desparche (decorativo: el título ya nombra la ventana) */
       '<div class="modal-logo">' +
-        '<img class="logo-icono" src="img/14603.png" alt="" aria-hidden="true">' +
-        '<img class="logo-texto" src="img/b48ef.png" alt="" aria-hidden="true">' +
+        '<img class="logo-texto" src="img/logo-eldesparche.svg" alt="" aria-hidden="true">' +
       '</div>' +
 
       /* Pestañas con el patrón ARIA de tabs: el contenedor es tablist,
