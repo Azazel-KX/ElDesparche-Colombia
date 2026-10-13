@@ -876,10 +876,6 @@ function paginaInicio() {
     avisarResultados(mostrados.length);
   }
 
-  /* Llena una lista desplegable con opciones.
-     Si no hay opciones la lista queda desactivada (disabled): así el
-     lector de pantalla la anuncia como "no disponible" y el estado no
-     depende solo de que se vea más clarita (WCAG 1.4.1). */
   function llenarLista(lista, opciones, textoPorDefecto) {
     lista.innerHTML = '<option value="">' + textoPorDefecto + '</option>';
     for (var i = 0; i < opciones.length; i++) {
@@ -887,6 +883,15 @@ function paginaInicio() {
         '<option>' + opciones[i] + '</option>';
     }
     lista.disabled = opciones.length === 0;
+
+    var ayuda = "ayuda-" + lista.id;
+    if (document.getElementById(ayuda)) {
+      if (lista.disabled) {
+        lista.setAttribute("aria-describedby", ayuda);
+      } else {
+        lista.removeAttribute("aria-describedby");
+      }
+    }
   }
 
   /* Al elegir país se llenan los departamentos */

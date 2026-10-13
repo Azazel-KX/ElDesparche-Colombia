@@ -1038,7 +1038,7 @@ main:focus-visible {
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-  padding: 18px 14px 20px;
+  padding: 14px 14px 16px;
   text-align: center;
 }
 
@@ -1229,7 +1229,10 @@ main:focus-visible {
 
 /* Cuando la lista ya está habilitada, la ayuda deja de tener sentido */
 .filtros select:not(:disabled) + .ayuda-campo {
-  display: none;
+  /* visibility y no display: el texto deja de verse pero conserva su
+     hueco, asi la portada no cambia de altura al elegir un filtro y el
+     carrusel de debajo no se mueve ni choca con el buscador. */
+  visibility: hidden;
 }
 
 /* Aviso de cuántos eventos se encontraron (región role="status") */
@@ -1280,9 +1283,9 @@ main:focus-visible {
 /* Logotipo en la portada, encima del titulo */
 .portada-logo {
   display: block;
-  width: clamp(200px, 40vw, 340px);
+  width: clamp(200px, 30vw, 270px);
   height: auto;
-  margin: 0 auto 18px;
+  margin: 0 auto 12px;
 }
 
 .titulo-recuadro h2 {
@@ -2578,19 +2581,21 @@ iframe {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-top: 72px;
-    padding-bottom: 88px;
+    padding-top: 44px;
+    /* Mayor que el solape del carrusel (80px): la cabecera del carrusel
+       nunca alcanza al buscador. */
+    padding-bottom: 100px;
   }
 
   /* El carrusel se monta sobre el borde inferior de la foto */
   .principales {
-    margin-top: -130px;
+    margin-top: -80px;
     position: relative;
     z-index: 2;
     padding-top: 0;
     padding-bottom: 44px;
-    /* - 0 a 130px: transparente, es el tramo que monta sobre la foto de la
-         portada (los 130px coinciden con el margin-top negativo).
+    /* - 0 a 80px: transparente, es el tramo que monta sobre la foto de la
+         portada (los 80px coinciden con el margin-top negativo).
        - De ahi hacia abajo: el mismo morado oscuro, asi la portada no se
          corta en seco detras de los carteles y las flechas quedan sobre
          fondo oscuro.
@@ -2599,8 +2604,8 @@ iframe {
     background: linear-gradient(
       180deg,
       transparent 0,
-      transparent 130px,
-      var(--oscuro) 130px,
+      transparent 80px,
+      var(--oscuro) 80px,
       var(--oscuro) 70%,
       var(--blanco) 100%
     );
@@ -2620,7 +2625,7 @@ iframe {
      en pantalla. En horizontal cabe, y las fotos ya son horizontales,
      asi que ademas se recortan menos. */
   .cartel-imagen {
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 16 / 9;
   }
 
   /* Tres tarjetas por fila */
