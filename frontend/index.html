@@ -45,6 +45,12 @@
 
     <!-- ===== CABECERA ===== -->
     <header class="cabecera" role="banner">
+      <button type="button" class="boton-menu" id="boton-menu"
+              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
+        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Menú</span>
+      </button>
+
       <div class="cabecera-izquierda">
         <a
           class="logo"
@@ -59,7 +65,7 @@
           />
         </a>
 
-        <nav class="menu" role="navigation" aria-label="Navegación principal">
+        <nav class="menu" id="menu-principal" role="navigation" aria-label="Navegación principal">
           <ul>
             <li>
               <a class="activo" href="index.html" aria-current="page">Inicio</a>
@@ -70,7 +76,7 @@
         </nav>
       </div>
 
-      <div class="cabecera-derecha">
+      <div class="cabecera-derecha" id="menu-cuenta">
         <!-- El script escribe aquí los botones de acceso o los datos del usuario -->
         <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
 

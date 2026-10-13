@@ -31,12 +31,18 @@
   <body data-pagina="mis-reservas">
     <!-- ===== CABECERA ===== -->
     <header class="cabecera">
+      <button type="button" class="boton-menu" id="boton-menu"
+              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
+        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Menú</span>
+      </button>
+
       <div class="cabecera-izquierda">
         <a class="logo" href="index.html">
           <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
         </a>
 
-        <nav class="menu">
+        <nav class="menu" id="menu-principal">
           <ul>
             <li><a href="index.html">Inicio</a></li>
             <li><a href="eventos.html">Eventos</a></li>
@@ -45,7 +51,7 @@
         </nav>
       </div>
 
-    <div class="cabecera-derecha">
+    <div class="cabecera-derecha" id="menu-cuenta">
 
       <!-- El script escribe aquí los botones de acceso o los datos del usuario -->
       <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
