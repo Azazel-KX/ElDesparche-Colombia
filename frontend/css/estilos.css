@@ -37,7 +37,7 @@
   --rojo-claro: #fdecef;
 
   /* Versiones accesibles para texto y para las etiquetas de estado */
-  --borde-negro: #17213a;     /* borde de los campos del buscador: 15.97:1 sobre blanco */
+  --borde-negro: #17213a; /* borde de los campos del buscador: 15.97:1 sobre blanco */
   --campo-desactivado: #dde1ea; /* relleno de una lista de filtro aún no disponible */
   --violeta-texto: #7c3aed; /* texto blanco encima: 5.70:1 (el --violeta original se quedaba en 3.96:1) */
   --verde-texto: #0f7a4a; /* 5.38:1 sobre blanco */
@@ -46,12 +46,6 @@
   --gris-texto: #4b5565; /* 7.54:1 sobre blanco */
   --vino-texto: #6d3a45; /* 8.97:1 sobre blanco */
   --error: #c0244a; /* 5.85:1 sobre blanco */
-
-  /* Factor del control de tamano de texto de la cabecera.
-     Lo cambia el JavaScript entre 0.9 y 1.5; todos los font-size de esta
-     hoja se multiplican por el. Las medias consultas (media queries) siguen
-     midiendo el ANCHO de la pantalla, no la letra, asi que las columnas del
-     diseno no se mueven: solo crece el texto. */
   --escala-texto: 1;
 
   /* Color e grosor del anillo de foco (criterio 2.4.7 Foco visible) */
@@ -253,6 +247,7 @@ main:focus-visible {
 
 .logo-texto {
   width: 130px;
+  height: auto;
 }
 
 /* Menú de navegación */
@@ -711,12 +706,12 @@ main:focus-visible {
    La foto ocupa todo el bloque y el contenido va encima. */
 .portada {
   position: relative;
-  isolation: isolate;        /* el contenido no se mezcla con el fondo */
+  isolation: isolate; /* el contenido no se mezcla con el fondo */
   overflow: hidden;
   padding: 56px 20px 64px;
   text-align: center;
   color: var(--blanco);
-  background: var(--oscuro);  /* color de respaldo si la foto no carga */
+  background: var(--oscuro); /* color de respaldo si la foto no carga */
 }
 
 /* La foto, detrás de todo */
@@ -745,7 +740,7 @@ main:focus-visible {
   z-index: -1;
   background: linear-gradient(
     180deg,
-    rgba(19, 10, 43, 0.80) 0%,
+    rgba(19, 10, 43, 0.8) 0%,
     rgba(19, 10, 43, 0.86) 55%,
     rgba(19, 10, 43, 0.94) 100%
   );
@@ -763,7 +758,7 @@ main:focus-visible {
 }
 
 .portada .parrafo-grande {
-  color: var(--texto-claro);   /* 6.06:1 sobre la capa oscura */
+  color: var(--texto-claro); /* 6.06:1 sobre la capa oscura */
 }
 
 .portada .etiqueta {
@@ -778,13 +773,19 @@ main:focus-visible {
 }
 
 @keyframes portada-zoom {
-  from { transform: scale(1); }
-  to   { transform: scale(1.08); }
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
 }
 
 /* Quien pidió menos animación en su sistema ve la foto quieta */
 @media (prefers-reduced-motion: reduce) {
-  .portada-fondo img { animation: none; }
+  .portada-fondo img {
+    animation: none;
+  }
 }
 
 /* ===== BUSCADOR DENTRO DE LA PORTADA ===== */
@@ -845,10 +846,12 @@ main:focus-visible {
   background: linear-gradient(
     180deg,
     var(--oscuro) 0%,
-    var(--oscuro) 62%,
+    var(--oscuro) 58%,
     var(--blanco) 100%
   );
-  padding: 32px 0 56px;
+  /* Hueco inferior para que el desvanecido se vea por debajo de los
+     carteles y quede claro donde termina la seccion */
+  padding: 32px 0 36px;
 }
 
 .principales-cabecera {
@@ -894,18 +897,21 @@ main:focus-visible {
   line-height: 1;
 }
 
-/* El marco solo existe para colgar las flechas a los lados de la tira */
+/* Marco en fila: [flecha] [tira] [flecha]. Lleva el mismo margen
+   lateral que el titulo "Eventos principales" y que "Descubre eventos"
+   (va en los mismos grupos de media queries), asi las flechas quedan
+   alineadas con ellos y los carteles no asoman por los lados. */
 .principales-marco {
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
 }
 
 /* Botones solo con icono: 48x48 px de área de pulsación (WCAG 2.5.8 pide
    24x24 como mínimo; 48 es cómodo también con el dedo). */
 .flecha {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 3;
+  flex-shrink: 0;
   width: 48px;
   height: 48px;
   display: inline-flex;
@@ -923,9 +929,6 @@ main:focus-visible {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 
-.flecha-izq  { left: 6px; }
-.flecha-der  { right: 6px; }
-
 .flecha:hover {
   background: var(--morado);
   color: var(--blanco);
@@ -933,21 +936,26 @@ main:focus-visible {
 
 /* La tira se desplaza en horizontal con scroll nativo */
 .principales-tira {
+  flex: 1;
+  min-width: 0; /* sin esto, el flex no deja encoger la tira */
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  scroll-padding: 0 64px;
 
   /* Se oculta la barra de desplazamiento, pero el elemento SIGUE siendo
      desplazable: con rueda, con gesto tactil, con las flechas y con el
      teclado (la tira lleva tabindex="0"). Solo desaparece el dibujo de
      la barra, no la funcion. */
-  scrollbar-width: none;        /* Firefox */
-  -ms-overflow-style: none;     /* Edge antiguo */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Edge antiguo */
   /* El desplazamiento suave lo pide el JavaScript con scrollBy, no se
      fuerza aqui: asi se puede desactivar si el sistema pide menos
      animacion, y no se duplica la animacion. */
-  /* Sin hueco inferior: ya no hay barra que dejar ver */
-  padding: 4px 0 0;
+  /* Relleno minimo: arriba y a los lados para que no se corte el anillo de
+     foco, abajo para que se vea la sombra de los carteles. */
+  padding: 6px 6px 24px;
+  /* El anclaje se mide desde el relleno, no desde el borde: si no, el
+     cartel quedaba 10px a la izquierda y sobraba hueco a la derecha. */
+  scroll-padding: 0 6px;
 }
 
 /* Chrome, Edge y Safari necesitan su propio selector para ocultarla */
@@ -956,17 +964,20 @@ main:focus-visible {
 }
 
 .principales-lista {
+  /* --visibles: cuantos carteles se ven a la vez. El resto aparece con el
+     avance automatico o con las flechas. */
+  --visibles: 1;
+  --sep: 24px;
   display: flex;
-  gap: 40px;
+  gap: var(--sep);
   list-style: none;
   margin: 0;
-  /* El hueco lateral deja respirar al primer y último cartel, y evita
-     que las flechas los tapen del todo. */
-  padding: 0 64px;
+  padding: 0;
 }
 
 .cartel {
-  flex: 0 0 clamp(165px, 44vw, 210px);
+  /* Reparte el ancho de la tira entre los carteles visibles */
+  flex: 0 0 calc((100% - (var(--visibles) - 1) * var(--sep)) / var(--visibles));
   scroll-snap-align: start;
   display: flex;
 }
@@ -979,12 +990,16 @@ main:focus-visible {
   background: var(--blanco);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  /* Sombra solo hacia abajo: blur 16px con spread -16px = 0px hacia los
+     lados. Si se extendiera lateralmente, la sombra del cartel vecino
+     (fuera de la vista) se colaba en el margen de la tira y el borde la
+     cortaba en recto: se veia una linea vertical junto al cartel. */
+  box-shadow: 0 18px 16px -16px rgba(0, 0, 0, 0.65);
 }
 
 .cartel-imagen {
   position: relative;
-  aspect-ratio: 3 / 4;   /* algo mas bajo que un afiche: asi el carrusel
+  aspect-ratio: 3 / 4; /* algo mas bajo que un afiche: asi el carrusel
                             entero cabe en la zona de arriba */
   overflow: hidden;
 }
@@ -1235,6 +1250,54 @@ main:focus-visible {
 .seccion-destacados {
   background: var(--blanco);
   padding: 40px 20px 56px;
+}
+
+/* Recuadro suave que agrupa el titulo "Descubre eventos", su subtitulo y
+   el enlace "Ver todos los eventos", para separar la seccion de la portada.
+   - Fondo #f8f6ff: el subtitulo gris (#667085) mantiene 4.65:1 (AA) y el
+     enlace morado queda por encima de 6:1.
+   - El borde es decorativo: no necesita el 3:1 de WCAG 1.4.11. */
+.seccion-destacados .titulo-seccion,
+.recuadro-titulo {
+  background: #f8f6ff;
+  border: 2px solid #d8cefc;
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+
+/* "Encuentra tu proximo plan": el h1 de eventos.html es mas grande que el
+   h2 de la portada, se le quita el margen inferior para que el recuadro
+   quede compacto. Fondo #f8f6ff: --texto-gris (#667085) da 4.65:1. */
+.recuadro-titulo h1 {
+  margin-bottom: 8px;
+}
+
+.recuadro-titulo p {
+  margin: 0;
+}
+
+/* Logotipo en la portada, encima del titulo */
+.portada-logo {
+  display: block;
+  width: clamp(200px, 40vw, 340px);
+  height: auto;
+  margin: 0 auto 18px;
+}
+
+.titulo-recuadro h2 {
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.titulo-recuadro p {
+  margin: 0;
+}
+
+/* En movil el enlace va debajo del texto, dentro del recuadro */
+.seccion-destacados .titulo-seccion .enlace {
+  display: inline-block;
+  margin-top: 12px;
 }
 
 .titulo-seccion h2 {
@@ -2382,6 +2445,8 @@ iframe {
   .seccion,
   .portada,
   .buscador,
+  .principales-cabecera,
+  .principales-marco,
   .seccion-destacados {
     padding-left: 32px;
     padding-right: 32px;
@@ -2418,7 +2483,8 @@ iframe {
   }
 
   .principales-lista {
-    gap: 48px;
+    --visibles: 2;
+    --sep: 32px;
   }
 
   .botones {
@@ -2494,6 +2560,8 @@ iframe {
   .seccion,
   .portada,
   .buscador,
+  .principales-cabecera,
+  .principales-marco,
   .seccion-destacados {
     padding-left: 48px;
     padding-right: 48px;
@@ -2520,21 +2588,22 @@ iframe {
     position: relative;
     z-index: 2;
     padding-top: 0;
-    padding-bottom: 72px;
-    /* Arriba transparente para que se vea la foto de la portada por
-       detras; de la mitad hacia abajo se funde con el blanco de la
-       seccion siguiente. */
+    padding-bottom: 44px;
+    /* - 0 a 130px: transparente, es el tramo que monta sobre la foto de la
+         portada (los 130px coinciden con el margin-top negativo).
+       - De ahi hacia abajo: el mismo morado oscuro, asi la portada no se
+         corta en seco detras de los carteles y las flechas quedan sobre
+         fondo oscuro.
+       - Ultimo tramo: desvanecido a blanco por debajo de los carteles,
+         que marca el final de la seccion. */
     background: linear-gradient(
       180deg,
-      transparent 0%,
-      transparent 42%,
-      rgba(255, 255, 255, 0.72) 76%,
+      transparent 0,
+      transparent 130px,
+      var(--oscuro) 130px,
+      var(--oscuro) 70%,
       var(--blanco) 100%
     );
-  }
-
-  .principales-cabecera {
-    padding: 0 48px;
   }
 
   .principales-cabecera h2 {
@@ -2543,16 +2612,16 @@ iframe {
   }
 
   .principales-lista {
-    gap: 64px;
-    padding: 0 96px;
+    --visibles: 3;
+    --sep: 40px;
   }
 
-  .principales-tira {
-    scroll-padding: 0 96px;
+  /* Con solo 3 a lo ancho cada cartel mide ~490px: en vertical no cabria
+     en pantalla. En horizontal cabe, y las fotos ya son horizontales,
+     asi que ademas se recortan menos. */
+  .cartel-imagen {
+    aspect-ratio: 16 / 10;
   }
-
-  .flecha-izq  { left: 16px; }
-  .flecha-der  { right: 16px; }
 
   /* Tres tarjetas por fila */
   .tarjetas {
@@ -2571,6 +2640,10 @@ iframe {
 
   .titulo-seccion h2 {
     font-size: calc(32px * var(--escala-texto));
+  }
+
+  .seccion-destacados .titulo-seccion .enlace {
+    margin-top: 0;
   }
 
   .portada-evento img {
@@ -2745,6 +2818,8 @@ iframe {
   .seccion,
   .portada,
   .buscador,
+  .principales-cabecera,
+  .principales-marco,
   .seccion-destacados,
   .pie {
     padding-left: 80px;
