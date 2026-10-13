@@ -1,0 +1,1007 @@
+==================================================================================================================================
+                                                DICCIONARIO DE DATOS — ElDesparche
+                      Proyecto Integrador 2026-2 · Plataforma web de gestión y venta de boletas para eventos
+                                        Motor: PostgreSQL · Modelo: ER en 3FN (29 tablas)
+==================================================================================================================================
+
+Integrantes: Emmanuel Obando Sánchez · Juan Sebastián Jaramillo Ortiz ·
+             Issabhella Alarcón Moreno · Valentina Isabel Osorio Morán
+Fuente     : documents/BD/modelo_ER_ElDesparche.drawio y Modelo_Relacional_DF_3FN_Listas.docx
+Versión    : 1.4 — 07/10/2026
+
+----------------------------------------------------------------------------------------------------------------------------------
+ALCANCE Y CAMBIOS EN LA VERSIÓN 1.4 (correcciones técnicas tras revisión de diseño)
+----------------------------------------------------------------------------------------------------------------------------------
+  - TOTALIDAD DE LA HERENCIA: ADMIN, CLIENTE y EMPRESA ahora guardan también la columna tipo_usuario (fija por CHECK) y su FK
+    hacia USUARIO es compuesta (numero_identificacion, tipo_usuario). Esto, sumado a un trigger de restricción diferido
+    (CONSTRAINT TRIGGER) sobre USUARIO, garantiza que la herencia sea disjunta (ya lo era) y TOTAL (antes no se exigía: un
+    USUARIO podía quedar sin fila de subtipo). Ver sección TRIGGERS en el schema.sql.
+  - VERIFICACION: se agrega un índice único parcial (numero_identificacion, tipo) WHERE estado = 'Pendiente'. Antes nada impedía
+    que un mismo usuario tuviera varias verificaciones del mismo tipo abiertas a la vez; ahora solo se permite una pendiente por
+    tipo, sin bloquear reintentos después de que la anterior se resuelve (Aprobada/Rechazada).
+  - EVENTO.id_creador: se agrega un trigger que valida que el creador tenga tipo_usuario CLIENTE o EMPRESA (antes la regla
+    "ADMIN no crea eventos" solo estaba en texto, sin mecanismo que la hiciera cumplir).
+  - Se agrega la sección ÍNDICES RECOMENDADOS con los índices de búsqueda que necesitan los reportes del backlog (ingresos,
+    cobertura geográfica, cancelaciones) y que antes solo estaban implícitos en el índice espacial de UBICACION.
+  - Se documenta explícitamente por qué el "borrado lógico" no es uniforme: USUARIO usa estado_cuenta (ENUM con significado de
+    ciclo de vida de la cuenta: Activa/Inactiva), mientras que los catálogos (CATEGORIA, PROVEEDOR_PAGO) usan activo BOOLEAN
+    (simple interruptor de visibilidad). Es una decisión consciente, no una inconsistencia.
+  - Las reglas de negocio (cupos, edad mínima, verificación biométrica aprobada, etc.) se implementan como triggers en la base
+    de datos (no en el backend) para que la integridad no dependa de qué capa de la aplicación inserte los datos. El DDL
+    completo con estos triggers está en database/schema.sql.
+
+----------------------------------------------------------------------------------------------------------------------------------
+ALCANCE Y CAMBIOS EN LA VERSIÓN 1.3
+----------------------------------------------------------------------------------------------------------------------------------
+  - ALCANCE: la plataforma opera solo en Colombia (usuarios, eventos, documentos, teléfonos y pagos colombianos; moneda COP;
+    hora de Colombia).
+  - PAIS queda con un solo registro (Colombia); DEPARTAMENTO y CIUDAD usan los códigos DANE (DIVIPOLA) para cargar las listas
+    oficiales.
+  - Se quita la preparación para Latinoamérica: TIPO_IDENTIFICACION vuelve a ENUM (CC, CE, PAS, PPT, NIT), el teléfono vuelve a
+    ser solo el número de 10 dígitos y PROVEEDOR_PAGO ya no depende del país (29 tablas).
+  - Las fechas vuelven a TIMESTAMP (una sola zona horaria: America/Bogota).
+  - UBICACION valida que las coordenadas estén dentro de Colombia.
+  - Se mantienen: CATEGORIA y PROVEEDOR_PAGO como catálogos, coordenadas con PostGIS y numero_identificacion como PK.
+  - v1.1-1.2: ENUM para opciones fijas, cascada departamento → ciudad, imagen en LUGAR, columna Entrada, PostGIS.
+
+----------------------------------------------------------------------------------------------------------------------------------
+CRITERIO PARA ESCOGER EL TIPO DE CADA CAMPO
+----------------------------------------------------------------------------------------------------------------------------------
+  ENUM                  Opciones fijas que define el sistema y casi nunca cambian (estados, roles, jornada). Agregar un valor
+                        exige ALTER TYPE.
+  Tabla catálogo + FK   Opciones largas, que pueden crecer o que necesitan datos extra (departamento, ciudad, categoría, proveedor
+                        de pago, causas de cancelación). Agregar una es un INSERT.
+  VARCHAR / TEXT        Solo para lo que de verdad se escribe libre (nombres, correo, dirección, descripciones) o lo genera el
+                        sistema (hash, token, rutas de archivo). Lleva longitud máxima y CHECK de formato cuando aplica.
+  En los catálogos      El campo nombre es VARCHAR, pero lo carga un script una sola vez; el usuario solo escoge de la lista, así
+                        que no puede escribirlo mal.
+
+----------------------------------------------------------------------------------------------------------------------------------
+CONVENCIONES
+----------------------------------------------------------------------------------------------------------------------------------
+  PK / FK / UQ     Clave primaria / Clave foránea (→ tabla.campo) / Valor único. UQ* = único compuesto (ver reglas).
+  Nulo NO / SÍ     NO = obligatorio (NOT NULL). SÍ = opcional.
+  Tipo *_t         Tipo ENUM propio (CREATE TYPE ... AS ENUM). Sus valores están en la sección TIPOS ENUMERADOS.
+  DERIVADO         Se calcula en consulta; no se almacena.
+  Moneda / fechas  Pesos colombianos (COP). TIMESTAMP en hora de Colombia (America/Bogota).
+
+  Columna 'Entrada' (cómo llega el dato; solo 'Texto' se digita libremente):
+    Lista          Desplegable con opciones fijas (ENUM) o con registros de otra tabla (FK).
+    Lista dep.     Desplegable filtrado por la opción anterior (departamento → ciudad).
+    Lista múlt.    Casillas de selección múltiple.
+    Catálogo       Dato precargado por script/administrador; el usuario solo lo escoge.
+    Lógico         Casilla Sí/No (BOOLEAN).
+    Número / Fecha Campo numérico / selector de fecha y hora.
+    Mapa           Se obtiene al marcar un punto en el mapa.
+    Archivo        Se sube una imagen; se guarda la ruta.
+    Texto          Escritura libre, con longitud máxima y validación de formato cuando aplica.
+    Sistema / Auto Lo asigna el backend o la BD (sesión, fecha actual, SERIAL, pasarela); el usuario no lo escribe.
+
+----------------------------------------------------------------------------------------------------------------------------------
+ÍNDICE DE TABLAS
+----------------------------------------------------------------------------------------------------------------------------------
+  GEOGRAFÍA
+     1. PAIS
+     2. DEPARTAMENTO
+     3. CIUDAD
+     4. UBICACION
+     5. LUGAR
+  USUARIOS
+     6. USUARIO
+     7. TELEFONO_USUARIO
+     8. ADMIN
+     9. CATEGORIA
+    10. CLIENTE
+    11. CATEGORIA_CLIENTE
+    12. EMPRESA
+    13. CATEGORIA_EMPRESA
+    14. SESION_ADMIN
+  VERIFICACIÓN
+    15. VERIFICACION
+    16. VERIF_CONTACTO
+    17. VERIF_BIOMETRICA
+  EVENTOS Y VENTAS
+    18. EVENTO
+    19. ORGANIZA
+    20. NIVEL_ENTRADA
+    21. TICKET
+    22. PROVEEDOR_PAGO
+    23. METODO_PAGO
+    24. PAGO
+    25. RESENA
+    26. CONEXION_SOCIAL
+  CANCELACIONES
+    27. CAUSA_CANCELACION
+    28. CANCELACION_EVENTO
+    29. CANCELACION_TICKET
+
+##################################################################################################################################
+# TIPOS ENUMERADOS (CREATE TYPE ... AS ENUM)
+##################################################################################################################################
+  tipo_identificacion_t   CC | CE | PAS | PPT | NIT
+                          Uso: USUARIO.tipo_identificacion
+  tipo_usuario_t          ADMIN | CLIENTE | EMPRESA
+                          Uso: USUARIO.tipo_usuario
+  estado_cuenta_t         Activa | Inactiva
+                          Uso: USUARIO.estado_cuenta
+  jornada_t               Mañana | Tarde | Noche | Completa
+                          Uso: ADMIN.horario
+  tipo_verificacion_t     Contacto | Biométrica
+                          Uso: VERIFICACION.tipo
+  estado_verificacion_t   Pendiente | Aprobada | Rechazada
+                          Uso: VERIFICACION.estado
+  estado_evento_t         Programado | En Boletería | En Vivo | Finalizado | Cancelado
+                          Uso: EVENTO.estado
+  rol_organiza_t          coorganizador | patrocinador
+                          Uso: ORGANIZA.rol
+  nivel_entrada_t         General | Preferencial | VIP | Palco | Gratuita
+                          Uso: NIVEL_ENTRADA.nombre
+  estado_ticket_t         Reservado | Confirmado | Cancelado | Usado
+                          Uso: TICKET.estado
+  tipo_metodo_pago_t      Tarjeta crédito | Tarjeta débito | Transferencia bancaria | Billetera digital
+                          Uso: METODO_PAGO.tipo
+  estado_pago_t           Pendiente | Aprobado | Rechazado
+                          Uso: PAGO.estado
+  estado_conexion_t       Pendiente | Aceptada | Rechazada
+                          Uso: CONEXION_SOCIAL.estado
+  aplica_a_t              EVENTO | TICKET | AMBOS
+                          Uso: CAUSA_CANCELACION.aplica_a
+  estado_reembolso_t      Pendiente | Reembolsado | No aplica
+                          Uso: CANCELACION_TICKET.estado_reembolso
+
+  Ejemplo: CREATE TYPE estado_evento_t AS ENUM ('Programado','En Boletería','En Vivo','Finalizado','Cancelado');
+
+##################################################################################################################################
+# GEOGRAFÍA
+##################################################################################################################################
+
+==================================================================================================================================
+1. TABLA: PAIS
+==================================================================================================================================
+Descripción: Catálogo de países. Alcance del proyecto: solo Colombia, así que tiene un único registro. Se mantiene
+             porque el enunciado pide país → departamento → ciudad.
+Clave primaria: (id_pais)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_pais                  SERIAL                 NO   PK      auto               Auto        Identificador único del país.
+nombre                   VARCHAR(60)            NO   UQ                         Catálogo    Nombre del país. Carga inicial:
+                                                                                            Colombia.
+
+Restricciones y reglas:
+  - El usuario no escoge el país: el formulario arranca directamente en la lista de departamentos de Colombia.
+
+Relaciones:
+  - PAIS 1:N DEPARTAMENTO.
+
+==================================================================================================================================
+2. TABLA: DEPARTAMENTO
+==================================================================================================================================
+Descripción: Catálogo de los departamentos de Colombia (lista precargada desde la DIVIPOLA del DANE).
+Clave primaria: (id_departamento)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_departamento          SERIAL                 NO   PK      auto               Auto        Identificador único del departamento.
+codigo_dane              CHAR(2)                NO   UQ                         Catálogo    CAMBIO: código DANE del departamento
+                                                                                            (ej. 76 = Valle del Cauca).
+nombre                   VARCHAR(60)            NO                              Catálogo    Nombre oficial (ej. Valle del Cauca).
+id_pais                  INTEGER                NO   FK                         Catálogo    País al que pertenece (Colombia). →
+                                                                                            PAIS.id_pais
+
+Restricciones y reglas:
+  - CHECK codigo_dane ~ '^[0-9]{2}$'.
+  - (id_pais, nombre) UNIQUE.
+  - Carga inicial: los 32 departamentos + Bogotá D.C. Se muestran como LISTA en el formulario.
+
+Relaciones:
+  - DEPARTAMENTO N:1 PAIS.
+  - DEPARTAMENTO 1:N CIUDAD.
+
+==================================================================================================================================
+3. TABLA: CIUDAD
+==================================================================================================================================
+Descripción: Catálogo de municipios de Colombia (lista precargada desde la DIVIPOLA). Se muestra filtrado según el
+             departamento escogido.
+Clave primaria: (id_ciudad)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_ciudad                SERIAL                 NO   PK      auto               Auto        Identificador único de la ciudad.
+codigo_dane              CHAR(5)                NO   UQ                         Catálogo    NUEVO. Código DANE del municipio (ej.
+                                                                                            76834 = Tuluá).
+nombre                   VARCHAR(80)            NO                              Catálogo    Nombre oficial del municipio.
+id_departamento          INTEGER                NO   FK                         Catálogo    Departamento al que pertenece. →
+                                                                                            DEPARTAMENTO.id_departamento
+
+Restricciones y reglas:
+  - CHECK codigo_dane ~ '^[0-9]{5}$'; los 2 primeros dígitos coinciden con el codigo_dane del departamento.
+  - (id_departamento, nombre) UNIQUE.
+  - LISTA DEPENDIENTE: SELECT ... FROM CIUDAD WHERE id_departamento = <departamento escogido>.
+
+Relaciones:
+  - CIUDAD N:1 DEPARTAMENTO.
+  - CIUDAD 1:N UBICACION.
+
+==================================================================================================================================
+4. TABLA: UBICACION
+==================================================================================================================================
+Descripción: Dirección y punto en el mapa (PostGIS). Cada ubicación tiene un solo dueño: un USUARIO o un LUGAR.
+Clave primaria: (id_ubicacion)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_ubicacion             SERIAL                 NO   PK      auto               Auto        Identificador único de la ubicación.
+direccion                VARCHAR(150)           NO                              Texto/Mapa  Dirección física; se autocompleta al
+                                                                                            marcar el punto en el mapa y se puede
+                                                                                            ajustar.
+coordenadas              GEOGRAPHY(Point,4326)  NO                              Mapa        CAMBIO: reemplaza latitud y longitud.
+                                                                                            Punto marcado en el mapa (no se
+                                                                                            digita).
+id_ciudad                INTEGER                NO   FK                         Lista dep.  Ciudad escogida en la cascada
+                                                                                            departamento → ciudad. →
+                                                                                            CIUDAD.id_ciudad
+
+Restricciones y reglas:
+  - Índice espacial: CREATE INDEX idx_ubicacion_coord ON UBICACION USING GIST (coordenadas);
+  - Latitud y longitud se leen con ST_Y(coordenadas::geometry) y ST_X(coordenadas::geometry); por eso ya no se guardan aparte.
+  - Eventos a menos de 5 km del usuario: ST_DWithin(lugar.coordenadas, usuario.coordenadas, 5000).
+  - El punto debe estar dentro de Colombia: CHECK ST_Y(coordenadas::geometry) BETWEEN -4.3 AND 13.6 AND
+    ST_X(coordenadas::geometry) BETWEEN -82.0 AND -66.8.
+  - Solo se guarda id_ciudad; el país y la división se obtienen por la cadena de FK (guardarlos rompería la 3FN).
+
+Relaciones:
+  - UBICACION N:1 CIUDAD.
+  - USUARIO 1:1 UBICACION (UbiPer).
+  - LUGAR 1:1 UBICACION (UbiLug).
+
+==================================================================================================================================
+5. TABLA: LUGAR
+==================================================================================================================================
+Descripción: Recinto o sitio físico donde se realizan los eventos.
+Clave primaria: (id_lugar)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_lugar                 SERIAL                 NO   PK      auto               Auto        Identificador único del lugar.
+nombre                   VARCHAR(100)           NO                              Texto       Nombre del recinto (ej. Teatro
+                                                                                            Municipal).
+capacidad_maxima         INTEGER                NO                              Número      Aforo máximo permitido del recinto.
+url_imagen               VARCHAR(255)           NO                              Archivo     NUEVO. Imagen de referencia del
+                                                                                            recinto (ruta del archivo subido).
+id_ubicacion             INTEGER                NO   FK, UQ                     Mapa        Ubicación del recinto. →
+                                                                                            UBICACION.id_ubicacion
+
+Restricciones y reglas:
+  - CHECK capacidad_maxima > 0.
+  - id_ubicacion UNIQUE (relación 1:1).
+  - Al crear un evento, el lugar se escoge de una LISTA de recintos registrados.
+
+Relaciones:
+  - LUGAR 1:1 UBICACION.
+  - LUGAR 1:N EVENTO.
+
+##################################################################################################################################
+# USUARIOS
+##################################################################################################################################
+
+==================================================================================================================================
+6. TABLA: USUARIO
+==================================================================================================================================
+Descripción: Supertipo de todas las cuentas (IS-A total y disjunta: ADMIN, CLIENTE o EMPRESA). Su clave primaria es
+             el número de identificación.
+Clave primaria: (numero_identificacion)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+numero_identificacion    VARCHAR(20)            NO   PK                         Texto       PK. Número del documento, sin puntos,
+                                                                                            guiones ni espacios.
+tipo_identificacion      tipo_identificacion_t  NO                              Lista       Tipo de documento colombiano.
+nombres                  VARCHAR(60)            NO                              Texto       Nombres de la persona o representante.
+apellidos                VARCHAR(60)            NO                              Texto       Apellidos de la persona o
+                                                                                            representante.
+tipo_usuario             tipo_usuario_t         NO   UQ*                        Lista       Rol de la cuenta.
+correo                   VARCHAR(100)           NO   UQ                         Texto       Correo electrónico; se usa para
+                                                                                            iniciar sesión.
+contrasena_hash          VARCHAR(255)           NO                              Sistema     Contraseña cifrada (bcrypt). El
+                                                                                            usuario escribe la clave; se guarda el
+                                                                                            hash.
+fecha_registro           TIMESTAMP              NO           NOW()              Sistema     Fecha y hora de creación de la cuenta.
+estado_cuenta            estado_cuenta_t        NO           'Activa'           Lista       Inactiva = no puede iniciar sesión.
+id_ubicacion             INTEGER                NO   FK, UQ                     Mapa        Ubicación personal. →
+                                                                                            UBICACION.id_ubicacion
+
+Restricciones y reglas:
+  - Formato según el tipo (CHECK): CC y CE solo dígitos (6 a 10); PPT solo dígitos; PAS letras y dígitos (5 a 20); NIT 9
+    dígitos.
+  - UQ* (numero_identificacion, tipo_usuario) UNIQUE: permite la FK compuesta de los subtipos.
+  - CHECK correo ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' (formato de correo).
+  - Las FK hacia USUARIO usan ON UPDATE CASCADE por si se corrige un número de documento.
+  - Eliminar un usuario = estado_cuenta 'Inactiva'; no se borra físicamente si tiene tickets o pagos.
+
+Relaciones:
+  - USUARIO 1:1 UBICACION.
+  - USUARIO 1:N TELEFONO_USUARIO.
+  - USUARIO 1:N VERIFICACION (Comprueba).
+  - Subtipos: ADMIN, CLIENTE, EMPRESA.
+
+==================================================================================================================================
+7. TABLA: TELEFONO_USUARIO
+==================================================================================================================================
+Descripción: Teléfonos de cada usuario (atributo multivalorado separado para cumplir 1FN). Solo números colombianos.
+Clave primaria: (numero_identificacion, telefono)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+numero_identificacion    VARCHAR(20)            NO   PK, FK                     Sistema     Dueño del teléfono. →
+                                                                                            USUARIO.numero_identificacion
+telefono                 CHAR(10)               NO   PK                         Texto       Número colombiano de 10 dígitos, sin
+                                                                                            +57 (móvil 3XX o fijo 60X).
+
+Restricciones y reglas:
+  - PK compuesta (numero_identificacion, telefono).
+  - CHECK telefono ~ '^(3[0-9]{9}|60[1-8][0-9]{7})$' (móvil o fijo con el formato nacional vigente).
+  - El indicativo +57 es fijo; se agrega al mostrar o enviar SMS, no se guarda.
+
+Relaciones:
+  - TELEFONO_USUARIO N:1 USUARIO.
+
+==================================================================================================================================
+8. TABLA: ADMIN
+==================================================================================================================================
+Descripción: Subtipo de USUARIO. Administrador; solo consulta el dashboard de reportes.
+Clave primaria: (numero_identificacion)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+numero_identificacion    VARCHAR(20)            NO   PK, FK                     Sistema     Mismo documento del USUARIO. →
+                                                                                            USUARIO.numero_identificacion
+tipo_usuario             tipo_usuario_t         NO   FK*     'ADMIN'            Sistema     NUEVO v1.4. Fijo por CHECK = 'ADMIN'.
+                                                                                            Con numero_identificacion forma la FK
+                                                                                            compuesta → USUARIO(numero_identificacion,
+                                                                                            tipo_usuario); así el subtipo queda
+                                                                                            garantizado disjunto a nivel de BD.
+salario                  NUMERIC(12,2)          NO                              Número      Salario mensual en COP.
+horario                  jornada_t              NO                              Lista       CAMBIO: jornada laboral escogida de
+                                                                                            una lista.
+
+Restricciones y reglas:
+  - CHECK salario >= 0.
+  - CHECK tipo_usuario = 'ADMIN'; FK compuesta (numero_identificacion, tipo_usuario) → USUARIO.
+  - ADMIN no crea eventos: lo valida el trigger de EVENTO (ver tabla EVENTO).
+  - Totalidad (todo USUARIO 'ADMIN' debe tener fila aquí): la exige el CONSTRAINT TRIGGER diferido sobre USUARIO (ver
+    database/schema.sql).
+
+Relaciones:
+  - ADMIN IS-A USUARIO.
+  - ADMIN 1:N SESION_ADMIN (Inicia).
+
+==================================================================================================================================
+9. TABLA: CATEGORIA
+==================================================================================================================================
+Descripción: NUEVA. Catálogo de categorías de eventos. Reemplaza al ENUM porque la lista va a crecer (ej.
+             música/conciertos) y así el admin puede agregar una sin modificar la base de datos.
+Clave primaria: (id_categoria)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_categoria             SERIAL                 NO   PK      auto               Auto        Identificador único de la categoría.
+nombre                   VARCHAR(40)            NO   UQ                         Catálogo    Nombre de la categoría.
+activa                   BOOLEAN                NO           TRUE               Catálogo    FALSE = deja de aparecer en las listas
+                                                                                            sin borrar el historial.
+
+Restricciones y reglas:
+  - Carga inicial: gastronomía, cine, teatro, recreación, deporte.
+
+Relaciones:
+  - CATEGORIA 1:N CATEGORIA_CLIENTE.
+  - CATEGORIA 1:N CATEGORIA_EMPRESA.
+  - CATEGORIA 1:N EVENTO.
+
+==================================================================================================================================
+10. TABLA: CLIENTE
+==================================================================================================================================
+Descripción: Subtipo de USUARIO. Se inscribe a eventos y compra tickets; también puede crear eventos, solo gratuitos.
+Clave primaria: (numero_identificacion)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+numero_identificacion    VARCHAR(20)            NO   PK, FK                     Sistema     Mismo documento del USUARIO. →
+                                                                                            USUARIO.numero_identificacion
+tipo_usuario             tipo_usuario_t         NO   FK*     'CLIENTE'          Sistema     NUEVO v1.4. Fijo por CHECK = 'CLIENTE'.
+                                                                                            Con numero_identificacion forma la FK
+                                                                                            compuesta → USUARIO(numero_identificacion,
+                                                                                            tipo_usuario).
+fecha_nacimiento         DATE                   NO                              Fecha       Fecha de nacimiento (selector de
+                                                                                            fecha); valida la edad mínima.
+foto_perfil              VARCHAR(255)           SÍ                              Archivo     Ruta de la foto de perfil (opcional).
+alias                    VARCHAR(30)            SÍ   UQ                         Texto       Nombre visible en la red social
+                                                                                            (opcional, único).
+
+Restricciones y reglas:
+  - CHECK tipo_usuario = 'CLIENTE'; FK compuesta (numero_identificacion, tipo_usuario) → USUARIO.
+  - edad es DERIVADO: AGE(fecha_nacimiento); no se almacena.
+  - Totalidad: la exige el CONSTRAINT TRIGGER diferido sobre USUARIO (ver database/schema.sql).
+
+Relaciones:
+  - CLIENTE IS-A USUARIO.
+  - CLIENTE 1:N CATEGORIA_CLIENTE.
+  - CLIENTE 1:N TICKET (Inscribe).
+  - CLIENTE 1:N METODO_PAGO (Registra).
+  - CLIENTE 1:N RESENA (Escribe).
+  - CLIENTE N:M CLIENTE (Conexión social).
+
+==================================================================================================================================
+11. TABLA: CATEGORIA_CLIENTE
+==================================================================================================================================
+Descripción: Categorías de interés del cliente (multivalorado; selección múltiple).
+Clave primaria: (id_cliente, id_categoria)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_cliente               VARCHAR(20)            NO   PK, FK                     Sistema     Cliente. →
+                                                                                            CLIENTE.numero_identificacion
+id_categoria             INTEGER                NO   PK, FK                     Lista múlt. Categoría escogida (casillas). →
+                                                                                            CATEGORIA.id_categoria
+
+Restricciones y reglas:
+  - PK compuesta (id_cliente, id_categoria).
+
+Relaciones:
+  - CATEGORIA_CLIENTE N:1 CLIENTE.
+  - CATEGORIA_CLIENTE N:1 CATEGORIA.
+
+==================================================================================================================================
+12. TABLA: EMPRESA
+==================================================================================================================================
+Descripción: Subtipo de USUARIO. Organización que crea eventos de pago, gratuitos o en conjunto con otras empresas.
+Clave primaria: (numero_identificacion)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+numero_identificacion    VARCHAR(20)            NO   PK, FK                     Sistema     Mismo documento del USUARIO (del
+                                                                                            representante). →
+                                                                                            USUARIO.numero_identificacion
+tipo_usuario             tipo_usuario_t         NO   FK*     'EMPRESA'          Sistema     NUEVO v1.4. Fijo por CHECK = 'EMPRESA'.
+                                                                                            Con numero_identificacion forma la FK
+                                                                                            compuesta → USUARIO(numero_identificacion,
+                                                                                            tipo_usuario).
+nit                      VARCHAR(15)            NO   UQ                         Texto       NIT con dígito de verificación (ej.
+                                                                                            900123456-7).
+razon_social             VARCHAR(120)           NO                              Texto       Razón social legal.
+nombre_comercial         VARCHAR(100)           NO                              Texto       Nombre que se muestra en la
+                                                                                            plataforma.
+descripcion              TEXT                   SÍ                              Texto       Descripción de la empresa (opcional).
+logo_url                 VARCHAR(255)           SÍ                              Archivo     Ruta del logo subido (opcional).
+comision_fija            NUMERIC(10,2)          NO           0                  Sistema     Comisión fija que la plataforma cobra
+                                                                                            a esta empresa (la define el sistema,
+                                                                                            no la empresa).
+
+Restricciones y reglas:
+  - CHECK nit ~ '^[0-9]{9}-[0-9]$'.
+  - CHECK comision_fija >= 0.
+  - CHECK tipo_usuario = 'EMPRESA'; FK compuesta (numero_identificacion, tipo_usuario) → USUARIO.
+  - Totalidad: la exige el CONSTRAINT TRIGGER diferido sobre USUARIO (ver database/schema.sql).
+
+Relaciones:
+  - EMPRESA IS-A USUARIO.
+  - EMPRESA 1:N CATEGORIA_EMPRESA.
+  - EMPRESA N:M EVENTO (Organiza).
+  - EMPRESA 1:N EVENTO (Crea).
+
+==================================================================================================================================
+13. TABLA: CATEGORIA_EMPRESA
+==================================================================================================================================
+Descripción: Categorías en las que trabaja la empresa (multivalorado; selección múltiple).
+Clave primaria: (id_empresa, id_categoria)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_empresa               VARCHAR(20)            NO   PK, FK                     Sistema     Empresa. →
+                                                                                            EMPRESA.numero_identificacion
+id_categoria             INTEGER                NO   PK, FK                     Lista múlt. Categoría escogida (casillas). →
+                                                                                            CATEGORIA.id_categoria
+
+Restricciones y reglas:
+  - PK compuesta (id_empresa, id_categoria).
+
+Relaciones:
+  - CATEGORIA_EMPRESA N:1 EMPRESA.
+  - CATEGORIA_EMPRESA N:1 CATEGORIA.
+
+==================================================================================================================================
+14. TABLA: SESION_ADMIN
+==================================================================================================================================
+Descripción: Sesiones de los administradores (entidad débil de ADMIN). Las llena el sistema al cerrar sesión.
+Clave primaria: (numero_identificacion, numero_sesion)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+numero_identificacion    VARCHAR(20)            NO   PK, FK                     Sistema     Administrador. →
+                                                                                            ADMIN.numero_identificacion
+numero_sesion            INTEGER                NO   PK                         Sistema     Consecutivo de la sesión para ese
+                                                                                            admin (clave parcial).
+fecha_hora_conexion      TIMESTAMP              NO                              Sistema     Inicio de la sesión.
+fecha_hora_desconexion   TIMESTAMP              NO                              Sistema     Cierre de la sesión (logout o
+                                                                                            expiración).
+direccion_ip             INET                   NO                              Sistema     CAMBIO: tipo INET de PostgreSQL;
+                                                                                            valida que sea una IP real.
+
+Restricciones y reglas:
+  - PK compuesta (numero_identificacion, numero_sesion).
+  - CHECK fecha_hora_desconexion >= fecha_hora_conexion.
+  - tiempo_en_pantalla es DERIVADO: desconexion - conexion; no se almacena.
+
+Relaciones:
+  - SESION_ADMIN N:1 ADMIN (relación identificadora).
+
+##################################################################################################################################
+# VERIFICACIÓN
+##################################################################################################################################
+
+==================================================================================================================================
+15. TABLA: VERIFICACION
+==================================================================================================================================
+Descripción: Supertipo de las verificaciones de identidad (IS-A: contacto o biométrica).
+Clave primaria: (id_verificacion)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_verificacion          SERIAL                 NO   PK      auto               Auto        Identificador único de la
+                                                                                            verificación.
+tipo                     tipo_verificacion_t    NO   UQ*                        Sistema     Tipo de verificación (lo fija el flujo
+                                                                                            que se inicia).
+estado                   estado_verificacion_t  NO           'Pendiente'        Sistema     Resultado; lo cambia el proceso de
+                                                                                            validación.
+fecha_solicitud          TIMESTAMP              NO           NOW()              Sistema     Cuándo se pidió.
+fecha_actualizacion      TIMESTAMP              NO           NOW()              Sistema     Último cambio de estado.
+numero_identificacion    VARCHAR(20)            NO   FK                         Sistema     Usuario verificado. →
+                                                                                            USUARIO.numero_identificacion
+
+Restricciones y reglas:
+  - UQ* (id_verificacion, tipo) UNIQUE: para la FK compuesta de los subtipos.
+  - NUEVO v1.4: índice único parcial (numero_identificacion, tipo) WHERE estado = 'Pendiente'. Evita que un usuario tenga dos
+    verificaciones del mismo tipo abiertas a la vez; sí permite una nueva solicitud una vez la anterior quedó Aprobada o
+    Rechazada.
+
+Relaciones:
+  - VERIFICACION N:1 USUARIO.
+  - Subtipos: VERIF_CONTACTO, VERIF_BIOMETRICA.
+
+==================================================================================================================================
+16. TABLA: VERIF_CONTACTO
+==================================================================================================================================
+Descripción: Subtipo de VERIFICACION. Código enviado al correo o teléfono.
+Clave primaria: (id_verificacion)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_verificacion          INTEGER                NO   PK, FK                     Sistema     → VERIFICACION.id_verificacion
+codigo_hash              VARCHAR(255)           NO                              Sistema     Código de verificación cifrado.
+fecha_expiracion         TIMESTAMP              NO                              Sistema     Momento en que el código vence.
+intentos                 SMALLINT               NO           0                  Sistema     Intentos fallidos realizados.
+
+Restricciones y reglas:
+  - CHECK intentos BETWEEN 0 AND 5.
+
+Relaciones:
+  - VERIF_CONTACTO IS-A VERIFICACION.
+
+==================================================================================================================================
+17. TABLA: VERIF_BIOMETRICA
+==================================================================================================================================
+Descripción: Subtipo de VERIFICACION. Documento + selfie para corroborar identidad y edad (simulada en el entorno
+             universitario).
+Clave primaria: (id_verificacion)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_verificacion          INTEGER                NO   PK, FK                     Sistema     → VERIFICACION.id_verificacion
+url_documento_frente     VARCHAR(255)           NO                              Archivo     Foto del frente del documento.
+url_documento_reverso    VARCHAR(255)           NO                              Archivo     Foto del reverso del documento.
+url_selfie               VARCHAR(255)           NO                              Archivo     Selfie del usuario.
+puntaje_coincidencia     NUMERIC(5,2)           SÍ                              Sistema     Similitud rostro-documento (0-100).
+prueba_vida              BOOLEAN                NO           FALSE              Lógico      Sí/No: pasó la prueba de vida.
+numero_documento_leido   VARCHAR(20)            SÍ                              Sistema     Número leído del documento por el
+                                                                                            proveedor.
+fecha_nacimiento_leida   DATE                   SÍ                              Sistema     Fecha de nacimiento leída del
+                                                                                            documento.
+fecha_vencimiento_doc    DATE                   SÍ                              Sistema     Vencimiento del documento leído.
+fecha_autorizacion_datos TIMESTAMP              NO                              Lógico      Se guarda al marcar la casilla de
+                                                                                            autorización (Ley 1581 de 2012).
+
+Restricciones y reglas:
+  - CHECK puntaje_coincidencia BETWEEN 0 AND 100.
+  - Los campos *_leido/*_leida y puntaje quedan NULL solo mientras estado = 'Pendiente'.
+  - Se aprueba si numero_documento_leido y fecha_nacimiento_leida coinciden con USUARIO/CLIENTE, prueba_vida = TRUE y puntaje >=
+    umbral.
+
+Relaciones:
+  - VERIF_BIOMETRICA IS-A VERIFICACION.
+
+##################################################################################################################################
+# EVENTOS Y VENTAS
+##################################################################################################################################
+
+==================================================================================================================================
+18. TABLA: EVENTO
+==================================================================================================================================
+Descripción: Evento o espectáculo publicado en la plataforma.
+Clave primaria: (codigo)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+codigo                   VARCHAR(20)            NO   PK                         Sistema     Código único generado por el sistema
+                                                                                            (ej. EVT-2026-0001).
+nombre                   VARCHAR(150)           NO                              Texto       Nombre del evento.
+descripcion              TEXT                   NO                              Texto       Descripción del evento.
+id_categoria             INTEGER                NO   FK                         Lista       Categoría del evento. →
+                                                                                            CATEGORIA.id_categoria
+url_imagen               VARCHAR(255)           SÍ                              Archivo     Afiche del evento.
+fecha_hora_inicio        TIMESTAMP              NO                              Fecha       Fecha y hora de inicio (selector).
+fecha_hora_fin           TIMESTAMP              NO                              Fecha       Fecha y hora estimada de fin
+                                                                                            (selector).
+capacidad_total          INTEGER                NO                              Número      Capacidad total de espectadores.
+edad_minima              SMALLINT               NO           0                  Número      Edad mínima (0 = sin restricción).
+observaciones            TEXT                   SÍ                              Texto       Notas adicionales (opcional).
+estado                   estado_evento_t        NO           'Programado'       Lista       Estado actual del evento.
+fecha_creacion           TIMESTAMP              NO           NOW()              Sistema     Cuándo se registró.
+id_creador               VARCHAR(20)            NO   FK                         Sistema     Usuario en sesión que lo registró
+                                                                                            (CLIENTE o EMPRESA). →
+                                                                                            USUARIO.numero_identificacion
+id_lugar                 INTEGER                NO   FK                         Lista       Recinto escogido de la lista de
+                                                                                            lugares. → LUGAR.id_lugar
+
+Restricciones y reglas:
+  - CHECK fecha_hora_fin > fecha_hora_inicio.
+  - CHECK capacidad_total > 0.
+  - CHECK edad_minima BETWEEN 0 AND 99.
+  - capacidad_total <= LUGAR.capacidad_maxima (trigger).
+  - Si el creador es CLIENTE, todos sus niveles deben tener precio = 0 (trigger).
+  - Todos los valores de dinero están en pesos colombianos (COP).
+  - estado = 'Cancelado' <=> existe registro en CANCELACION_EVENTO (lo sincroniza un trigger AFTER INSERT en
+    CANCELACION_EVENTO).
+  - NUEVO v1.4: id_creador debe tener tipo_usuario CLIENTE o EMPRESA (trigger); antes "ADMIN no crea eventos" solo era texto
+    sin mecanismo que lo exigiera.
+
+Relaciones:
+  - EVENTO N:1 USUARIO (Crea).
+  - EVENTO N:1 CATEGORIA.
+  - EVENTO N:1 LUGAR (Se realiza).
+  - EVENTO 1:N NIVEL_ENTRADA (Ofrece).
+  - EVENTO N:M EMPRESA (Organiza).
+  - EVENTO 1:N RESENA (Recibe).
+  - EVENTO 1:1 CANCELACION_EVENTO (Se cancela).
+
+==================================================================================================================================
+19. TABLA: ORGANIZA
+==================================================================================================================================
+Descripción: Relación N:M entre empresas colaboradoras y eventos. Nunca entra en cálculos de dinero.
+Clave primaria: (id_empresa, codigo_evento)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_empresa               VARCHAR(20)            NO   PK, FK                     Lista       Empresa colaboradora escogida de la
+                                                                                            lista. → EMPRESA.numero_identificacion
+codigo_evento            VARCHAR(20)            NO   PK, FK                     Sistema     Evento. → EVENTO.codigo
+rol                      rol_organiza_t         NO                              Lista       Rol de la empresa en el evento.
+
+Restricciones y reglas:
+  - PK compuesta (id_empresa, codigo_evento).
+
+Relaciones:
+  - ORGANIZA N:1 EMPRESA.
+  - ORGANIZA N:1 EVENTO.
+
+==================================================================================================================================
+20. TABLA: NIVEL_ENTRADA
+==================================================================================================================================
+Descripción: Tipos de entrada de un evento con su precio y cupo.
+Clave primaria: (id_nivel)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_nivel                 SERIAL                 NO   PK      auto               Auto        Identificador único del nivel.
+nombre                   nivel_entrada_t        NO                              Lista       CAMBIO: nivel escogido de una lista
+                                                                                            (evita 'vip', 'V.I.P', etc.).
+precio                   NUMERIC(12,2)          NO           0                  Número      Precio por entrada en COP (0 =
+                                                                                            gratis).
+cupo                     INTEGER                NO                              Número      Entradas disponibles en este nivel.
+codigo_evento            VARCHAR(20)            NO   FK                         Sistema     Evento al que pertenece. →
+                                                                                            EVENTO.codigo
+
+Restricciones y reglas:
+  - CHECK precio >= 0; CHECK cupo > 0.
+  - (codigo_evento, nombre) UNIQUE: un nivel no se repite en el mismo evento.
+  - nombre = 'Gratuita' => precio = 0.
+  - SUM(cupo) de los niveles <= EVENTO.capacidad_total (trigger).
+
+Relaciones:
+  - NIVEL_ENTRADA N:1 EVENTO.
+  - NIVEL_ENTRADA 1:N TICKET (Contiene).
+
+==================================================================================================================================
+21. TABLA: TICKET
+==================================================================================================================================
+Descripción: Entrada personal e intransferible de un cliente (reemplaza a RESERVA del enunciado).
+Clave primaria: (id_ticket)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_ticket                SERIAL                 NO   PK      auto               Auto        Identificador único del ticket.
+codigo_qr                UUID                   NO   UQ      gen_random_uuid()  Sistema     CAMBIO: UUID generado por PostgreSQL;
+                                                                                            nunca se repite ni se digita.
+precio_pagado            NUMERIC(12,2)          NO                              Sistema     Copia del precio del nivel al momento
+                                                                                            de la compra.
+fecha_hora               TIMESTAMP              NO           NOW()              Sistema     Fecha y hora de la inscripción/compra.
+estado                   estado_ticket_t        NO           'Reservado'        Sistema     Estado actual; cambia con el pago, la
+                                                                                            cancelación o el ingreso.
+id_cliente               VARCHAR(20)            NO   FK                         Sistema     Cliente en sesión. →
+                                                                                            CLIENTE.numero_identificacion
+id_nivel                 INTEGER                NO   FK                         Lista       Nivel escogido de la lista del evento.
+                                                                                            → NIVEL_ENTRADA.id_nivel
+
+Restricciones y reglas:
+  - CHECK precio_pagado >= 0.
+  - Un cliente solo puede tener un ticket no cancelado por evento (trigger).
+  - Para inscribirse, el cliente debe tener VERIF_BIOMETRICA Aprobada (trigger).
+  - Edad del cliente >= EVENTO.edad_minima (trigger).
+  - Tickets no cancelados del nivel <= NIVEL_ENTRADA.cupo (trigger).
+  - No guarda codigo_evento: se obtiene por id_nivel (3FN).
+
+Relaciones:
+  - TICKET N:1 CLIENTE (Inscribe).
+  - TICKET N:1 NIVEL_ENTRADA (Contiene).
+  - TICKET 1:N PAGO (Genera).
+  - TICKET 1:1 CANCELACION_TICKET (Se cancela).
+
+==================================================================================================================================
+22. TABLA: PROVEEDOR_PAGO
+==================================================================================================================================
+Descripción: Catálogo de franquicias, bancos y billeteras disponibles en Colombia. Es tabla (no ENUM) porque la lista
+             cambia: entran y salen bancos y billeteras.
+Clave primaria: (id_proveedor)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_proveedor             SERIAL                 NO   PK      auto               Auto        Identificador único del proveedor.
+nombre                   VARCHAR(40)            NO   UQ                         Catálogo    Nombre (Visa, Mastercard, Nequi,
+                                                                                            PSE...).
+activo                   BOOLEAN                NO           TRUE               Catálogo    FALSE = deja de ofrecerse sin borrar
+                                                                                            los métodos ya registrados.
+
+Restricciones y reglas:
+  - Carga inicial: Visa, Mastercard, American Express, PSE, Nequi, Daviplata, Bancolombia, Davivienda, Banco de Bogotá.
+
+Relaciones:
+  - PROVEEDOR_PAGO 1:N METODO_PAGO.
+
+==================================================================================================================================
+23. TABLA: METODO_PAGO
+==================================================================================================================================
+Descripción: Medios de pago del cliente. Solo se guarda un token de la pasarela, nunca el número completo de la
+             tarjeta.
+Clave primaria: (id_metodo)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_metodo                SERIAL                 NO   PK      auto               Auto        Identificador único del método.
+tipo                     tipo_metodo_pago_t     NO                              Lista       Tipo de medio de pago.
+id_proveedor             INTEGER                NO   FK                         Lista       CAMBIO: proveedor escogido de la
+                                                                                            lista. → PROVEEDOR_PAGO.id_proveedor
+referencia_visible       CHAR(4)                NO                              Sistema     Últimos 4 dígitos, para mostrar '****
+                                                                                            4321'.
+token_pasarela           VARCHAR(255)           NO   UQ                         Sistema     Token entregado por la pasarela de
+                                                                                            pagos.
+activo                   BOOLEAN                NO           TRUE               Lógico      Sí/No: el método se puede seguir
+                                                                                            usando.
+fecha_registro           TIMESTAMP              NO           NOW()              Sistema     Cuándo se registró.
+id_cliente               VARCHAR(20)            NO   FK                         Sistema     Dueño del método. →
+                                                                                            CLIENTE.numero_identificacion
+
+Restricciones y reglas:
+  - CHECK referencia_visible ~ '^[0-9]{4}$'.
+  - Nunca almacenar el número completo de tarjeta ni el CVV.
+
+Relaciones:
+  - METODO_PAGO N:1 CLIENTE (Registra).
+  - METODO_PAGO N:1 PROVEEDOR_PAGO.
+  - METODO_PAGO 1:N PAGO (Utiliza).
+
+==================================================================================================================================
+24. TABLA: PAGO
+==================================================================================================================================
+Descripción: Transacción de pago de un ticket. Puede haber varios intentos por ticket.
+Clave primaria: (id_pago)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_pago                  SERIAL                 NO   PK      auto               Auto        Identificador único del pago.
+monto                    NUMERIC(12,2)          NO                              Sistema     Valor cobrado en COP.
+fecha_hora               TIMESTAMP              NO           NOW()              Sistema     Fecha y hora de la transacción.
+referencia_transaccion   VARCHAR(60)            NO   UQ                         Sistema     Referencia devuelta por la pasarela.
+estado                   estado_pago_t          NO           'Pendiente'        Sistema     Respuesta de la pasarela.
+id_ticket                INTEGER                NO   FK                         Sistema     Ticket que se paga. → TICKET.id_ticket
+id_metodo                INTEGER                NO   FK                         Lista       Método escogido de los registrados por
+                                                                                            el cliente. → METODO_PAGO.id_metodo
+
+Restricciones y reglas:
+  - CHECK monto > 0.
+  - Ingresos netos = SUM(pagos 'Aprobado') - SUM(CANCELACION_TICKET.monto_reembolsado).
+
+Relaciones:
+  - PAGO N:1 TICKET (Genera).
+  - PAGO N:1 METODO_PAGO (Utiliza).
+
+==================================================================================================================================
+25. TABLA: RESENA
+==================================================================================================================================
+Descripción: Calificación y comentario de un cliente sobre un evento al que asistió.
+Clave primaria: (id_resena)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_resena                SERIAL                 NO   PK      auto               Auto        Identificador único de la reseña.
+calificacion             SMALLINT               NO                              Lista       Estrellas de 1 a 5 (se escoge, no se
+                                                                                            digita).
+comentario               TEXT                   SÍ                              Texto       Comentario del cliente (opcional).
+fecha                    TIMESTAMP              NO           NOW()              Sistema     Fecha de publicación.
+id_cliente               VARCHAR(20)            NO   FK                         Sistema     Autor. → CLIENTE.numero_identificacion
+codigo_evento            VARCHAR(20)            NO   FK                         Sistema     Evento reseñado. → EVENTO.codigo
+
+Restricciones y reglas:
+  - CHECK calificacion BETWEEN 1 AND 5.
+  - (id_cliente, codigo_evento) UNIQUE: una reseña por cliente y evento.
+  - Solo reseña quien tiene un ticket 'Usado' de ese evento (trigger).
+
+Relaciones:
+  - RESENA N:1 CLIENTE (Escribe).
+  - RESENA N:1 EVENTO (Recibe).
+
+==================================================================================================================================
+26. TABLA: CONEXION_SOCIAL
+==================================================================================================================================
+Descripción: Relación N:M recursiva entre clientes (solicitudes de conexión).
+Clave primaria: (id_solicitante, id_receptor)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_solicitante           VARCHAR(20)            NO   PK, FK                     Sistema     Cliente que envía la solicitud. →
+                                                                                            CLIENTE.numero_identificacion
+id_receptor              VARCHAR(20)            NO   PK, FK                     Sistema     Cliente que la recibe. →
+                                                                                            CLIENTE.numero_identificacion
+fecha_solicitud          TIMESTAMP              NO           NOW()              Sistema     Cuándo se envió.
+estado                   estado_conexion_t      NO           'Pendiente'        Lista       El receptor acepta o rechaza
+                                                                                            (botones).
+
+Restricciones y reglas:
+  - PK compuesta (id_solicitante, id_receptor).
+  - CHECK id_solicitante <> id_receptor.
+
+Relaciones:
+  - CLIENTE N:M CLIENTE.
+
+##################################################################################################################################
+# CANCELACIONES
+##################################################################################################################################
+
+==================================================================================================================================
+27. TABLA: CAUSA_CANCELACION
+==================================================================================================================================
+Descripción: Catálogo fijo de causas de cancelación (lista precargada). La última opción es 'Otra (especificar)'.
+Clave primaria: (id_causa)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_causa                 SERIAL                 NO   PK      auto               Auto        Identificador único de la causa.
+nombre                   VARCHAR(80)            NO   UQ                         Catálogo    Nombre de la causa (cargado por
+                                                                                            script).
+aplica_a                 aplica_a_t             NO                              Catálogo    A qué aplica la causa.
+requiere_detalle         BOOLEAN                NO           FALSE              Catálogo    Sí/No: exige escribir un motivo.
+
+Restricciones y reglas:
+  - Datos iniciales EVENTO: Fuerza mayor (sismo, emergencia); Decisión del organizador; Problema de seguridad del recinto;
+    Ventas insuficientes; Otra (especificar).
+  - Datos iniciales TICKET: Solicitud del cliente; Cancelación del evento; No pasó la verificación de identidad; Fuerza mayor;
+    Otra (especificar).
+
+Relaciones:
+  - CAUSA_CANCELACION 1:N CANCELACION_EVENTO / CANCELACION_TICKET (Justifica).
+
+==================================================================================================================================
+28. TABLA: CANCELACION_EVENTO
+==================================================================================================================================
+Descripción: Cancelación de un evento y su causa (reporte 'eventos cancelados y su causa').
+Clave primaria: (codigo_evento)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+codigo_evento            VARCHAR(20)            NO   PK, FK                     Sistema     Evento cancelado. → EVENTO.codigo
+fecha                    TIMESTAMP              NO           NOW()              Sistema     Cuándo se canceló.
+motivo                   TEXT                   SÍ                              Texto       Solo se pide si la causa tiene
+                                                                                            requiere_detalle = TRUE.
+id_causa                 INTEGER                NO   FK                         Lista       Causa escogida de la lista (aplica_a
+                                                                                            EVENTO/AMBOS). →
+                                                                                            CAUSA_CANCELACION.id_causa
+
+Restricciones y reglas:
+  - motivo NOT NULL cuando requiere_detalle = TRUE (trigger).
+
+Relaciones:
+  - CANCELACION_EVENTO 1:1 EVENTO.
+  - CANCELACION_EVENTO N:1 CAUSA_CANCELACION.
+
+==================================================================================================================================
+29. TABLA: CANCELACION_TICKET
+==================================================================================================================================
+Descripción: Cancelación de un ticket, su causa y el reembolso (reporte 'reservas canceladas y su causa').
+Clave primaria: (id_ticket)
+
+Campo                    Tipo                   Nulo Clave   Default            Entrada     Descripción
+------------------------ ---------------------- ---- ------- ------------------ ----------- --------------------------------------
+id_ticket                INTEGER                NO   PK, FK                     Sistema     Ticket cancelado. → TICKET.id_ticket
+fecha                    TIMESTAMP              NO           NOW()              Sistema     Cuándo se canceló.
+motivo                   TEXT                   SÍ                              Texto       Solo se pide si la causa tiene
+                                                                                            requiere_detalle = TRUE.
+estado_reembolso         estado_reembolso_t     NO           'No aplica'        Sistema     Estado de la devolución del dinero.
+monto_reembolsado        NUMERIC(12,2)          NO           0                  Sistema     Valor devuelto en COP.
+id_causa                 INTEGER                NO   FK                         Lista       Causa escogida de la lista (aplica_a
+                                                                                            TICKET/AMBOS). →
+                                                                                            CAUSA_CANCELACION.id_causa
+
+Restricciones y reglas:
+  - CHECK monto_reembolsado >= 0.
+  - motivo NOT NULL cuando requiere_detalle = TRUE (trigger).
+
+Relaciones:
+  - CANCELACION_TICKET 1:1 TICKET.
+  - CANCELACION_TICKET N:1 CAUSA_CANCELACION.
+
+##################################################################################################################################
+# ÍNDICES RECOMENDADOS (NUEVO v1.4)
+##################################################################################################################################
+  Además del índice espacial GIST de UBICACION (ya documentado), los reportes del backlog (ingresos, eventos por empresa,
+  cobertura geográfica, cancelaciones) necesitan buscar/filtrar por estas columnas, así que llevan índice:
+    EVENTO(estado) · EVENTO(fecha_hora_inicio) · EVENTO(id_categoria) · EVENTO(id_lugar) · EVENTO(id_creador)
+    NIVEL_ENTRADA(codigo_evento)
+    TICKET(id_cliente) · TICKET(id_nivel) · TICKET(estado)
+    PAGO(id_ticket) · PAGO(estado)
+    METODO_PAGO(id_cliente)
+    RESENA(codigo_evento)
+    VERIFICACION(numero_identificacion)
+    USUARIO(tipo_usuario)
+    UBICACION(id_ciudad)
+  El DDL de estos índices está en database/schema.sql, junto a cada tabla.
+
+##################################################################################################################################
+# REGLAS DE NEGOCIO GENERALES (triggers / CHECK)
+##################################################################################################################################
+  - Un cliente solo puede tener un ticket por evento (los Cancelados no cuentan); para inscribirse debe tener verificación
+    biométrica Aprobada.
+  - Edad del cliente >= edad_minima del evento.
+  - Tickets <= cupo del nivel; suma de cupos <= capacidad_total; capacidad_total <= capacidad_maxima del LUGAR.
+  - Si quien crea el evento es CLIENTE, todos los niveles tienen precio 0. ADMIN no crea eventos.
+  - Crea (EVENTO.id_creador) es la única relación que usan los reportes de ingresos y de eventos por empresa. Organiza nunca
+    entra en cálculos de dinero.
+  - Solo reseña quien tiene ticket en estado Usado.
+  - SESION_ADMIN se inserta al cerrar sesión (logout o expiración), con ambas horas.
+  - Eliminar un usuario = estado_cuenta 'Inactiva'; no se borra físicamente si tiene tickets o pagos.
+  - Ingresos netos = pagos aprobados - monto_reembolsado.
+  - Una UBICACION pertenece a un solo dueño (USUARIO o LUGAR); nunca se comparte.
+
+##################################################################################################################################
+# CORRESPONDENCIA CON EL ENUNCIADO
+##################################################################################################################################
+  Persona                       → USUARIO (+ TELEFONO_USUARIO)
+  Cliente                       → CLIENTE
+  Agente                        → EMPRESA (crea y administra eventos; comision_fija)
+  Administrador                 → ADMIN (salario, horario)
+  Evento / Espectáculo          → EVENTO + LUGAR (teatro) + NIVEL_ENTRADA (precio)
+  Reserva                       → TICKET (+ PAGO para el valor total)
+  País / Departamento / Ciudad  → PAIS / DEPARTAMENTO / CIUDAD (solo Colombia; departamentos y municipios DANE)
+  Causa de cancelación          → CAUSA_CANCELACION + CANCELACION_EVENTO / CANCELACION_TICKET
+  Fuera de alcance (recortado por el equipo): puntos del cliente y visualización de publicidad.
+
+==================================================================================================================================
+                                                  Fin del diccionario de datos.
+==================================================================================================================================
