@@ -34,7 +34,7 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 
 ## Decisiones del diseño
 
-- **PK de `USUARIO`:** `numero_identificacion`. Las FK de los demás módulos apuntan a ese campo.
+- **PK de `USUARIO`:** `numero_identificacion`, blindada: número normalizado (mayúsculas y dígitos), formato válido según el tipo de documento, no editable salvo corrección explícita y `ON UPDATE CASCADE` en las FK. Un mismo número no puede registrarse dos veces aunque cambie el tipo.
 - **Herencia total y disjunta:** cada subtipo lleva `tipo_usuario` fijo por CHECK y una FK compuesta hacia `USUARIO`; un trigger diferido exige que todo usuario tenga su fila de subtipo.
 - **Cancelaciones:** `CAUSA_CANCELACION` es un catálogo; `EVENTO` y `RESERVA` guardan `id_causa`, que es obligatorio solo cuando el estado es Cancelado/Cancelada.
 - **Derivados no almacenados:** `edad` (de `fecha_nacimiento`) y `tiempo_en_pantalla` (de las dos fechas de la sesión).
@@ -50,6 +50,7 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 - El método de pago de un `PAGO` pertenece al cliente de la reserva.
 - `capacidad_total` no puede bajar de las entradas ya reservadas.
 - No se borra el subtipo ni el detalle de verificación dejando la fila principal.
+- El documento de identidad no se edita; para corregirlo: `BEGIN; SET LOCAL app.corregir_documento = 'on'; UPDATE USUARIO SET numero_identificacion = '...' WHERE ...; COMMIT;`
 
 ## Cuentas del seed
 

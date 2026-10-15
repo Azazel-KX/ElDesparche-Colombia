@@ -187,12 +187,17 @@ fecha_registro           TIMESTAMP              NO           NOW()              
                                                                                            usuario.
 id_ciudad                INTEGER                NO   FK                           Lista    Ciudad de residencia. →
                                                                                            CIUDAD.id_ciudad
+CONSTRAINT               ck_usuario_documento_formato SÍ                                Texto    
 
 Unicidad compuesta:
   - UNIQUE (numero_identificacion, tipo_usuario)
 
 Restricciones y reglas:
   - La PK es numero_identificacion: un mismo número no puede estar registrado dos veces, aunque cambie el tipo de documento.
+  - numero_identificacion normalizado (solo mayúsculas y dígitos) y con el formato de su tipo: CC 6–10 dígitos, CE 4–10, PPT
+    5–10, NIT 9–10 sin dígito de verificación, PAS 5–15 alfanuméricos.
+  - El documento (número y tipo) no se edita salvo corrección explícita: SET LOCAL app.corregir_documento = 'on'. Las FK
+    tienen ON UPDATE CASCADE.
   - correo UNIQUE y con formato válido; es el usuario del inicio de sesión.
   - tipo_usuario decide la tabla de subtipo; (numero_identificacion, tipo_usuario) UNIQUE para la FK compuesta de los
     subtipos.
