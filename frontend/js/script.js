@@ -1479,7 +1479,7 @@ function crearModalAcceso() {
         /* Los campos siguen la tabla USUARIO de la base de datos
            (tipo y número de documento, nombres, apellidos, correo, clave,
            ciudad y dirección). Lo propio de cada tipo de cuenta va en su
-           grupo: CLIENTE pide fecha de nacimiento; EMPRESA pide NIT y
+           grupo: CLIENTE pide fecha de nacimiento; AGENTE pide NIT y
            razón social. */
         '<fieldset class="grupo-campos">' +
           '<legend class="modal-subtitulo">Tus datos</legend>' +
@@ -1563,7 +1563,7 @@ function crearModalAcceso() {
           '</div>' +
         '</fieldset>' +
 
-        /* Solo para cuenta de Agente (tabla EMPRESA) */
+        /* Solo para cuenta de Agente (tabla AGENTE) */
         '<fieldset class="grupo-campos" id="campos-agente" hidden disabled>' +
           '<legend class="modal-subtitulo">Datos de la empresa</legend>' +
 
@@ -1813,9 +1813,9 @@ function iniciarSesionLocal(respuesta) {
   var u = respuesta.usuario;
 
   guardarUsuario({
-    nombre: u.nombres + " " + u.apellidos,
+    nombre: u.nombre + " " + u.apellidos,
     correo: u.correo,
-    tipo: u.tipo_usuario === "EMPRESA" ? "agente" : "usuario",
+    tipo: u.tipo_usuario === "AGENTE" ? "agente" : "usuario",
     rol: u.tipo_usuario,
     id: u.numero_identificacion,
     token: respuesta.token
@@ -1896,10 +1896,10 @@ function registrar(evento) {
   var esAgente = document.querySelector('input[name="tipo-cuenta"]:checked').value === "agente";
 
   var datos = {
-    tipo_cuenta: esAgente ? "EMPRESA" : "CLIENTE",
+    tipo_cuenta: esAgente ? "AGENTE" : "CLIENTE",
     tipo_identificacion: valor("tipo-id-registro"),
     numero_identificacion: valor("numero-id-registro"),
-    nombres: valor("nombres-registro"),
+    nombre: valor("nombres-registro"),
     apellidos: valor("apellidos-registro"),
     telefono: valor("telefono-registro"),
     id_ciudad: valor("ciudad-registro"),
@@ -1923,7 +1923,7 @@ function registrar(evento) {
      solo se evita un viaje al servidor por un campo vacío. */
   var faltantes = [
     ["numero_identificacion", "Escribe tu número de documento.", "numero-id-registro"],
-    ["nombres", "Escribe tus nombres.", "nombres-registro"],
+    ["nombre", "Escribe tus nombres.", "nombres-registro"],
     ["apellidos", "Escribe tus apellidos.", "apellidos-registro"],
     ["id_ciudad", "Elige tu ciudad.", "ciudad-registro"],
     ["direccion", "Escribe tu dirección.", "direccion-registro"]
@@ -1960,12 +1960,11 @@ function registrar(evento) {
     tipo_cuenta: "tipo-id-registro",
     tipo_identificacion: "tipo-id-registro",
     numero_identificacion: "numero-id-registro",
-    nombres: "nombres-registro",
+    nombre: "nombres-registro",
     apellidos: "apellidos-registro",
     telefono: "telefono-registro",
     id_ciudad: "ciudad-registro",
     direccion: "direccion-registro",
-    coordenadas: "direccion-registro",
     fecha_nacimiento: "nacimiento-registro",
     alias: "alias-registro",
     nit: "nit-registro",
