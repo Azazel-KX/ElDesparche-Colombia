@@ -7,6 +7,13 @@ const { ErrorHttp } = require("../utils/errores");
 // - El usuario no entiende eso
 // - Traducimos a mensajes claros: "Ese correo ya está registrado"
 //
+// Restricciones con nombre propio en database/schema_ElDesparche.sql → campo y mensaje para el usuario
+const RESTRICCIONES_CONOCIDAS = {
+  ck_usuario_documento_formato: ["numero_identificacion", "El número de documento no es válido para su tipo."],
+  ck_usuario_documento_normalizado: ["numero_identificacion", "El número de documento solo admite letras mayúsculas y dígitos."],
+  usuario_correo_check: ["correo", "Escribe un correo electrónico válido."],
+};
+
 // Códigos de error:
 // - 23505: Duplicate key (violación de UNIQUE)
 // - 23503: Foreign key (referencia que no existe)
@@ -29,19 +36,25 @@ function traducirErrorPg(err) {
         correo: "Ese correo ya está registrado.",
         nit: "Ese NIT ya está registrado.",
         alias: "Ese alias ya está en uso.",
-        numero_identificacion: "Ya existe una cuenta con ese número de identificación.",
+        numero_identificacion: "Ya existe una cuenta con ese número de documento.",
       };
       // 409 = Conflict (recurso ya existe)
       return new ErrorHttp(409, mensajes[campo], { [campo]: mensajes[campo] });
     }
 
-    // 23503: Foreign key (ej: ciudad_id no existe)
+    // 23503: Foreign key (ej: id_ciudad no existe)
     case "23503":
+      if (/id_ciudad/.test(err.constraint || "")) {
+        return new ErrorHttp(400, "La ciudad elegida no existe.", { id_ciudad: "La ciudad elegida no existe." });
+      }
       return new ErrorHttp(400, "Una referencia no existe (por ejemplo, la ciudad).");
 
     // 23514: Check constraint (dato fuera de rangos permitidos)
-    case "23514":
+    case "23514": {
+      const conocida = RESTRICCIONES_CONOCIDAS[err.constraint];
+      if (conocida) return new ErrorHttp(400, conocida[1], { [conocida[0]]: conocida[1] });
       return new ErrorHttp(400, "Algún dato no cumple las reglas de la base de datos.", { restriccion: err.constraint });
+    }
 
     // 22P02: Invalid input (número inválido, UUID mal formado, etc.)
     // 22007: Invalid date format

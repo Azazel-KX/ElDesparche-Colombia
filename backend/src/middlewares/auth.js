@@ -29,7 +29,7 @@ function requiereToken(req, _res, next) {
 
     // Extraer datos del payload
     // - sub: subject (el ID del usuario)
-    // - rol: el tipo de usuario (CLIENTE, EMPRESA, ADMIN)
+    // - rol: el tipo de usuario (CLIENTE, AGENTE, ADMIN)
     req.usuario = { id: payload.sub, rol: payload.rol };
     next(); // ✅ Todo bien, continuar
   } catch (err) {
@@ -50,7 +50,7 @@ function requiereToken(req, _res, next) {
 //
 // Ejemplo de uso:
 //   router.post("/operacion-admin", requiereToken, requiereRol("ADMIN"), hacerAlgo);
-//   router.get("/ver-servicios", requiereToken, requiereRol("CLIENTE", "EMPRESA"), verServicios);
+//   router.get("/ver-servicios", requiereToken, requiereRol("CLIENTE", "AGENTE"), verServicios);
 const requiereRol = (...roles) => (req, _res, next) => {
   // Verificar que el usuario existe y su rol está permitido
   const tieneRol = req.usuario && roles.includes(req.usuario.rol);

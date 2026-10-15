@@ -18,7 +18,7 @@ const HASH_FALSO = bcrypt.hashSync("contrasena-que-nadie-usa", RONDAS_BCRYPT);
 // Función auxiliar: FIRMAR un JWT
 //
 // CONTENIDO del token:
-// - rol: tipo_usuario (CLIENTE, EMPRESA, ADMIN) - para autorización
+// - rol: tipo_usuario (CLIENTE, AGENTE, ADMIN) - para autorización
 // - subject: numero_identificacion - quién es
 // - expiresIn: 2 horas - cuándo caduca
 //
@@ -41,12 +41,12 @@ function firmarToken(usuario) {
 //
 // ¿Por qué?
 // - Nunca devolvemos TODOS los datos del usuario (seguridad)
-// - Solo devolvemos: ID, nombres, apellidos, correo, tipo
+// - Solo devolvemos: ID, nombre, apellidos, correo, tipo
 // - NO devolvemos: contrasena_hash, tokens, datos sensibles
 function usuarioPublico(u) {
   return {
     numero_identificacion: u.numero_identificacion,
-    nombres: u.nombres,
+    nombre: u.nombre,
     apellidos: u.apellidos,
     correo: u.correo,
     tipo_usuario: u.tipo_usuario,
@@ -57,41 +57,29 @@ function usuarioPublico(u) {
 //
 // FLUJO:
 // 1. Validar datos (usando validación.js)
-// 2. Si no hay coordenadas, usar centroide de la ciudad
-// 3. Hashear contraseña (¡NUNCA guardar original!)
-// 4. Crear usuario en BD (con transacción)
+// 2. Hashear contraseña (¡NUNCA guardar original!)
+// 3. Crear usuario en BD (con transacción)
+// 4. Leer el perfil recién creado
 // 5. Devolver token JWT + datos públicos
 async function registrar(req, res) {
   // Paso 1: Validar
   const { datos, errores } = validarRegistro(req.body);
   if (errores) throw new ErrorHttp(400, "Datos de registro inválidos.", errores);
 
-  // Paso 2: Coordenadas - si no las envía, usar punto medio de la ciudad
-  if (datos.latitud === null) {
-    const centro = await usuarioModel.centroideCiudad(datos.id_ciudad);
-    if (!centro) {
-      throw new ErrorHttp(400, "Datos de registro inválidos.", {
-        coordenadas: "No hay referencia para esa ciudad: envía latitud y longitud.",
-      });
-    }
-    datos.latitud = centro.latitud;
-    datos.longitud = centro.longitud;
-  }
-
-  // Paso 3: Hashear contraseña
+  // Paso 2: Hashear contraseña
   // ¿Por qué await?
   // - bcrypt.hash es lento a propósito (seguridad)
   // - tarda ~100ms en hashear la contraseña
   datos.contrasena_hash = await bcrypt.hash(datos.contrasena, RONDAS_BCRYPT);
   delete datos.contrasena; // ⚠️ ELIMINAR original, guardar solo el hash
 
-  // Paso 4: Crear usuario en BD (transacción automática)
+  // Paso 3: Crear usuario en BD (transacción automática)
   await usuarioModel.crear(datos);
 
-  // Paso 5: Obtener perfil completo del usuario recién creado
+  // Paso 4: Obtener perfil completo del usuario recién creado
   const usuario = await usuarioModel.perfilPorId(datos.numero_identificacion);
 
-  // Paso 6: Devolver token + usuario público (201 = Created)
+  // Paso 5: Devolver token + usuario público (201 = Created)
   res.status(201).json({
     token: firmarToken(usuario),
     usuario: usuarioPublico(usuario)
@@ -104,8 +92,7 @@ async function registrar(req, res) {
 // 1. Validar que correo y contraseña vengan en el request
 // 2. Buscar usuario por correo
 // 3. Comparar contraseña (contra hash guardado O hash falso)
-// 4. Verificar que la cuenta esté activa
-// 5. Devolver token JWT + datos públicos
+// 4. Devolver token JWT + datos públicos
 async function iniciarSesion(req, res) {
   // Paso 1: Validar datos básicos
   const { datos, errores } = validarLogin(req.body);
@@ -129,12 +116,7 @@ async function iniciarSesion(req, res) {
     throw new ErrorHttp(401, "Correo o contraseña incorrectos.");
   }
 
-  // Paso 5: Verificar que la cuenta esté activa (no baneada/suspendida)
-  if (usuario.estado_cuenta !== "Activa") {
-    throw new ErrorHttp(403, "La cuenta está inactiva.");
-  }
-
-  // Paso 6: Devolver token + usuario público
+  // Paso 5: Devolver token + usuario público
   res.json({
     token: firmarToken(usuario),
     usuario: usuarioPublico(usuario)
