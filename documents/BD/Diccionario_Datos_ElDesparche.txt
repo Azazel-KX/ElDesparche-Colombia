@@ -1,7 +1,7 @@
 ==============================================================================================================================
-                                              DICCIONARIO DE DATOS — ElDesparche                                              
-                  Proyecto Integrador 2026-2 · Plataforma web de gestión y reserva de entradas para eventos                   
-                                    Motor: PostgreSQL 13+ · Modelo: ER en 3FN (18 tablas)                                     
+                                              DICCIONARIO DE DATOS — ElDesparche
+                  Proyecto Integrador 2026-2 · Plataforma web de gestión y reserva de entradas para eventos
+                                    Motor: PostgreSQL 13+ · Modelo: ER en 3FN (18 tablas)
 ==============================================================================================================================
 
 Fuente    : documents/BD/Diagrama_v2.drawio · database/schema_ElDesparche.sql
@@ -187,7 +187,7 @@ fecha_registro           TIMESTAMP              NO           NOW()              
                                                                                            usuario.
 id_ciudad                INTEGER                NO   FK                           Lista    Ciudad de residencia. →
                                                                                            CIUDAD.id_ciudad
-CONSTRAINT               ck_usuario_documento_formato SÍ                                Texto    
+CONSTRAINT               ck_usuario_documento_formato SÍ                                Texto
 
 Unicidad compuesta:
   - UNIQUE (numero_identificacion, tipo_usuario)
@@ -615,5 +615,5 @@ Relaciones:
   - CONEXION_SOCIAL N:1 CLIENTE (receptor).
 
 ==============================================================================================================================
-                                                 Fin del diccionario de datos                                                 
+                                                 Fin del diccionario de datos
 ==============================================================================================================================
