@@ -60,7 +60,8 @@ CREATE TABLE UBICACION (
 -- ==================================================================================================================
 
 CREATE TABLE USUARIO (
-    numero_identificacion VARCHAR(20) PRIMARY KEY,
+    numero_identificacion VARCHAR(20) PRIMARY KEY
+                          CONSTRAINT ck_usuario_documento_normalizado CHECK (numero_identificacion ~ '^[A-Z0-9]+$'),   -- normalizado: sin puntos, guiones, espacios ni minúsculas
     tipo_identificacion   tipo_identificacion_t NOT NULL,
     tipo_usuario          tipo_usuario_t NOT NULL,
     nombre                VARCHAR(80)  NOT NULL,
@@ -71,6 +72,14 @@ CREATE TABLE USUARIO (
     direccion             VARCHAR(200) NOT NULL,
     fecha_registro        TIMESTAMP NOT NULL DEFAULT NOW(),
     id_ciudad             INTEGER NOT NULL REFERENCES CIUDAD(id_ciudad) ON DELETE RESTRICT,
+    -- Formato según el tipo de documento (la PK no incluye el tipo, así que el número debe ser válido para su tipo)
+    CONSTRAINT ck_usuario_documento_formato CHECK (CASE tipo_identificacion
+               WHEN 'CC'  THEN numero_identificacion ~ '^[0-9]{6,10}$'
+               WHEN 'CE'  THEN numero_identificacion ~ '^[0-9]{4,10}$'
+               WHEN 'PPT' THEN numero_identificacion ~ '^[0-9]{5,10}$'
+               WHEN 'NIT' THEN numero_identificacion ~ '^[0-9]{9,10}$'      -- sin dígito de verificación
+               WHEN 'PAS' THEN numero_identificacion ~ '^[A-Z0-9]{5,15}$'
+           END),
     -- Clave que usan los subtipos para fijar su tipo_usuario (disjunción)
     UNIQUE (numero_identificacion, tipo_usuario)
 );
@@ -80,7 +89,7 @@ CREATE INDEX idx_usuario_ciudad ON USUARIO(id_ciudad);
 
 -- Atributo multivalorado telefono
 CREATE TABLE TELEFONO_USUARIO (
-    numero_identificacion VARCHAR(20) NOT NULL REFERENCES USUARIO(numero_identificacion) ON DELETE CASCADE,
+    numero_identificacion VARCHAR(20) NOT NULL REFERENCES USUARIO(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
     telefono              VARCHAR(10) NOT NULL CHECK (telefono ~ '^(3[0-9]{9}|60[0-9]{8})$'),
     PRIMARY KEY (numero_identificacion, telefono)
 );
@@ -91,7 +100,7 @@ CREATE TABLE ADMIN (
     salario               NUMERIC(12,2) NOT NULL CHECK (salario >= 0),
     horario               jornada_t NOT NULL,
     FOREIGN KEY (numero_identificacion, tipo_usuario)
-        REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON DELETE CASCADE
+        REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE CLIENTE (
@@ -103,7 +112,7 @@ CREATE TABLE CLIENTE (
     puntos                INTEGER NOT NULL DEFAULT 0 CHECK (puntos >= 0),
     publicidad            BOOLEAN NOT NULL DEFAULT TRUE,                            -- visualización de publicidad
     FOREIGN KEY (numero_identificacion, tipo_usuario)
-        REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON DELETE CASCADE
+        REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE AGENTE (
@@ -117,12 +126,12 @@ CREATE TABLE AGENTE (
     comision              NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (comision BETWEEN 0 AND 100),
     experiencia           SMALLINT NOT NULL DEFAULT 0 CHECK (experiencia >= 0),    -- años
     FOREIGN KEY (numero_identificacion, tipo_usuario)
-        REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON DELETE CASCADE
+        REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 -- Entidad débil de ADMIN (relación identificadora Inicia). tiempo_en_pantalla es derivado: no se guarda.
 CREATE TABLE SESION_ADMIN (
-    numero_identificacion  VARCHAR(20) NOT NULL REFERENCES ADMIN(numero_identificacion) ON DELETE CASCADE,
+    numero_identificacion  VARCHAR(20) NOT NULL REFERENCES ADMIN(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
     numero_sesion          INTEGER NOT NULL,                -- lo asigna el trigger si llega NULL
     fecha_hora_conexion    TIMESTAMP NOT NULL,
     fecha_hora_desconexion TIMESTAMP NOT NULL,              -- la fila se inserta al cerrar sesión
@@ -141,7 +150,7 @@ CREATE TABLE VERIFICACION (
     estado                estado_verificacion_t NOT NULL DEFAULT 'Pendiente',
     fecha_solicitud       TIMESTAMP NOT NULL DEFAULT NOW(),
     fecha_actualizacion   TIMESTAMP NOT NULL DEFAULT NOW(),
-    numero_identificacion VARCHAR(20) NOT NULL REFERENCES USUARIO(numero_identificacion) ON DELETE CASCADE,
+    numero_identificacion VARCHAR(20) NOT NULL REFERENCES USUARIO(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
     UNIQUE (id_verificacion, tipo),
     CHECK (fecha_actualizacion >= fecha_solicitud)
 );
@@ -189,7 +198,7 @@ CREATE TABLE EVENTO (
     fecha_creacion    TIMESTAMP NOT NULL DEFAULT NOW(),
     precio            NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (precio >= 0),   -- precio base de la entrada
     id_ubicacion      INTEGER NOT NULL REFERENCES UBICACION(id_ubicacion) ON DELETE RESTRICT,
-    id_agente         VARCHAR(20) NOT NULL REFERENCES AGENTE(numero_identificacion) ON DELETE RESTRICT,
+    id_agente         VARCHAR(20) NOT NULL REFERENCES AGENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE RESTRICT,
     id_causa          INTEGER REFERENCES CAUSA_CANCELACION(id_causa) ON DELETE RESTRICT,
     CHECK (fecha_hora_fin > fecha_hora_inicio),
     CHECK ((estado = 'Cancelado') = (id_causa IS NOT NULL))     -- causa obligatoria solo si está cancelado
@@ -212,7 +221,7 @@ CREATE TABLE RESERVA (
     estado          estado_reserva_t NOT NULL DEFAULT 'Reservada',
     numero_entradas INTEGER NOT NULL CHECK (numero_entradas > 0),
     observaciones   TEXT,
-    id_cliente      VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON DELETE CASCADE,
+    id_cliente      VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
     codigo_evento   VARCHAR(20) NOT NULL REFERENCES EVENTO(codigo) ON DELETE CASCADE,
     id_causa        INTEGER REFERENCES CAUSA_CANCELACION(id_causa) ON DELETE RESTRICT,
     CHECK ((estado = 'Cancelada') = (id_causa IS NOT NULL))
@@ -231,7 +240,7 @@ CREATE TABLE METODO_PAGO (
     token_pasarela     VARCHAR(255) NOT NULL,
     activo             BOOLEAN NOT NULL DEFAULT TRUE,
     fecha_registro     TIMESTAMP NOT NULL DEFAULT NOW(),
-    id_cliente         VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON DELETE CASCADE
+    id_cliente         VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE PAGO (
@@ -251,8 +260,8 @@ CREATE INDEX idx_pago_reserva ON PAGO(id_reserva);
 -- ==================================================================================================================
 
 CREATE TABLE CONEXION_SOCIAL (
-    id_solicitante  VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON DELETE CASCADE,
-    id_receptor     VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON DELETE CASCADE,
+    id_solicitante  VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
+    id_receptor     VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
     fecha_solicitud TIMESTAMP NOT NULL DEFAULT NOW(),
     estado          estado_conexion_t NOT NULL DEFAULT 'Pendiente',
     PRIMARY KEY (id_solicitante, id_receptor),
@@ -443,6 +452,23 @@ END $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_evento_capacidad BEFORE UPDATE OF capacidad_total ON EVENTO
     FOR EACH ROW EXECUTE FUNCTION fn_evento_capacidad();
+
+-- 10. El documento de identidad (PK) no se edita por accidente; la corrección de un dato mal digitado es explícita:
+--       BEGIN; SET LOCAL app.corregir_documento = 'on'; UPDATE USUARIO SET numero_identificacion = '...' WHERE ...; COMMIT;
+--     Las FK tienen ON UPDATE CASCADE, así que el cambio se propaga a todas las tablas.
+CREATE OR REPLACE FUNCTION fn_usuario_documento_inmutable() RETURNS trigger AS $$
+BEGIN
+    IF (NEW.numero_identificacion IS DISTINCT FROM OLD.numero_identificacion
+        OR NEW.tipo_identificacion IS DISTINCT FROM OLD.tipo_identificacion)
+       AND COALESCE(current_setting('app.corregir_documento', true), 'off') <> 'on' THEN
+        RAISE EXCEPTION 'El documento de identidad no se puede modificar (use SET LOCAL app.corregir_documento = ''on'' para corregirlo)';
+    END IF;
+    RETURN NEW;
+END $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_usuario_documento
+    BEFORE UPDATE OF numero_identificacion, tipo_identificacion ON USUARIO
+    FOR EACH ROW EXECUTE FUNCTION fn_usuario_documento_inmutable();
 
 -- ==================================================================================================================
 -- Fin del esquema
