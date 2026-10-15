@@ -876,10 +876,6 @@ function paginaInicio() {
     avisarResultados(mostrados.length);
   }
 
-  /* Llena una lista desplegable con opciones.
-     Si no hay opciones la lista queda desactivada (disabled): así el
-     lector de pantalla la anuncia como "no disponible" y el estado no
-     depende solo de que se vea más clarita (WCAG 1.4.1). */
   function llenarLista(lista, opciones, textoPorDefecto) {
     lista.innerHTML = '<option value="">' + textoPorDefecto + '</option>';
     for (var i = 0; i < opciones.length; i++) {
@@ -887,6 +883,15 @@ function paginaInicio() {
         '<option>' + opciones[i] + '</option>';
     }
     lista.disabled = opciones.length === 0;
+
+    var ayuda = "ayuda-" + lista.id;
+    if (document.getElementById(ayuda)) {
+      if (lista.disabled) {
+        lista.setAttribute("aria-describedby", ayuda);
+      } else {
+        lista.removeAttribute("aria-describedby");
+      }
+    }
   }
 
   /* Al elegir país se llenan los departamentos */
@@ -1395,8 +1400,7 @@ function crearModalAcceso() {
 
       /* Logo de El Desparche (decorativo: el título ya nombra la ventana) */
       '<div class="modal-logo">' +
-        '<img class="logo-icono" src="img/14603.png" alt="" aria-hidden="true">' +
-        '<img class="logo-texto" src="img/b48ef.png" alt="" aria-hidden="true">' +
+        '<img class="logo-texto" src="img/logo-eldesparche.svg" alt="" aria-hidden="true">' +
       '</div>' +
 
       /* Pestañas con el patrón ARIA de tabs: el contenedor es tablist,
@@ -1976,6 +1980,35 @@ function registrar(evento) {
 }
 
 
+function prepararMenuMovil() {
+  var cabecera = document.querySelector(".cabecera");
+  var boton = document.getElementById("boton-menu");
+  if (!cabecera || !boton) return;
+
+  cabecera.classList.add("cabecera-plegable");
+
+  function abrir(abierto) {
+    cabecera.classList.toggle("menu-abierto", abierto);
+    boton.setAttribute("aria-expanded", abierto ? "true" : "false");
+  }
+
+  boton.onclick = function () {
+    abrir(boton.getAttribute("aria-expanded") !== "true");
+  };
+
+  document.addEventListener("keydown", function (evento) {
+    if (evento.key === "Escape" && boton.getAttribute("aria-expanded") === "true") {
+      abrir(false);
+      boton.focus();
+    }
+  });
+
+  window.addEventListener("resize", function () {
+    if (window.innerWidth >= 900) abrir(false);
+  });
+}
+
+
 /* ==========================================================================
    14. ARRANQUE
    Revisa en qué página estamos y ejecuta lo que corresponde.
@@ -1983,6 +2016,7 @@ function registrar(evento) {
 
 crearModalAcceso();
 pintarSesion();
+prepararMenuMovil();
 prepararPanelAccesibilidad();
 prepararTamanoTexto();
 
