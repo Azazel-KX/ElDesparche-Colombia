@@ -1,199 +1,139 @@
 -- ==================================================================================================================
--- ElDesparche - Datos de prueba (DESARROLLO LOCAL)
--- Requiere haber ejecutado antes database/schema.sql. Ejecutar una sola vez sobre una base vacía.
--- Los eventos, lugares y niveles salen de frontend/data/eventos.json.
--- Contraseña de TODAS las cuentas de prueba: Desparche2026!   (solo para desarrollo; no usar en producción)
---   admin@eldesparche.test | cliente1@eldesparche.test | cliente2@eldesparche.test
---   empresa1@eldesparche.test | empresa2@eldesparche.test
+-- ElDesparche — Datos de prueba (SEED) para database/schema_ElDesparche.sql (cargar después de ese esquema)
+-- Cuentas de prueba (contraseña Desparche2026!): admin@, cliente1@, cliente2@, agente1@, agente2@eldesparche.test
+-- Se ejecuta en una sola transacción: los triggers diferidos (herencia total, detalle de verificación)
+-- se validan al COMMIT.
 -- ==================================================================================================================
 
 BEGIN;
 
--- Geografía --------------------------------------------------------------------------------------------------------
-INSERT INTO PAIS (id_pais, nombre) VALUES (1, 'Colombia');
+-- ==================================================================================================================
+-- GEOGRAFÍA
+-- ==================================================================================================================
 
-INSERT INTO DEPARTAMENTO (id_departamento, codigo_dane, nombre, id_pais) VALUES
-  (1, '11', 'Bogotá D.C.', 1),
-  (2, '05', 'Antioquia', 1),
-  (3, '76', 'Valle del Cauca', 1),
-  (4, '08', 'Atlántico', 1),
-  (5, '68', 'Santander', 1),
-  (6, '25', 'Cundinamarca', 1),
-  (7, '13', 'Bolívar', 1);
+INSERT INTO PAIS (nombre) VALUES ('Colombia');
 
-INSERT INTO CIUDAD (id_ciudad, codigo_dane, nombre, id_departamento) VALUES
-  (1, '11001', 'Bogotá', 1),
-  (2, '05001', 'Medellín', 2),
-  (3, '76001', 'Cali', 3),
-  (4, '08001', 'Barranquilla', 4),
-  (5, '68001', 'Bucaramanga', 5),
-  (6, '25326', 'Guatavita', 6),
-  (7, '13001', 'Cartagena', 7);
+INSERT INTO DEPARTAMENTO (nombre, id_pais) VALUES
+('Valle del Cauca', 1),   -- 1
+('Cundinamarca',    1),   -- 2
+('Antioquia',       1),   -- 3
+('Atlántico',       1);   -- 4
 
--- Categorías -------------------------------------------------------------------------------------------------------
-INSERT INTO CATEGORIA (id_categoria, nombre) VALUES
-  (1, 'Música'),
-  (2, 'Circo'),
-  (3, 'Danza'),
-  (4, 'Teatro'),
-  (5, 'Comedia');
+INSERT INTO CIUDAD (nombre, id_departamento) VALUES
+('Cali',         1),      -- 1
+('Tuluá',        1),      -- 2
+('Palmira',      1),      -- 3
+('Bogotá D.C.',  2),      -- 4
+('Soacha',       2),      -- 5
+('Medellín',     3),      -- 6
+('Barranquilla', 4);      -- 7
 
--- Ubicaciones (usuarios y lugares) --------------------------------------------------------------------------------
-INSERT INTO UBICACION (id_ubicacion, direccion, coordenadas, id_ciudad) VALUES
-  (1, 'Calle 100 # 15-20', ST_SetSRID(ST_MakePoint(-74.042, 4.686), 4326)::geography, 1),
-  (2, 'Carrera 7 # 45-12', ST_SetSRID(ST_MakePoint(-74.064, 4.638), 4326)::geography, 1),
-  (3, 'Carrera 43A # 14-50', ST_SetSRID(ST_MakePoint(-75.571, 6.209), 4326)::geography, 2),
-  (4, 'Avenida 6N # 25-30', ST_SetSRID(ST_MakePoint(-76.53, 3.465), 4326)::geography, 3),
-  (5, 'Calle 72 # 10-34', ST_SetSRID(ST_MakePoint(-74.059, 4.659), 4326)::geography, 1),
-  (6, 'Parque La Florida, Bogotá', ST_SetSRID(ST_MakePoint(-74.0721, 4.711), 4326)::geography, 1),
-  (7, 'Movistar Arena Medellín, Medellín', ST_SetSRID(ST_MakePoint(-75.5812, 6.2442), 4326)::geography, 2),
-  (8, 'Parque El Country, Bogotá', ST_SetSRID(ST_MakePoint(-74.0579, 4.6604), 4326)::geography, 1),
-  (9, 'Centro de Eventos Valle Pacífico, Cali', ST_SetSRID(ST_MakePoint(-76.532, 3.4516), 4326)::geography, 3),
-  (10, 'Cali Exposhow, Cali', ST_SetSRID(ST_MakePoint(-76.5246, 3.4172), 4326)::geography, 3),
-  (11, 'Teatro Amira de la Rosa, Barranquilla', ST_SetSRID(ST_MakePoint(-74.7813, 10.9685), 4326)::geography, 4),
-  (12, 'Coliseo El Campin Norte, Bucaramanga', ST_SetSRID(ST_MakePoint(-73.1198, 7.1254), 4326)::geography, 5),
-  (13, 'Parque Norte, Medellín', ST_SetSRID(ST_MakePoint(-75.5701, 6.2602), 4326)::geography, 2),
-  (14, 'Estadio Atanasio Girardot, Medellín', ST_SetSRID(ST_MakePoint(-75.59, 6.2567), 4326)::geography, 2),
-  (15, 'Teatro Jorge Eliécer Gaitán, Bogotá', ST_SetSRID(ST_MakePoint(-74.0739, 4.6122), 4326)::geography, 1),
-  (16, 'Parque de la Música, Cali', ST_SetSRID(ST_MakePoint(-76.5417, 3.4333), 4326)::geography, 3),
-  (17, 'Hacienda La Fragua, Guatavita Reservoirs', ST_SetSRID(ST_MakePoint(-73.832, 4.934), 4326)::geography, 6);
+INSERT INTO UBICACION (direccion, latitud, longitud, id_ciudad) VALUES
+('Carrera 5 #6-05, Centro',            3.451647, -76.532000, 1),   -- 1 Cali
+('Calle 10 #3-16, La Candelaria',      4.597900, -74.075800, 4),   -- 2 Bogotá
+('Avenida 6N #28-10, Granada',         3.459500, -76.534000, 1),   -- 3 Cali
+('Carrera 43A #1 Sur-100, El Poblado', 6.208700, -75.566400, 6),   -- 4 Medellín
+('Carrera 25 #26-30, Centro',          4.084700, -76.195400, 2);   -- 5 Tuluá
 
--- Usuarios (todos con la contraseña de prueba) ----------------------------------------------------------------------
-INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, nombres, apellidos, tipo_usuario, correo, contrasena_hash, id_ubicacion) VALUES
-  ('1000000001', 'CC',  'Ana María',   'Administradora Prueba', 'ADMIN',   'admin@eldesparche.test',    crypt('Desparche2026!', gen_salt('bf', 10)), 1),
-  ('1000000002', 'CC',  'Camilo',      'Rojas Prueba',          'CLIENTE', 'cliente1@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 2),
-  ('1000000003', 'CC',  'Laura',       'Gómez Prueba',          'CLIENTE', 'cliente2@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 3),
-  ('900111222',  'NIT', 'Pacífico',    'Producciones',          'EMPRESA', 'empresa1@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 4),
-  ('900333444',  'NIT', 'Capital',     'Eventos',               'EMPRESA', 'empresa2@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 5);
+-- ==================================================================================================================
+-- USUARIOS (supertipo) y subtipos
+-- ==================================================================================================================
 
-INSERT INTO ADMIN (numero_identificacion, salario, horario) VALUES ('1000000001', 3500000, 'Completa');
-
-INSERT INTO CLIENTE (numero_identificacion, fecha_nacimiento, alias) VALUES
-  ('1000000002', '1998-05-14', 'camilo_r'),
-  ('1000000003', '2001-11-03', 'laurag');
-
-INSERT INTO EMPRESA (numero_identificacion, nit, razon_social, nombre_comercial, descripcion, comision_fija) VALUES
-  ('900111222', '900111222-1', 'Pacífico Producciones S.A.S.', 'Pacífico Producciones', 'Producción de eventos musicales y de danza en el suroccidente.', 5000),
-  ('900333444', '900333444-5', 'Capital Eventos Ltda.',        'Capital Eventos',        'Conciertos y teatro en Bogotá y Cundinamarca.', 7500);
+INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, tipo_usuario, nombre, apellidos, correo, contrasena_hash, direccion, id_ciudad) VALUES
+('1000000001', 'CC',  'ADMIN',   'Ana María', 'Administradora Prueba', 'admin@eldesparche.test',    crypt('Desparche2026!', gen_salt('bf', 10)), 'Centro Administrativo, Carrera 7 #32-16', 4),
+('1000000002', 'CC',  'CLIENTE', 'Camilo',    'Rojas Prueba',          'cliente1@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 'Calle 5 #10-20',                         1),
+('1000000003', 'CC',  'CLIENTE', 'Laura',     'Gómez Prueba',          'cliente2@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 'Carrera 10 #5-15',                       2),
+('900111222',  'NIT', 'AGENTE',  'Pacífico',  'Producciones',          'agente1@eldesparche.test',  crypt('Desparche2026!', gen_salt('bf', 10)), 'Avenida Principal #100',                 1),
+('900333444',  'NIT', 'AGENTE',  'Capital',   'Eventos',               'agente2@eldesparche.test',  crypt('Desparche2026!', gen_salt('bf', 10)), 'Calle Comercial #50',                    4);
 
 INSERT INTO TELEFONO_USUARIO (numero_identificacion, telefono) VALUES
-  ('1000000001', '3001112233'), ('1000000002', '3101234567'), ('1000000003', '3209876543'),
-  ('900111222', '6024445566'), ('900333444', '6017778899');
+('1000000001', '3001112233'),
+('1000000002', '3105556677'),
+('1000000002', '6022345678'),
+('1000000003', '3204448899'),
+('900111222',  '3157778899'),
+('900333444',  '3012223344');
 
-INSERT INTO CATEGORIA_CLIENTE (id_cliente, id_categoria) VALUES ('1000000002', 1), ('1000000002', 3), ('1000000003', 4);
-INSERT INTO CATEGORIA_EMPRESA (id_empresa, id_categoria) VALUES ('900111222', 1), ('900111222', 3), ('900333444', 1), ('900333444', 4);
+INSERT INTO ADMIN (numero_identificacion, salario, horario) VALUES
+('1000000001', 4500000, 'Completa');
 
--- Lugares ----------------------------------------------------------------------------------------------------------
-INSERT INTO LUGAR (id_lugar, nombre, capacidad_maxima, url_imagen, id_ubicacion) VALUES
-  (1, 'Parque La Florida', 85000, 'img/27459.png', 6),
-  (2, 'Movistar Arena Medellín', 14000, 'img/6554e.png', 7),
-  (3, 'Parque El Country', 30000, 'img/d7016.png', 8),
-  (4, 'Centro de Eventos Valle Pacífico', 5000, 'img/12935.png', 9),
-  (5, 'Cali Exposhow', 40000, 'img/337fd.png', 10),
-  (6, 'Teatro Amira de la Rosa', 1200, 'img/5fb48.png', 11),
-  (7, 'Coliseo El Campin Norte', 8000, 'img/67c1c.png', 12),
-  (8, 'Parque Norte', 20000, 'img/7d702.png', 13),
-  (9, 'Estadio Atanasio Girardot', 45000, 'img/33202.png', 14),
-  (10, 'Teatro Jorge Eliécer Gaitán', 3500, 'img/1c2e7.png', 15),
-  (11, 'Parque de la Música', 25000, 'img/94bcf.png', 16),
-  (12, 'Hacienda La Fragua', 2000, 'img/1cbb3.png', 17);
+INSERT INTO CLIENTE (numero_identificacion, fecha_nacimiento, foto_perfil, alias, puntos, publicidad) VALUES
+('1000000002', '1995-03-12', NULL, 'camilo_r', 120, TRUE),
+('1000000003', '1998-07-30', NULL, 'laura_g',   40, FALSE);
 
--- Eventos ----------------------------------------------------------------------------------------------------------
-INSERT INTO EVENTO (codigo, nombre, descripcion, id_categoria, url_imagen, fecha_hora_inicio, fecha_hora_fin, capacidad_total, edad_minima, observaciones, estado, id_creador, id_lugar) VALUES
-  ('EVT-001', 'Festival Estéreo Picnic', 'Cuatro días de música, cultura y experiencias inolvidables. Artistas nacionales e internacionales se encuentran en Bogotá para celebrar una nueva edición del festival más grande del país.', 1, 'img/27459.png', '2027-03-20 16:00:00', '2027-03-23 02:00:00', 85000, 14, 'Ingreso para mayores de 14 años. Apertura de puertas a las 2:00 p. m.', 'En Boletería', '900333444', 1),
-  ('EVT-002', 'Morat - Antes de que amanezca', 'Morat regresa a Colombia con su tour más íntimo y personal. Una noche cargada de emoción, canciones y momentos irrepetibles.', 1, 'img/6554e.png', '2026-10-18 20:00:00', '2026-10-19 00:00:00', 14000, 0, 'No se permite ingreso de menores de 12 años sin acompañante.', 'En Vivo', '900111222', 2),
-  ('EVT-003', 'Jazz al Parque', 'El festival de jazz más importante de Bogotá vuelve al parque para deleitar a los amantes de la música con lo mejor del género.', 1, 'img/d7016.png', '2026-11-07 14:00:00', '2026-11-08 22:00:00', 30000, 0, 'Evento gratuito. Aforo limitado.', 'Programado', '1000000002', 3),
-  ('EVT-004', 'Circo del Sol - KOOZA', 'El Circo del Sol trae a Colombia KOOZA, un show de acrobacias, humor y magia que conquista todos los sentidos.', 2, 'img/12935.png', '2026-12-14 19:00:00', '2026-12-14 22:00:00', 5000, 0, 'Espectáculo apto para todas las edades.', 'En Boletería', '900111222', 4),
-  ('EVT-005', 'Festival Mundial de Salsa', 'La capital mundial de la salsa celebró su tradicional festival con los mejores bailarines y orquestas del planeta.', 3, 'img/337fd.png', '2026-09-25 16:00:00', '2026-09-28 04:00:00', 40000, 0, 'Evento finalizado. Gracias por su participación.', 'Finalizado', '900111222', 5),
-  ('EVT-006', 'Macondo, la obra', 'Una adaptación teatral de la obra cumbre de García Márquez. Una producción colombiana que recorre los 100 años de Macondo en escena.', 4, 'img/5fb48.png', '2026-10-02 19:30:00', '2026-10-02 22:00:00', 1200, 0, 'Se recomienda llegar 30 minutos antes de la función.', 'Programado', '900111222', 6),
-  ('EVT-007', 'Lokillo - Eso era antes', 'La gira Eso era antes de Lokillo fue cancelada por causas de fuerza mayor. Contacta al punto de venta para tu reembolso.', 5, 'img/67c1c.png', '2026-11-16 20:00:00', '2026-11-16 23:00:00', 8000, 0, 'Evento cancelado. Se realizarán devoluciones en los próximos 10 días hábiles.', 'Cancelado', '900333444', 7),
-  ('EVT-008', 'Ritvales 2026', 'El festival de experiencias alternativas más esperado del año vuelve a Medellín con una propuesta que une música, arte y tecnología.', 1, 'img/7d702.png', '2026-11-01 17:00:00', '2026-11-02 03:00:00', 20000, 0, 'Menores de 16 años deben ir acompañados de un adulto.', 'Programado', '900111222', 8),
-  ('EVT-009', 'Zona Estéreo Urbano 2026', 'Una noche de electrónica, rap y pop urbano en el corazón de Medellín. El festival que unifica todos los géneros urbanos en una sola tarima.', 1, 'img/33202.png', '2026-10-08 18:00:00', '2026-10-09 01:00:00', 45000, 0, 'Evento con consumo mínimo en zonas VIP.', 'En Boletería', '900111222', 9),
-  ('EVT-010', 'Batallas Épicas de Rap', 'Las mejores batallas de rap freestyle de Colombia se dan cita en Bogotá. Competencia oficial con clasificación nacional.', 1, 'img/1c2e7.png', '2026-10-12 17:00:00', '2026-10-12 23:00:00', 3500, 0, 'Evento abierto a todos los públicos. Menores deben ir con adulto.', 'Programado', '900333444', 10),
-  ('EVT-011', 'Cali Salsa Festival', 'El ritmo de Cali al máximo. Un festival que reúne las mejores orquestas y bailarines de salsa de todo el mundo en la sucursal del cielo.', 3, 'img/94bcf.png', '2026-10-19 15:00:00', '2026-10-20 02:00:00', 25000, 0, 'Espectáculo de salsa caleña con artistas internacionales.', 'Programado', '900111222', 11),
-  ('EVT-012', 'Concierto Acústico Campestre', 'Una jornada de música acústica y naturaleza en los alrededores del embalse del Tominé. Un descanso del ruido de la ciudad.', 1, 'img/1cbb3.png', '2026-11-02 11:00:00', '2026-11-02 19:00:00', 2000, 0, 'Evento al aire libre. Se recomienda ropa cómoda y protector solar.', 'Programado', '900333444', 12);
+INSERT INTO AGENTE (numero_identificacion, nit, razon_social, nombre_comercial, descripcion, logo_url, comision, experiencia) VALUES
+('900111222', '900111222-1', 'Pacífico Producciones S.A.S.', 'Pacífico Producciones', 'Conciertos y festivales del suroccidente', NULL, 10.00, 8),
+('900333444', '900333444-5', 'Capital Eventos S.A.S.',       'Capital Eventos',       'Teatro y espectáculos en la capital',      NULL,  8.50, 5);
 
--- Niveles de entrada -----------------------------------------------------------------------------------------------
-INSERT INTO NIVEL_ENTRADA (nombre, precio, cupo, codigo_evento) VALUES
-  ('General', 480000, 3642, 'EVT-001'),
-  ('VIP', 960000, 200, 'EVT-001'),
-  ('General', 165000, 1000, 'EVT-002'),
-  ('VIP', 330000, 200, 'EVT-002'),
-  ('Gratuita', 0, 30000, 'EVT-003'),
-  ('General', 210000, 820, 'EVT-004'),
-  ('General', 85000, 100, 'EVT-005'),
-  ('General', 72000, 350, 'EVT-006'),
-  ('General', 68000, 100, 'EVT-007'),
-  ('General', 295000, 7200, 'EVT-008'),
-  ('General', 120000, 12000, 'EVT-009'),
-  ('General', 45000, 900, 'EVT-010'),
-  ('General', 95000, 5600, 'EVT-011'),
-  ('General', 55000, 420, 'EVT-012');
+INSERT INTO SESION_ADMIN (numero_identificacion, fecha_hora_conexion, fecha_hora_desconexion, direccion_ip) VALUES
+('1000000001', '2026-10-01 08:00', '2026-10-01 09:30', '190.24.10.5'),
+('1000000001', '2026-10-02 14:10', '2026-10-02 15:00', '190.24.10.5');
 
--- Organizadores y patrocinadores ------------------------------------------------------------------------------------
-INSERT INTO ORGANIZA (id_empresa, codigo_evento, rol) VALUES
-  ('900111222', 'EVT-001', 'patrocinador'),
-  ('900333444', 'EVT-002', 'coorganizador');
+-- ==================================================================================================================
+-- VERIFICACIÓN (los clientes necesitan la de contacto aprobada para reservar)
+-- ==================================================================================================================
 
--- Causas de cancelación y cancelación del evento 7 (estado Cancelado) ------------------------------------------------
-INSERT INTO CAUSA_CANCELACION (id_causa, nombre, aplica_a, requiere_detalle) VALUES
-  (1, 'Baja venta de boletas',          'EVENTO', FALSE),
-  (2, 'Fuerza mayor',                   'AMBOS',  TRUE),
-  (3, 'Cambio de planes del cliente',   'TICKET', FALSE),
-  (4, 'Error al realizar la reserva',   'TICKET', FALSE);
+INSERT INTO VERIFICACION (tipo, estado, fecha_solicitud, fecha_actualizacion, numero_identificacion) VALUES
+('Contacto', 'Aprobada', '2026-09-20 10:00', '2026-09-20 10:05', '1000000002'),   -- 1
+('Contacto', 'Aprobada', '2026-09-21 11:00', '2026-09-21 11:03', '1000000003'),   -- 2
+('Contacto', 'Pendiente', NOW(),             NOW(),               '900111222');   -- 3
 
-INSERT INTO CANCELACION_EVENTO (codigo_evento, motivo, id_causa) VALUES
-  ('EVT-007', 'Cancelado por baja venta de boletas.', 1);
+INSERT INTO VERIF_CONTACTO (id_verificacion, codigo_hash, fecha_expiracion, intentos) VALUES
+(1, crypt('482915', gen_salt('bf', 8)), '2026-09-20 10:15', 1),
+(2, crypt('730264', gen_salt('bf', 8)), '2026-09-21 11:15', 1),
+(3, crypt('159357', gen_salt('bf', 8)), NOW() + INTERVAL '15 minutes', 0);
 
--- Verificación biométrica aprobada (requisito para tener tickets) ---------------------------------------------------
-INSERT INTO VERIFICACION (id_verificacion, tipo, estado, numero_identificacion) VALUES
-  (1, 'Biométrica', 'Aprobada', '1000000002'),
-  (2, 'Biométrica', 'Aprobada', '1000000003');
+-- ==================================================================================================================
+-- CAUSAS DE CANCELACIÓN
+-- ==================================================================================================================
 
-INSERT INTO VERIF_BIOMETRICA (id_verificacion, url_documento_frente, url_documento_reverso, url_selfie,
-                              puntaje_coincidencia, prueba_vida, numero_documento_leido, fecha_nacimiento_leida,
-                              fecha_vencimiento_doc, fecha_autorizacion_datos) VALUES
-  (1, 'mock/doc-frente-1.png', 'mock/doc-reverso-1.png', 'mock/selfie-1.png', 97.50, TRUE, '1000000002', '1998-05-14', '2030-01-01', NOW()),
-  (2, 'mock/doc-frente-2.png', 'mock/doc-reverso-2.png', 'mock/selfie-2.png', 95.10, TRUE, '1000000003', '2001-11-03', '2031-01-01', NOW());
+INSERT INTO CAUSA_CANCELACION (nombre, aplica_a) VALUES
+('Baja venta de entradas',                  'EVENTO'),    -- 1
+('Fuerza mayor o clima',                    'EVENTO'),    -- 2
+('Problemas técnicos o logísticos',         'EVENTO'),    -- 3
+('Solicitud del cliente',                   'RESERVA'),   -- 4
+('Pago no realizado a tiempo',              'RESERVA'),   -- 5
+('Reprogramación o cambio de fecha',        'AMBOS');     -- 6
 
--- Pagos --------------------------------------------------------------------------------------------------------------
-INSERT INTO PROVEEDOR_PAGO (id_proveedor, nombre) VALUES (1, 'Wompi'), (2, 'PayU');
+-- ==================================================================================================================
+-- EVENTOS
+-- ==================================================================================================================
 
-INSERT INTO METODO_PAGO (id_metodo, tipo, id_proveedor, referencia_visible, token_pasarela, id_cliente) VALUES
-  (1, 'Tarjeta crédito', 1, '4242', 'tok_prueba_cliente1_0001', '1000000002'),
-  (2, 'Transferencia bancaria', 2, '1111', 'tok_prueba_cliente2_0001', '1000000003');
+INSERT INTO EVENTO (codigo, nombre, descripcion, categoria, fecha_hora_inicio, fecha_hora_fin, capacidad_total, edad_minima, observaciones, estado, precio, id_ubicacion, id_agente, id_causa) VALUES
+('EVT-2026-0001', 'Concierto Música Colombiana',    'Gran concierto de artistas nacionales',      'musica',  '2026-11-15 19:00', '2026-11-15 23:00', 500,  0, 'Evento importante',  'Programado',   50000, 1, '900111222', NULL),
+('EVT-2026-0002', 'Festival de Teatro Alternativo', 'Presentación de obras experimentales',      'teatro',  '2026-12-01 18:30', '2026-12-01 22:30', 300, 18, 'Para público adulto', 'Programado',   30000, 2, '900333444', NULL),
+('EVT-2026-0003', 'Obra de Teatro Infantil',        'Función especial para niños y familias',    'teatro',  '2026-11-22 10:00', '2026-11-22 12:00', 200,  0, 'Apto para menores',  'En Boletería', 15000, 3, '900111222', NULL),
+('EVT-2026-0004', 'Recital de Poesía',              'Poetas nacionales comparten sus obras',     'teatro',  '2026-11-20 19:00', '2026-11-20 21:00', 100,  0, 'Evento literario',   'Programado',   20000, 2, '900333444', NULL),
+('EVT-2026-0005', 'Noche de Comedia en Medellín',   'Stand-up con humoristas invitados',         'comedia', '2026-10-30 20:00', '2026-10-30 22:30', 250, 16, 'Cancelado por clima', 'Cancelado',    35000, 4, '900333444', 2);
 
--- Tickets (reservas) de prueba ---------------------------------------------------------------------------------------
--- Los ids de nivel se resuelven por evento y nombre para no depender del orden de inserción.
-INSERT INTO TICKET (precio_pagado, estado, id_cliente, id_nivel)
-SELECT ne.precio, t.estado::estado_ticket_t, t.cliente, ne.id_nivel
-  FROM (VALUES
-          ('EVT-001', 'General', 'Reservado',  '1000000002'),
-          ('EVT-009', 'General', 'Confirmado', '1000000002'),
-          ('EVT-005', 'General', 'Usado',      '1000000002'),
-          ('EVT-002', 'VIP',     'Confirmado', '1000000003'),
-          ('EVT-004', 'General', 'Reservado',  '1000000003')
-       ) AS t(evento, nivel, estado, cliente)
-  JOIN NIVEL_ENTRADA ne ON ne.codigo_evento = t.evento AND ne.nombre = t.nivel::nivel_entrada_t;
+-- ==================================================================================================================
+-- RESERVAS  (valor_total lo calcula el trigger: numero_entradas × precio del evento)
+-- ==================================================================================================================
 
-INSERT INTO PAGO (monto, referencia_transaccion, estado, id_ticket, id_metodo)
-SELECT t.precio_pagado, 'REF-PRUEBA-' || t.id_ticket, 'Aprobado', t.id_ticket,
-       CASE WHEN t.id_cliente = '1000000002' THEN 1 ELSE 2 END
-  FROM TICKET t WHERE t.estado IN ('Confirmado', 'Usado');
+INSERT INTO RESERVA (numero_entradas, observaciones, estado, id_cliente, codigo_evento, id_causa) VALUES
+(2, 'Asientos preferidos',    'Confirmada', '1000000002', 'EVT-2026-0001', NULL),   -- 1
+(3, 'Entrada para familia',   'Reservada',  '1000000002', 'EVT-2026-0003', NULL),   -- 2
+(1, 'Entrada estándar',       'Confirmada', '1000000003', 'EVT-2026-0002', NULL),   -- 3
+(1, 'Ya no puede asistir',    'Cancelada',  '1000000002', 'EVT-2026-0004', 4),      -- 4
+(2, 'Evento cancelado',       'Cancelada',  '1000000003', 'EVT-2026-0005', 6);      -- 5
 
-INSERT INTO RESENA (calificacion, comentario, id_cliente, codigo_evento)
-VALUES (5, 'Excelente producción y buena organización.', '1000000002', 'EVT-005');
+-- ==================================================================================================================
+-- MÉTODOS DE PAGO Y PAGOS
+-- ==================================================================================================================
 
--- Reinicio de las secuencias (se insertaron ids explícitos) -------------------------------------------------------------
-SELECT setval(pg_get_serial_sequence('pais', 'id_pais'),                    (SELECT MAX(id_pais) FROM PAIS));
-SELECT setval(pg_get_serial_sequence('departamento', 'id_departamento'),    (SELECT MAX(id_departamento) FROM DEPARTAMENTO));
-SELECT setval(pg_get_serial_sequence('ciudad', 'id_ciudad'),                (SELECT MAX(id_ciudad) FROM CIUDAD));
-SELECT setval(pg_get_serial_sequence('categoria', 'id_categoria'),          (SELECT MAX(id_categoria) FROM CATEGORIA));
-SELECT setval(pg_get_serial_sequence('ubicacion', 'id_ubicacion'),          (SELECT MAX(id_ubicacion) FROM UBICACION));
-SELECT setval(pg_get_serial_sequence('lugar', 'id_lugar'),                  (SELECT MAX(id_lugar) FROM LUGAR));
-SELECT setval(pg_get_serial_sequence('causa_cancelacion', 'id_causa'),      (SELECT MAX(id_causa) FROM CAUSA_CANCELACION));
-SELECT setval(pg_get_serial_sequence('verificacion', 'id_verificacion'),    (SELECT MAX(id_verificacion) FROM VERIFICACION));
-SELECT setval(pg_get_serial_sequence('proveedor_pago', 'id_proveedor'),     (SELECT MAX(id_proveedor) FROM PROVEEDOR_PAGO));
-SELECT setval(pg_get_serial_sequence('metodo_pago', 'id_metodo'),           (SELECT MAX(id_metodo) FROM METODO_PAGO));
+INSERT INTO METODO_PAGO (tipo, proveedor, referencia_visible, token_pasarela, activo, id_cliente) VALUES
+('Tarjeta crédito', 'Visa',  '4242', 'tok_test_visa_4242',  TRUE, '1000000002'),   -- 1
+('Billetera digital', 'Nequi', NULL, 'tok_test_nequi_0001', TRUE, '1000000003');   -- 2
+
+INSERT INTO PAGO (monto, referencia_transaccion, estado, id_reserva, id_metodo) VALUES
+(100000, 'TX-2026-000001', 'Aprobado', 1, 1),
+( 30000, 'TX-2026-000002', 'Aprobado', 3, 2);
+
+-- ==================================================================================================================
+-- CONEXIÓN SOCIAL
+-- ==================================================================================================================
+
+INSERT INTO CONEXION_SOCIAL (id_solicitante, id_receptor, estado) VALUES
+('1000000002', '1000000003', 'Aceptada');
 
 COMMIT;
