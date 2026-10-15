@@ -1,4 +1,5 @@
-// Pruebas de integración de /api/auth. Necesitan la base de datos con schema.sql + seed.sql cargados
+// Pruebas de integración de /api/auth y /api/ciudades.
+// Necesitan la base de datos con database/schema_ElDesparche.sql + database/seed.sql cargados
 // y el archivo backend/.env configurado. Ejecutar:  npm test
 process.env.NODE_ENV = "test";
 
@@ -9,22 +10,39 @@ const { pool } = require("../src/config/db");
 
 let servidor;
 let base;
-const creados = []; // números de identificación creados por las pruebas, para limpiarlos al final
+let idCali; // id de la ciudad "Cali" en el seed
+const creados = []; // documentos creados por las pruebas, para limpiarlos al final
 
 const sufijo = String(Date.now()).slice(-7);
-const unico = (n) => `9${sufijo}${n}`.slice(0, 10); // identificación de 10 dígitos
+const unico = (n) => `9${sufijo}${n}`; // documento de 9 dígitos
+const nitBase = (n) => `8${sufijo}${n}`; // 9 dígitos, válido para tipo NIT
 
 const clienteBase = (n) => ({
   tipo_cuenta: "CLIENTE",
   tipo_identificacion: "CC",
   numero_identificacion: unico(n),
-  nombres: "Prueba",
+  nombre: "Prueba",
   apellidos: "Automática",
   correo: `prueba${sufijo}${n}@eldesparche.test`,
   contrasena: "Clave-segura-123",
   direccion: "Calle 1 # 2-3",
-  id_ciudad: 1,
+  id_ciudad: idCali,
   fecha_nacimiento: "1999-04-20",
+});
+
+const agenteBase = (n) => ({
+  tipo_cuenta: "AGENTE",
+  tipo_identificacion: "NIT",
+  numero_identificacion: nitBase(n),
+  nombre: "Agente",
+  apellidos: "Automático",
+  correo: `agente${sufijo}${n}@eldesparche.test`,
+  contrasena: "Clave-segura-123",
+  direccion: "Carrera 5 # 6-7",
+  id_ciudad: idCali,
+  nit: `${nitBase(n)}-3`,
+  razon_social: "Prueba Eventos S.A.S.",
+  nombre_comercial: "Prueba Eventos",
 });
 
 async function llamar(ruta, { metodo = "GET", cuerpo, token } = {}) {
@@ -39,23 +57,36 @@ async function llamar(ruta, { metodo = "GET", cuerpo, token } = {}) {
   return { estado: res.status, json: await res.json() };
 }
 
+const registrar = async (datos) => {
+  const res = await llamar("/api/auth/register", { metodo: "POST", cuerpo: datos });
+  creados.push(datos.numero_identificacion);
+  return res;
+};
+
+const existe = async (documento) => {
+  const { rowCount } = await pool.query("SELECT 1 FROM USUARIO WHERE numero_identificacion = $1", [documento]);
+  return rowCount === 1;
+};
+
 before(async () => {
   servidor = app.listen(0);
   base = `http://127.0.0.1:${servidor.address().port}`;
+  const { json } = await llamar("/api/ciudades");
+  idCali = json.ciudades.find((c) => c.nombre === "Cali").id_ciudad;
 });
 
 after(async () => {
+  // Borrar el USUARIO elimina en cascada su subtipo, teléfonos y verificaciones
   for (const id of creados) {
-    const { rows } = await pool.query("SELECT id_ubicacion FROM USUARIO WHERE numero_identificacion = $1", [id]);
-    await pool.query("DELETE FROM TELEFONO_USUARIO WHERE numero_identificacion = $1", [id]);
-    await pool.query("DELETE FROM CLIENTE WHERE numero_identificacion = $1", [id]);
-    await pool.query("DELETE FROM EMPRESA WHERE numero_identificacion = $1", [id]);
     await pool.query("DELETE FROM USUARIO WHERE numero_identificacion = $1", [id]);
-    if (rows[0]) await pool.query("DELETE FROM UBICACION WHERE id_ubicacion = $1", [rows[0].id_ubicacion]);
   }
   await new Promise((r) => servidor.close(r));
   await pool.end();
 });
+
+// ---------------------------------------------------------------------------------------------
+// Servicio y catálogo
+// ---------------------------------------------------------------------------------------------
 
 test("health responde ok", async () => {
   const { estado, json } = await llamar("/api/health");
@@ -66,75 +97,205 @@ test("health responde ok", async () => {
 test("ciudades lista las del seed con su departamento", async () => {
   const { estado, json } = await llamar("/api/ciudades");
   assert.equal(estado, 200);
-  const bogota = json.ciudades.find((c) => c.nombre === "Bogotá");
+  const bogota = json.ciudades.find((c) => c.nombre === "Bogotá D.C.");
   assert.ok(bogota);
-  assert.equal(bogota.departamento, "Bogotá D.C.");
+  assert.equal(bogota.departamento, "Cundinamarca");
+  assert.equal(json.ciudades.find((c) => c.nombre === "Cali").departamento, "Valle del Cauca");
 });
 
-test("registro de cliente devuelve token y /me lo acepta", async () => {
-  const datos = clienteBase(1);
-  const reg = await llamar("/api/auth/register", { metodo: "POST", cuerpo: datos });
-  creados.push(datos.numero_identificacion);
-  assert.equal(reg.estado, 201);
+test("una ruta inexistente responde 404", async () => {
+  const { estado } = await llamar("/api/no-existe");
+  assert.equal(estado, 404);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Registro
+// ---------------------------------------------------------------------------------------------
+
+test("registro de cliente devuelve token y /me muestra su perfil", async () => {
+  const datos = { ...clienteBase(1), telefono: "3001234567", alias: `alias${sufijo}1` };
+  const reg = await registrar(datos);
+  assert.equal(reg.estado, 201, JSON.stringify(reg.json));
   assert.ok(reg.json.token);
   assert.equal(reg.json.usuario.tipo_usuario, "CLIENTE");
+  assert.equal(reg.json.usuario.nombre, "Prueba");
   assert.equal(reg.json.usuario.contrasena_hash, undefined);
 
   const me = await llamar("/api/auth/me", { token: reg.json.token });
   assert.equal(me.estado, 200);
-  assert.equal(me.json.usuario.correo, datos.correo);
-  assert.equal(me.json.usuario.ciudad, "Bogotá");
-  assert.equal(me.json.usuario.contrasena_hash, undefined);
+  const u = me.json.usuario;
+  assert.equal(u.correo, datos.correo);
+  assert.equal(u.ciudad, "Cali");
+  assert.equal(u.departamento, "Valle del Cauca");
+  assert.equal(u.pais, "Colombia");
+  assert.equal(u.direccion, datos.direccion);
+  assert.deepEqual(u.telefonos, ["3001234567"]);
+  assert.equal(u.puntos, 0, "los puntos arrancan en 0");
+  assert.equal(u.publicidad, true, "la publicidad arranca activada");
+  assert.ok(Number.isInteger(u.edad) && u.edad >= 20, "la edad se deriva de la fecha de nacimiento");
+  assert.equal(u.nit, null, "un cliente no tiene datos de agente");
+  assert.equal(u.contrasena_hash, undefined);
 });
 
-test("registro de empresa", async () => {
-  const datos = {
-    ...clienteBase(2),
-    tipo_cuenta: "EMPRESA",
-    tipo_identificacion: "NIT",
-    numero_identificacion: `8${sufijo}12`.slice(0, 9),
-    nit: `8${sufijo}12`.slice(0, 9) + "-3",
-    razon_social: "Prueba S.A.S.",
-    nombre_comercial: "Prueba",
-  };
-  delete datos.fecha_nacimiento;
-  const reg = await llamar("/api/auth/register", { metodo: "POST", cuerpo: datos });
-  creados.push(datos.numero_identificacion);
+test("registro de agente guarda los datos de su empresa", async () => {
+  const datos = agenteBase(2);
+  const reg = await registrar(datos);
   assert.equal(reg.estado, 201, JSON.stringify(reg.json));
-  assert.equal(reg.json.usuario.tipo_usuario, "EMPRESA");
+  assert.equal(reg.json.usuario.tipo_usuario, "AGENTE");
+
+  const me = await llamar("/api/auth/me", { token: reg.json.token });
+  assert.equal(me.estado, 200);
+  const u = me.json.usuario;
+  assert.equal(u.nit, datos.nit);
+  assert.equal(u.razon_social, datos.razon_social);
+  assert.equal(u.nombre_comercial, datos.nombre_comercial);
+  assert.equal(Number(u.comision), 0, "la comisión la fija un administrador");
+  assert.equal(u.experiencia, 0);
+  assert.equal(u.fecha_nacimiento, null, "un agente no tiene datos de cliente");
+});
+
+test("el documento se normaliza antes de guardarse", async () => {
+  const limpio = unico(3);
+  const conPuntos = `${limpio.slice(0, 3)}.${limpio.slice(3, 6)}.${limpio.slice(6)}`;
+  const reg = await registrar({ ...clienteBase(3), numero_identificacion: conPuntos });
+  assert.equal(reg.estado, 201, JSON.stringify(reg.json));
+  assert.equal(reg.json.usuario.numero_identificacion, limpio);
+  creados.push(limpio);
+});
+
+test("registro de AGENTE no acepta el tipo antiguo EMPRESA ni ADMIN", async () => {
+  for (const tipo of ["EMPRESA", "ADMIN"]) {
+    const res = await llamar("/api/auth/register", { metodo: "POST", cuerpo: { ...clienteBase(4), tipo_cuenta: tipo } });
+    assert.equal(res.estado, 400);
+    assert.ok(res.json.detalles.tipo_cuenta, `${tipo} no puede auto-registrarse`);
+  }
 });
 
 test("registro rechaza correo duplicado con 409", async () => {
-  const datos = clienteBase(3);
-  const primero = await llamar("/api/auth/register", { metodo: "POST", cuerpo: datos });
-  creados.push(datos.numero_identificacion);
-  assert.equal(primero.estado, 201);
+  const datos = clienteBase(5);
+  assert.equal((await registrar(datos)).estado, 201);
 
-  const repetido = await llamar("/api/auth/register", {
-    metodo: "POST",
-    cuerpo: { ...datos, numero_identificacion: unico(4) },
-  });
+  const repetido = await registrar({ ...datos, numero_identificacion: unico(6) });
   assert.equal(repetido.estado, 409);
   assert.ok(repetido.json.detalles.correo);
+  assert.equal(await existe(unico(6)), false, "no debe quedar el usuario a medias");
+});
+
+test("registro rechaza documento duplicado con 409 aunque cambie el tipo", async () => {
+  const datos = clienteBase(7);
+  assert.equal((await registrar(datos)).estado, 201);
+
+  const mismoNumero = await registrar({
+    ...datos,
+    tipo_identificacion: "CE",
+    correo: `otro${sufijo}7@eldesparche.test`,
+  });
+  assert.equal(mismoNumero.estado, 409, "la PK es el número: no importa el tipo de documento");
+  assert.ok(mismoNumero.json.detalles.numero_identificacion);
+});
+
+test("registro de agente con NIT repetido da 409 y no deja datos a medias", async () => {
+  const primero = agenteBase(8);
+  assert.equal((await registrar(primero)).estado, 201);
+
+  const segundo = { ...agenteBase(9), nit: primero.nit };
+  const res = await registrar(segundo);
+  assert.equal(res.estado, 409);
+  assert.ok(res.json.detalles.nit);
+  assert.equal(await existe(segundo.numero_identificacion), false, "la transacción debe deshacerse completa");
+});
+
+test("registro rechaza alias repetido con 409", async () => {
+  const alias = `repe${sufijo}`;
+  assert.equal((await registrar({ ...clienteBase(10), alias })).estado, 201);
+  const res = await registrar({ ...clienteBase(11), alias });
+  assert.equal(res.estado, 409);
+  assert.ok(res.json.detalles.alias);
 });
 
 test("registro valida los datos y no crea nada si fallan", async () => {
-  const mal = { ...clienteBase(5), correo: "no-es-correo", contrasena: "corta", tipo_cuenta: "ADMIN" };
-  const res = await llamar("/api/auth/register", { metodo: "POST", cuerpo: mal });
+  const mal = { ...clienteBase(12), correo: "no-es-correo", contrasena: "corta", telefono: "123" };
+  const res = await registrar(mal);
   assert.equal(res.estado, 400);
   assert.ok(res.json.detalles.correo);
   assert.ok(res.json.detalles.contrasena);
-  assert.ok(res.json.detalles.tipo_cuenta, "ADMIN no puede auto-registrarse");
+  assert.ok(res.json.detalles.telefono);
+  assert.equal(await existe(mal.numero_identificacion), false);
 });
 
-test("login correcto con usuario del seed", async () => {
-  const res = await llamar("/api/auth/login", {
+test("registro valida el formato del documento según su tipo", async () => {
+  const casos = [
+    { tipo_identificacion: "CC", numero_identificacion: "ABC12345" },
+    { tipo_identificacion: "NIT", numero_identificacion: "12345678" }, // 8 dígitos
+    { tipo_identificacion: "PAS", numero_identificacion: "AB1" },
+  ];
+  for (const c of casos) {
+    const res = await registrar({ ...clienteBase(13), ...c });
+    assert.equal(res.estado, 400, JSON.stringify(c));
+    assert.ok(res.json.detalles.numero_identificacion, JSON.stringify(c));
+  }
+});
+
+test("registro con una ciudad que no existe responde 400", async () => {
+  const res = await registrar({ ...clienteBase(14), id_ciudad: 999999 });
+  assert.equal(res.estado, 400);
+  assert.ok(res.json.detalles.id_ciudad);
+  assert.equal(await existe(clienteBase(14).numero_identificacion), false);
+});
+
+test("un cliente recién registrado no puede reservar hasta verificar su contacto", async () => {
+  const datos = clienteBase(15);
+  assert.equal((await registrar(datos)).estado, 201);
+  await assert.rejects(
+    pool.query(
+      `INSERT INTO RESERVA (numero_entradas, id_cliente, codigo_evento)
+       VALUES (1, $1, 'EVT-2026-0001')`,
+      [datos.numero_identificacion]
+    ),
+    /verificación de contacto/
+  );
+});
+
+// ---------------------------------------------------------------------------------------------
+// Inicio de sesión y perfil
+// ---------------------------------------------------------------------------------------------
+
+test("login correcto con cada perfil del seed", async () => {
+  const casos = [
+    ["admin@eldesparche.test", "ADMIN"],
+    ["cliente1@eldesparche.test", "CLIENTE"],
+    ["agente1@eldesparche.test", "AGENTE"],
+  ];
+  for (const [correo, rol] of casos) {
+    const res = await llamar("/api/auth/login", {
+      metodo: "POST",
+      cuerpo: { correo, contrasena: "Desparche2026!" },
+    });
+    assert.equal(res.estado, 200, correo);
+    assert.equal(res.json.usuario.tipo_usuario, rol);
+    assert.ok(res.json.token);
+
+    const me = await llamar("/api/auth/me", { token: res.json.token });
+    assert.equal(me.estado, 200);
+    assert.equal(me.json.usuario.correo, correo);
+  }
+});
+
+test("el perfil del administrador del seed incluye su horario", async () => {
+  const login = await llamar("/api/auth/login", {
     metodo: "POST",
     cuerpo: { correo: "admin@eldesparche.test", contrasena: "Desparche2026!" },
   });
+  const me = await llamar("/api/auth/me", { token: login.json.token });
+  assert.equal(me.json.usuario.horario, "Completa");
+});
+
+test("login acepta el correo en mayúsculas", async () => {
+  const res = await llamar("/api/auth/login", {
+    metodo: "POST",
+    cuerpo: { correo: "ADMIN@ELDESPARCHE.TEST", contrasena: "Desparche2026!" },
+  });
   assert.equal(res.estado, 200);
-  assert.equal(res.json.usuario.tipo_usuario, "ADMIN");
-  assert.ok(res.json.token);
 });
 
 test("login falla igual con contraseña errónea y con correo inexistente", async () => {
@@ -149,6 +310,13 @@ test("login falla igual con contraseña errónea y con correo inexistente", asyn
   assert.equal(mala.estado, 401);
   assert.equal(noExiste.estado, 401);
   assert.equal(mala.json.error, noExiste.json.error);
+});
+
+test("login sin datos responde 400", async () => {
+  const res = await llamar("/api/auth/login", { metodo: "POST", cuerpo: {} });
+  assert.equal(res.estado, 400);
+  assert.ok(res.json.detalles.correo);
+  assert.ok(res.json.detalles.contrasena);
 });
 
 test("/me exige token válido", async () => {
