@@ -35,7 +35,17 @@ export default defineConfig({
         evento: resolve(import.meta.dirname, 'evento.html'),
         reservar: resolve(import.meta.dirname, 'reservar.html'),
         confirmacion: resolve(import.meta.dirname, 'confirmacion.html'),
-        misReservas: resolve(import.meta.dirname, 'mis-reservas.html')
+        misReservas: resolve(import.meta.dirname, 'mis-reservas.html'),
+        admin: resolve(import.meta.dirname, 'admin.html'),
+        adminAgentes: resolve(import.meta.dirname, 'admin-agentes.html'),
+        adminEventos: resolve(import.meta.dirname, 'admin-eventos.html'),
+        adminClientes: resolve(import.meta.dirname, 'admin-clientes.html'),
+        adminReservas: resolve(import.meta.dirname, 'admin-reservas.html'),
+        verificar: resolve(import.meta.dirname, 'verificar.html'),
+        adminVerificaciones: resolve(import.meta.dirname, 'admin-verificaciones.html'),
+        adminValidar: resolve(import.meta.dirname, 'admin-validar.html'),
+        adminSesiones: resolve(import.meta.dirname, 'admin-sesiones.html'),
+        nosotros: resolve(import.meta.dirname, 'nosotros.html')
       }
     }
   }
