@@ -1,0 +1,311 @@
+/* ==========================================================================
+   El Desparche - verificar.css
+   Página "Verificar mi identidad". Se carga después de estilos.css.
+   ========================================================================== */
+
+.verificar {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.verificar [hidden] {
+  display: none !important;
+}
+
+.verificar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Indicador de pasos */
+.verificar-pasos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: paso;
+}
+
+.verificar-pasos li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 2px solid #d8cefc;
+  border-radius: 12px;
+  background: #f8f6ff;
+  color: var(--texto);
+  font-size: calc(13px * var(--escala-texto));
+  font-weight: 600;
+  counter-increment: paso;
+}
+
+.verificar-pasos li::before {
+  content: counter(paso);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--morado);
+  color: var(--blanco);
+}
+
+/* Cada paso */
+.verificar-paso {
+  margin: 0;
+  min-width: 0;
+}
+
+.verificar-paso legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  float: left;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--texto);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(18px * var(--escala-texto));
+  font-weight: 700;
+}
+
+.verificar-paso legend + * {
+  clear: both;
+}
+
+.verificar-numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--morado);
+  color: var(--blanco);
+  font-size: calc(15px * var(--escala-texto));
+}
+
+.verificar-campos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 16px;
+  margin-top: 16px;
+}
+
+.verificar-campos .campo {
+  margin-bottom: 16px;
+}
+
+.verificar-campos select,
+.verificar-campos input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 2px solid var(--borde-negro);
+  border-radius: 10px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-family: inherit;
+  font-size: calc(15px * var(--escala-texto));
+}
+
+.verificar-campos input[aria-invalid="true"] {
+  border-color: var(--error);
+}
+
+.verificar-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.verificar-botones .boton {
+  min-height: 48px;
+  padding: 0 22px;
+}
+
+.verificar-subir {
+  cursor: pointer;
+}
+
+/* El campo de archivo está oculto: su foco se dibuja en el botón de al lado */
+input[type="file"].oculto:focus-visible + .verificar-subir {
+  outline: var(--foco-grosor) solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* Cámara y vistas previas */
+.verificar-camara {
+  margin-top: 14px;
+}
+
+.verificar-camara video {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 12px;
+  background: var(--oscuro);
+}
+
+.verificar-camara p {
+  margin: 8px 0 0;
+}
+
+.verificar-vista {
+  margin: 14px 0 0;
+}
+
+.verificar-vista img {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  border: 2px solid #d8cefc;
+  border-radius: 12px;
+}
+
+.verificar-vista-selfie img {
+  max-width: 220px;
+}
+
+/* Resultado de la lectura de la cédula */
+.verificar-resultado {
+  margin-top: 14px;
+  font-size: calc(14px * var(--escala-texto));
+}
+
+.verificar-resultado:empty {
+  display: none;
+}
+
+.verificar-resultado-titulo {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.verificar-resultado ul {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.verificar-resultado li {
+  margin-bottom: 6px;
+  padding: 8px 12px;
+  border-left: 4px solid;
+  border-radius: 0 8px 8px 0;
+}
+
+.verificar-ok {
+  border-color: var(--verde-texto);
+  background: var(--verde-claro);
+}
+
+.verificar-ok strong {
+  color: var(--verde-texto);
+}
+
+.verificar-no {
+  border-color: var(--error);
+  background: var(--rojo-claro);
+}
+
+.verificar-no strong {
+  color: var(--error);
+}
+
+/* Envío */
+.verificar-autorizo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: var(--texto);
+  font-size: calc(14px * var(--escala-texto));
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.verificar-autorizo input {
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--morado);
+}
+
+/* Estado de la solicitud */
+.verificar-estado {
+  margin-bottom: 20px;
+  border-left: 6px solid var(--morado);
+}
+
+.verificar-estado h2 {
+  margin: 0 0 8px;
+}
+
+.verificar-estado h2:focus {
+  outline: none;
+}
+
+.verificar-estado p {
+  margin: 0;
+}
+
+.verificar-estado a {
+  color: var(--morado);
+  font-weight: 600;
+}
+
+.verificar-estado-etiqueta {
+  display: inline-block;
+  margin: 0 0 10px !important;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--morado);
+  color: var(--blanco);
+  font-size: calc(12px * var(--escala-texto));
+  font-weight: 700;
+}
+
+.verificar-estado-pendiente {
+  border-left-color: var(--naranja-texto);
+}
+
+.verificar-estado-pendiente .verificar-estado-etiqueta {
+  background: var(--naranja-texto);
+}
+
+.verificar-estado-aprobada {
+  border-left-color: var(--verde-texto);
+}
+
+.verificar-estado-aprobada .verificar-estado-etiqueta {
+  background: var(--verde-texto);
+}
+
+.verificar-estado-rechazada {
+  border-left-color: var(--error);
+}
+
+.verificar-estado-rechazada .verificar-estado-etiqueta {
+  background: var(--error);
+}
+
+@media (min-width: 600px) {
+  .verificar-pasos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .verificar-campos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

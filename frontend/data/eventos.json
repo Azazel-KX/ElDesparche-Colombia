@@ -9,7 +9,11 @@
     8,
     9,
     2,
-    11
+    11,
+    3,
+    6,
+    10,
+    12
   ],
   "filtros": [
     {
@@ -275,8 +279,8 @@
       "titulo": "Jazz al Parque",
       "descripcion": "El festival de jazz más importante de Bogotá vuelve al parque para deleitar a los amantes de la música con lo mejor del género.",
       "categoria": "musica",
-      "destacado": false,
-      "prioridad": 0,
+      "destacado": true,
+      "prioridad": 7,
       "estado": {
         "etiqueta": "Programado",
         "clave": "programado",
@@ -395,8 +399,8 @@
       "titulo": "Macondo, la obra",
       "descripcion": "Una adaptación teatral de la obra cumbre de García Márquez. Una producción colombiana que recorre los 100 años de Macondo en escena.",
       "categoria": "teatro",
-      "destacado": false,
-      "prioridad": 0,
+      "destacado": true,
+      "prioridad": 8,
       "estado": {
         "etiqueta": "Programado",
         "clave": "programado",
@@ -555,8 +559,8 @@
       "titulo": "Batallas Épicas de Rap",
       "descripcion": "Las mejores batallas de rap freestyle de Colombia se dan cita en Bogotá. Competencia oficial con clasificación nacional.",
       "categoria": "musica",
-      "destacado": false,
-      "prioridad": 0,
+      "destacado": true,
+      "prioridad": 9,
       "estado": {
         "etiqueta": "Programado",
         "clave": "programado",
@@ -635,8 +639,8 @@
       "titulo": "Concierto Acústico Campestre",
       "descripcion": "Una jornada de música acústica y naturaleza en los alrededores del embalse del Tominé. Un descanso del ruido de la ciudad.",
       "categoria": "musica",
-      "destacado": false,
-      "prioridad": 0,
+      "destacado": true,
+      "prioridad": 10,
       "estado": {
         "etiqueta": "Programado",
         "clave": "programado",

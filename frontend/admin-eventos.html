@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de eventos - El Desparche</title>
+    <link rel="icon" href="img/14603.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="css/admin.css" />
+
+    <script>
+      (function () {
+        try {
+          var v = localStorage.getItem("escalaTexto");
+          if (v) document.documentElement.style.setProperty("--escala-texto", v);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+
+  <body data-pagina="admin-eventos">
+    <a class="salto-contenido" href="#contenido-principal">Saltar al contenido principal</a>
+
+    <!-- ===== CABECERA ===== -->
+    <header class="cabecera">
+      <button type="button" class="boton-menu" id="boton-menu"
+              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
+        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Menú</span>
+      </button>
+
+      <div class="cabecera-izquierda">
+        <a class="logo" href="index.html">
+          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
+        </a>
+
+        <nav class="menu" id="menu-principal">
+          <ul>
+            <li><a href="index.html">Inicio</a></li>
+            <li><a href="eventos.html">Eventos</a></li>
+            <li><a href="mis-reservas.html">Mis reservas</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="cabecera-derecha" id="menu-cuenta">
+        <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
+
+        <div class="accesibilidad">
+          <button type="button" class="boton-accesibilidad" id="abrir-accesibilidad"
+                  aria-expanded="false" aria-controls="panel-accesibilidad">
+            <span>Accesibilidad</span>
+            <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
+          </button>
+
+          <div class="panel-accesibilidad" id="panel-accesibilidad" hidden>
+            <h2 class="panel-titulo" id="titulo-panel-acc">Opciones de accesibilidad</h2>
+
+            <div class="tamano-texto" role="group" aria-labelledby="titulo-tamano">
+              <span class="oculto" id="titulo-tamano">Tamaño del texto</span>
+
+              <button type="button" class="tamano-menor" id="texto-menos"
+                      aria-label="Disminuir el tamaño del texto">
+                A<span aria-hidden="true">&minus;</span>
+              </button>
+
+              <span class="tamano-valor" id="texto-valor" aria-hidden="true">100%</span>
+
+              <button type="button" class="tamano-mayor" id="texto-mas"
+                      aria-label="Aumentar el tamaño del texto">
+                A<span aria-hidden="true">+</span>
+              </button>
+
+              <button type="button" class="tamano-reinicio" id="texto-normal"
+                      aria-label="Restablecer el tamaño normal del texto">
+                Normal
+              </button>
+            </div>
+
+            <p class="panel-ayuda">Se guarda en este navegador para tus próximas visitas.</p>
+          </div>
+        </div>
+
+        <p class="oculto" id="aviso-tamano" role="status" aria-live="polite"></p>
+      </div>
+    </header>
+
+    <main class="admin" id="contenido-principal" tabindex="-1">
+      <!-- Sin sesión de administrador -->
+      <section class="admin-bloqueo" id="admin-bloqueo" aria-labelledby="titulo-bloqueo" hidden>
+        <div class="recuadro-titulo">
+          <h1 id="titulo-bloqueo">Zona de administración</h1>
+          <p>Esta página es solo para administradores. Inicia sesión con una cuenta de administrador para continuar.</p>
+          <button type="button" class="admin-boton" id="bloqueo-entrar">Iniciar sesión</button>
+        </div>
+      </section>
+
+      <!-- Con sesión de administrador -->
+      <div class="admin-marco" id="admin-marco" hidden>
+        <aside class="admin-lateral">
+          <p class="admin-lateral-titulo" id="titulo-lateral">Administración</p>
+          <nav aria-labelledby="titulo-lateral">
+            <ul>
+              <li><a href="admin.html">Panel</a></li>
+              <li><a href="admin-agentes.html">Agentes</a></li>
+              <li><a class="activo" href="admin-eventos.html" aria-current="page">Eventos</a></li>
+              <li><a href="admin-clientes.html">Clientes</a></li>
+              <li><a href="admin-reservas.html">Reservas y pagos</a></li>
+              <li><a href="admin-validar.html">Validar entradas</a></li>
+              <li><a href="admin-verificaciones.html">Verificaciones</a></li>
+              <li><a href="admin-sesiones.html">Sesiones</a></li>
+            </ul>
+          </nav>
+        </aside>
+
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Gestión de eventos</h1>
+              <p>Revisa la ocupación de cada evento y cambia su estado cuando haga falta.</p>
+            </div>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <section aria-labelledby="titulo-resumen-eventos">
+            <h2 class="oculto" id="titulo-resumen-eventos">Eventos por estado</h2>
+            <ul class="admin-indicadores" id="admin-indicadores"></ul>
+          </section>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-eventos">
+            <h2 id="titulo-lista-eventos" tabindex="-1">Eventos publicados</h2>
+
+            <form class="admin-filtros" role="search" aria-label="Filtrar eventos" id="filtros-eventos">
+              <div class="admin-filtro admin-filtro-buscar">
+                <label for="buscar-evento">Buscar</label>
+                <input type="search" id="buscar-evento" placeholder="Nombre, lugar o agente" autocomplete="off" />
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-estado-evento">Estado</label>
+                <select id="filtro-estado-evento">
+                  <option value="">Todos</option>
+                  <option value="Programado">Programado</option>
+                  <option value="En Boletería">En Boletería</option>
+                  <option value="En Vivo">En Vivo</option>
+                  <option value="Finalizado">Finalizado</option>
+                  <option value="Cancelado">Cancelado</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-ciudad-evento">Ciudad</label>
+                <select id="filtro-ciudad-evento">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="orden-eventos">Ordenar por</label>
+                <select id="orden-eventos">
+                  <option value="ocupacion">Más ocupación</option>
+                  <option value="ingresos">Más ingresos</option>
+                  <option value="precio">Precio más alto</option>
+                  <option value="nombre">Nombre (A-Z)</option>
+                </select>
+              </div>
+            </form>
+
+            <p class="admin-conteo" id="conteo-eventos" role="status"></p>
+
+            <table class="admin-tabla" role="table">
+              <caption class="oculto">Eventos publicados</caption>
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader">Evento</th>
+                  <th scope="col" role="columnheader">Fecha</th>
+                  <th scope="col" role="columnheader" class="numero">Precio</th>
+                  <th scope="col" role="columnheader">Ocupación</th>
+                  <th scope="col" role="columnheader">Estado</th>
+                  <th scope="col" role="columnheader">Acciones</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" id="cuerpo-eventos"></tbody>
+            </table>
+          </section>
+        </div>
+      </div>
+
+      <!-- Detalle de un evento -->
+      <dialog class="modal modal-detalle" id="detalle-evento" aria-labelledby="detalle-nombre">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="detalle-cerrar" aria-label="Cerrar el detalle del evento">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div id="detalle-contenido"></div>
+        </div>
+      </dialog>
+    </main>
+
+    <!-- ===== PIE DE PÁGINA ===== -->
+    <footer class="pie">
+      <div class="pie-columnas">
+        <div class="pie-marca">
+          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
+          <p>
+            Conectando la cultura urbana de Colombia con planes que vale la pena
+            vivir.
+          </p>
+        </div>
+      </div>
+      <p class="pie-final">
+        <span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span>
+      </p>
+    </footer>
+
+    <script type="module" src="js/script.js"></script>
+    <script type="module" src="js/admin.js"></script>
+  </body>
+</html>
