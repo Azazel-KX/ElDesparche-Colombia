@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verificar mi identidad - El Desparche</title>
+    <link rel="icon" href="img/14603.png" />
+
+    <!-- Tipografías del diseño -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="css/verificar.css" />
+  
+  <!-- Aplica el tamaño de texto guardado antes del primer pintado, para que
+       la página no dé un salto visual al cargar. -->
+  <script>
+    (function () {
+      try {
+        var v = localStorage.getItem("escalaTexto");
+        if (v) document.documentElement.style.setProperty("--escala-texto", v);
+      } catch (e) { /* modo privado: se queda en el tamaño normal */ }
+    })();
+  </script>
+</head>
+
+  <body data-pagina="verificar">
+    <!-- ===== CABECERA ===== -->
+    <header class="cabecera">
+      <button type="button" class="boton-menu" id="boton-menu"
+              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
+        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Menú</span>
+      </button>
+
+      <div class="cabecera-izquierda">
+        <a class="logo" href="index.html">
+          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
+        </a>
+
+        <nav class="menu" id="menu-principal">
+          <ul>
+            <li><a href="index.html">Inicio</a></li>
+            <li><a href="eventos.html">Eventos</a></li>
+            <li><a href="mis-reservas.html">Mis reservas</a></li>
+          </ul>
+        </nav>
+      </div>
+
+    <div class="cabecera-derecha" id="menu-cuenta">
+
+      <!-- El script escribe aquí los botones de acceso o los datos del usuario -->
+      <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
+
+      <!-- ===== BOTÓN DE ACCESIBILIDAD (patron "disclosure") =====
+           aria-expanded es un ESTADO: dice si el panel esta abierto o
+           cerrado, y el lector de pantalla lo anuncia en cada pulsación
+           ("contraído" / "expandido"). aria-controls lo enlaza con el
+           panel que abre. El panel se oculta con el atributo hidden, que
+           lo saca del orden de tabulación y también del lector: así no se
+           puede llegar con el teclado a botones que no se ven. -->
+      <div class="accesibilidad">
+        <button type="button" class="boton-accesibilidad" id="abrir-accesibilidad"
+                aria-expanded="false" aria-controls="panel-accesibilidad">
+          <span>Accesibilidad</span>
+          <!-- La flecha va en el marcado con aria-hidden, no como
+               contenido generado en CSS: el contenido de ::after SÍ entra
+               en el nombre accesible del botón en algunos navegadores, y
+               el lector acabaría diciendo "Accesibilidad triángulo". -->
+          <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
+        </button>
+
+        <div class="panel-accesibilidad" id="panel-accesibilidad" hidden>
+          <h2 class="panel-titulo" id="titulo-panel-acc">Opciones de accesibilidad</h2>
+
+          <!-- role="group" + aria-labelledby agrupan los botones bajo un
+               mismo nombre, para que el lector anuncie de qué van antes
+               de leer cada uno. -->
+          <div class="tamano-texto" role="group" aria-labelledby="titulo-tamano">
+            <span class="oculto" id="titulo-tamano">Tamaño del texto</span>
+
+            <button type="button" class="tamano-menor" id="texto-menos"
+                    aria-label="Disminuir el tamaño del texto">
+              A<span aria-hidden="true">&minus;</span>
+            </button>
+
+            <!-- Señal visible del estado. El lector no lo lee (ya se lo
+                 anuncia la región role="status") para no repetirlo. -->
+            <span class="tamano-valor" id="texto-valor" aria-hidden="true">100%</span>
+
+            <button type="button" class="tamano-mayor" id="texto-mas"
+                    aria-label="Aumentar el tamaño del texto">
+              A<span aria-hidden="true">+</span>
+            </button>
+
+            <button type="button" class="tamano-reinicio" id="texto-normal"
+                    aria-label="Restablecer el tamaño normal del texto">
+              Normal
+            </button>
+          </div>
+
+          <p class="panel-ayuda">Se guarda en este navegador para tus próximas visitas.</p>
+        </div>
+      </div>
+
+      <!-- Anuncia el nuevo tamaño en voz alta al pulsar (WCAG 4.1.3) -->
+      <p class="oculto" id="aviso-tamano" role="status" aria-live="polite"></p>
+    </div>
+    </header>
+
+    <main class="fondo-gris" id="contenido">
+      <section class="seccion verificar">
+        <div class="recuadro-titulo">
+          <h1>Verificar mi identidad</h1>
+          <p>Para reservar entradas necesitamos confirmar que eres tú. Solo tienes que hacerlo una vez y tarda un par de minutos.</p>
+        </div>
+
+        <div id="verificar-estado"></div>
+
+        <form class="verificar-form" id="form-verificar" novalidate hidden>
+          <ol class="verificar-pasos" aria-label="Pasos de la verificación">
+            <li>Tus datos</li>
+            <li>Reverso de la cédula</li>
+            <li>Frente del documento</li>
+            <li>Selfie</li>
+          </ol>
+
+          <!-- Paso 1 -->
+          <fieldset class="caja verificar-paso">
+            <legend class="titulo-caja"><span class="verificar-numero" aria-hidden="true">1</span> Tus datos</legend>
+            <p class="texto-gris">Deben ser los mismos que aparecen en tu documento.</p>
+
+            <div class="verificar-campos">
+              <div class="campo">
+                <label for="ver-tipo">Tipo de documento</label>
+                <select id="ver-tipo">
+                  <option value="CC">Cédula de ciudadanía</option>
+                  <option value="CE">Cédula de extranjería</option>
+                  <option value="PPT">Permiso de protección (PPT)</option>
+                  <option value="PAS">Pasaporte</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="ver-numero">Número de documento</label>
+                <input type="text" id="ver-numero" inputmode="numeric" autocomplete="off" />
+              </div>
+              <div class="campo">
+                <label for="ver-nacimiento">Fecha de nacimiento</label>
+                <input type="date" id="ver-nacimiento" />
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Paso 2 -->
+          <fieldset class="caja verificar-paso" id="paso-reverso">
+            <legend class="titulo-caja"><span class="verificar-numero" aria-hidden="true">2</span> Escanea el reverso de tu cédula</legend>
+            <p class="texto-gris" id="ayuda-reverso">
+              Atrás de la cédula hay un código de barras (o un código QR en la cédula digital).
+              Lo leemos en tu navegador para comprobar automáticamente tu número y tu fecha de nacimiento.
+              Ninguna imagen sale de tu equipo en este paso.
+            </p>
+
+            <div class="verificar-botones">
+              <button type="button" class="boton boton-morado" id="reverso-camara">Usar la cámara</button>
+              <input type="file" id="reverso-archivo" accept="image/*" class="oculto" />
+              <label class="boton boton-borde verificar-subir" for="reverso-archivo">Subir una foto</label>
+            </div>
+
+            <div class="verificar-camara" id="reverso-visor" hidden>
+              <video id="reverso-video" playsinline muted></video>
+              <p class="texto-gris">Acerca el código de barras a la cámara y mantenlo quieto.</p>
+              <button type="button" class="boton boton-borde" id="reverso-detener">Detener la cámara</button>
+            </div>
+
+            <div class="verificar-resultado" id="reverso-resultado" role="status"></div>
+          </fieldset>
+
+          <!-- Paso 3 -->
+          <fieldset class="caja verificar-paso">
+            <legend class="titulo-caja"><span class="verificar-numero" aria-hidden="true">3</span> Foto del frente del documento</legend>
+            <p class="texto-gris">Que se vean bien tu foto y tus datos, sin reflejos.</p>
+
+            <div class="verificar-botones">
+              <input type="file" id="frente-archivo" accept="image/*" capture="environment" class="oculto" />
+              <label class="boton boton-morado verificar-subir" for="frente-archivo">Tomar o subir la foto</label>
+            </div>
+            <figure class="verificar-vista" id="frente-vista" hidden>
+              <img id="frente-imagen" alt="Vista previa del frente de tu documento" />
+            </figure>
+          </fieldset>
+
+          <!-- Paso 4 -->
+          <fieldset class="caja verificar-paso">
+            <legend class="titulo-caja"><span class="verificar-numero" aria-hidden="true">4</span> Tómate una selfie</legend>
+            <p class="texto-gris">Mira de frente a la cámara, con buena luz y sin gafas oscuras ni gorra.</p>
+
+            <div class="verificar-botones">
+              <button type="button" class="boton boton-morado" id="selfie-camara">Abrir la cámara</button>
+              <input type="file" id="selfie-archivo" accept="image/*" capture="user" class="oculto" />
+              <label class="boton boton-borde verificar-subir" for="selfie-archivo">Subir una foto</label>
+            </div>
+
+            <div class="verificar-camara" id="selfie-visor" hidden>
+              <video id="selfie-video" playsinline muted></video>
+              <div class="verificar-botones">
+                <button type="button" class="boton boton-morado" id="selfie-tomar">Tomar la foto</button>
+                <button type="button" class="boton boton-borde" id="selfie-detener">Cancelar</button>
+              </div>
+            </div>
+
+            <figure class="verificar-vista verificar-vista-selfie" id="selfie-vista" hidden>
+              <img id="selfie-imagen" alt="Vista previa de tu selfie" />
+            </figure>
+          </fieldset>
+
+          <div class="caja verificar-envio">
+            <label class="verificar-autorizo">
+              <input type="checkbox" id="ver-autorizo" />
+              <span>
+                Autorizo a El Desparche a tratar mis datos personales y biométricos solo para verificar mi
+                identidad, según la Ley 1581 de 2012 de protección de datos personales.
+              </span>
+            </label>
+
+            <p class="mensaje error" id="error-verificar" role="alert"></p>
+
+            <button type="submit" class="boton boton-morado boton-ancho" id="enviar-verificacion">Enviar verificación</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <!-- ===== PIE DE PÁGINA ===== -->
+    <footer class="pie" role="contentinfo">
+      <div class="pie-columnas">
+        <div class="pie-marca">
+          <img
+            class="logo-texto"
+            src="img/logo-eldesparche.svg"
+            alt="El Desparche"
+          />
+          <p>
+            Conectando la cultura urbana de Colombia. El punto de encuentro de
+            los mejores conciertos, eventos y experiencias inolvidables en tu
+            ciudad.
+          </p>
+        </div>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-nosotros">
+          <h2 class="pie-titulo" id="pie-nosotros">Sobre nosotros</h2>
+          <ul>
+            <li><a href="nosotros.html#comunidad">Comunidad</a></li>
+            <li><a href="#">Prensa</a></li>
+            <li><a href="#">Términos de servicio</a></li>
+          </ul>
+        </nav>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-ayuda">
+          <h2 class="pie-titulo" id="pie-ayuda">Ayuda</h2>
+          <ul>
+            <li><a href="#">Soporte</a></li>
+            <li><a href="#">Organizar evento</a></li>
+            <li><a href="#">Preguntas frecuentes</a></li>
+          </ul>
+        </nav>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-categorias">
+          <h2 class="pie-titulo" id="pie-categorias">Categorías</h2>
+          <ul>
+            <li><a href="index.html?parche=parchesote#parches">Parchesotes</a></li>
+            <li><a href="index.html?parche=parche#parches">Parches</a></li>
+            <li><a href="index.html?parche=parchesito#parches">Parchesitos</a></li>
+          </ul>
+        </nav>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-redes">
+          <h2 class="pie-titulo" id="pie-redes">Síguenos</h2>
+          <!-- Enlaces solo con icono: el nombre accesible lo da aria-label -->
+          <ul class="redes">
+            <li>
+              <a href="#" aria-label="El Desparche en Instagram">
+                <img src="img/cadd5.svg" alt="" aria-hidden="true" />
+              </a>
+            </li>
+            <li>
+              <a href="#" aria-label="El Desparche en Twitter">
+                <img src="img/fbe59.svg" alt="" aria-hidden="true" />
+              </a>
+            </li>
+            <li>
+              <a href="#" aria-label="El Desparche en YouTube">
+                <img src="img/26b07.svg" alt="" aria-hidden="true" />
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <p class="pie-final">
+        <span
+          >© 2026 ElDesparche. Todos los derechos reservados a nuestro grupo de
+          proyecto integrador.</span
+        >
+        <span>Tuluá, Colombia</span>
+      </p>
+    </footer>
+
+    <script type="module" src="js/script.js"></script>
+    <script type="module" src="js/verificar.js"></script>
+  </body>
+</html>
