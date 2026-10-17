@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel de administración - El Desparche</title>
+    <link rel="icon" href="img/14603.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="css/admin.css" />
+
+    <script>
+      (function () {
+        try {
+          var v = localStorage.getItem("escalaTexto");
+          if (v) document.documentElement.style.setProperty("--escala-texto", v);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+
+  <body data-pagina="admin">
+    <a class="salto-contenido" href="#contenido-principal">Saltar al contenido principal</a>
+
+    <!-- ===== CABECERA ===== -->
+    <header class="cabecera">
+      <button type="button" class="boton-menu" id="boton-menu"
+              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
+        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Menú</span>
+      </button>
+
+      <div class="cabecera-izquierda">
+        <a class="logo" href="index.html">
+          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
+        </a>
+
+        <nav class="menu" id="menu-principal">
+          <ul>
+            <li><a href="index.html">Inicio</a></li>
+            <li><a href="eventos.html">Eventos</a></li>
+            <li><a href="mis-reservas.html">Mis reservas</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="cabecera-derecha" id="menu-cuenta">
+        <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
+
+        <div class="accesibilidad">
+          <button type="button" class="boton-accesibilidad" id="abrir-accesibilidad"
+                  aria-expanded="false" aria-controls="panel-accesibilidad">
+            <span>Accesibilidad</span>
+            <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
+          </button>
+
+          <div class="panel-accesibilidad" id="panel-accesibilidad" hidden>
+            <h2 class="panel-titulo" id="titulo-panel-acc">Opciones de accesibilidad</h2>
+
+            <div class="tamano-texto" role="group" aria-labelledby="titulo-tamano">
+              <span class="oculto" id="titulo-tamano">Tamaño del texto</span>
+
+              <button type="button" class="tamano-menor" id="texto-menos"
+                      aria-label="Disminuir el tamaño del texto">
+                A<span aria-hidden="true">&minus;</span>
+              </button>
+
+              <span class="tamano-valor" id="texto-valor" aria-hidden="true">100%</span>
+
+              <button type="button" class="tamano-mayor" id="texto-mas"
+                      aria-label="Aumentar el tamaño del texto">
+                A<span aria-hidden="true">+</span>
+              </button>
+
+              <button type="button" class="tamano-reinicio" id="texto-normal"
+                      aria-label="Restablecer el tamaño normal del texto">
+                Normal
+              </button>
+            </div>
+
+            <p class="panel-ayuda">Se guarda en este navegador para tus próximas visitas.</p>
+          </div>
+        </div>
+
+        <p class="oculto" id="aviso-tamano" role="status" aria-live="polite"></p>
+      </div>
+    </header>
+
+    <main class="admin" id="contenido-principal" tabindex="-1">
+      <!-- Sin sesión de administrador -->
+      <section class="admin-bloqueo" id="admin-bloqueo" aria-labelledby="titulo-bloqueo" hidden>
+        <div class="recuadro-titulo">
+          <h1 id="titulo-bloqueo">Zona de administración</h1>
+          <p>Esta página es solo para administradores. Inicia sesión con una cuenta de administrador para continuar.</p>
+          <button type="button" class="admin-boton" id="bloqueo-entrar">Iniciar sesión</button>
+        </div>
+      </section>
+
+      <!-- Con sesión de administrador -->
+      <div class="admin-marco" id="admin-marco" hidden>
+        <aside class="admin-lateral">
+          <p class="admin-lateral-titulo" id="titulo-lateral">Administración</p>
+          <nav aria-labelledby="titulo-lateral">
+            <ul>
+              <li><a class="activo" href="admin.html" aria-current="page">Panel</a></li>
+              <li><a href="admin-agentes.html">Agentes</a></li>
+              <li><a href="admin-eventos.html">Eventos</a></li>
+              <li><a href="admin-clientes.html">Clientes</a></li>
+              <li><a href="admin-reservas.html">Reservas y pagos</a></li>
+              <li><a href="admin-validar.html">Validar entradas</a></li>
+              <li><a href="admin-verificaciones.html">Verificaciones</a></li>
+              <li><a href="admin-sesiones.html">Sesiones</a></li>
+            </ul>
+          </nav>
+        </aside>
+
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Panel de administración</h1>
+              <p id="admin-saludo"></p>
+            </div>
+
+            <div class="admin-periodo">
+              <label for="admin-meses">Periodo</label>
+              <select id="admin-meses">
+                <option value="6">Últimos 6 meses</option>
+                <option value="12" selected>Últimos 12 meses</option>
+              </select>
+            </div>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <section aria-labelledby="titulo-indicadores">
+            <h2 class="oculto" id="titulo-indicadores">Indicadores generales</h2>
+            <ul class="admin-indicadores" id="admin-indicadores"></ul>
+          </section>
+
+          <div class="admin-graficas">
+            <section class="admin-tarjeta admin-ancha" aria-labelledby="titulo-meses">
+              <div class="admin-tarjeta-cabecera">
+                <h2 id="titulo-meses">Evolución por mes</h2>
+                <div class="admin-selector" role="group" aria-label="Dato que muestra la gráfica">
+                  <button type="button" data-serie="reservas" aria-pressed="true">Reservas</button>
+                  <button type="button" data-serie="ingresos" aria-pressed="false">Ingresos</button>
+                </div>
+              </div>
+              <div id="grafica-meses"></div>
+            </section>
+
+            <section class="admin-tarjeta" aria-labelledby="titulo-estados">
+              <h2 id="titulo-estados">Eventos por estado</h2>
+              <div id="grafica-estados"></div>
+            </section>
+
+            <section class="admin-tarjeta" aria-labelledby="titulo-categorias">
+              <h2 id="titulo-categorias">Ingresos por categoría</h2>
+              <div id="grafica-categorias"></div>
+            </section>
+
+            <section class="admin-tarjeta" aria-labelledby="titulo-agentes">
+              <h2 id="titulo-agentes">Agentes con más ventas</h2>
+              <div id="grafica-agentes"></div>
+            </section>
+
+            <section class="admin-tarjeta" aria-labelledby="titulo-actividad">
+              <h2 id="titulo-actividad">Actividad reciente</h2>
+              <ul class="admin-actividad" id="admin-actividad"></ul>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== PIE DE PÁGINA ===== -->
+    <footer class="pie">
+      <div class="pie-columnas">
+        <div class="pie-marca">
+          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
+          <p>
+            Conectando la cultura urbana de Colombia con planes que vale la pena
+            vivir.
+          </p>
+        </div>
+      </div>
+      <p class="pie-final">
+        <span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span>
+      </p>
+    </footer>
+
+    <script type="module" src="js/script.js"></script>
+    <script type="module" src="js/admin.js"></script>
+  </body>
+</html>
