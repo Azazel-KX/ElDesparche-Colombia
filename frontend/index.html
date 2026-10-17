@@ -45,6 +45,12 @@
 
     <!-- ===== CABECERA ===== -->
     <header class="cabecera" role="banner">
+      <button type="button" class="boton-menu" id="boton-menu"
+              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
+        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Menú</span>
+      </button>
+
       <div class="cabecera-izquierda">
         <a
           class="logo"
@@ -59,7 +65,7 @@
           />
         </a>
 
-        <nav class="menu" role="navigation" aria-label="Navegación principal">
+        <nav class="menu" id="menu-principal" role="navigation" aria-label="Navegación principal">
           <ul>
             <li>
               <a class="activo" href="index.html" aria-current="page">Inicio</a>
@@ -70,7 +76,7 @@
         </nav>
       </div>
 
-      <div class="cabecera-derecha">
+      <div class="cabecera-derecha" id="menu-cuenta">
         <!-- El script escribe aquí los botones de acceso o los datos del usuario -->
         <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
 
@@ -326,6 +332,38 @@
           </a>
         </div>
 
+        <!-- Filtro por tipo de plan. aria-pressed dice cuál está activo. -->
+        <div class="parches" id="parches" role="group" aria-label="Filtrar por tipo de plan">
+          <button type="button" class="parche-filtro" data-parche="" aria-pressed="true">
+            <span class="parche-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+            </span>
+            <span class="parche-nombre">Todos</span>
+            <span class="parche-texto">Todos los planes</span>
+          </button>
+          <button type="button" class="parche-filtro" data-parche="parchesote" aria-pressed="false">
+            <span class="parche-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
+            </span>
+            <span class="parche-nombre">Parchesotes</span>
+            <span class="parche-texto">Festivales y conciertos</span>
+          </button>
+          <button type="button" class="parche-filtro" data-parche="parche" aria-pressed="false">
+            <span class="parche-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M3 4h10v6a5 5 0 0 1-10 0z"/><path d="M6 7.5h.01M10 7.5h.01"/><path d="M6.5 11a2 2 0 0 0 3 0"/><path d="M13.5 9H21v6a5 5 0 0 1-8.7 3.4"/><path d="M15.5 12.5h.01M19 12.5h.01"/><path d="M15.5 16.5a2 2 0 0 1 3 0"/></svg>
+            </span>
+            <span class="parche-nombre">Parches</span>
+            <span class="parche-texto">Teatro, comedia y cultura</span>
+          </button>
+          <button type="button" class="parche-filtro" data-parche="parchesito" aria-pressed="false">
+            <span class="parche-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            </span>
+            <span class="parche-nombre">Parchesitos</span>
+            <span class="parche-texto">Familiares, gastronómicos y gratis</span>
+          </button>
+        </div>
+
         <!-- role="status" anuncia en voz alta cuántos eventos quedaron tras filtrar -->
         <p
           class="resultado-busqueda"
@@ -362,7 +400,7 @@
         <nav class="pie-enlaces" aria-labelledby="pie-nosotros">
           <h2 class="pie-titulo" id="pie-nosotros">Sobre nosotros</h2>
           <ul>
-            <li><a href="#">Comunidad</a></li>
+            <li><a href="nosotros.html#comunidad">Comunidad</a></li>
             <li><a href="#">Prensa</a></li>
             <li><a href="#">Términos de servicio</a></li>
           </ul>
@@ -380,9 +418,9 @@
         <nav class="pie-enlaces" aria-labelledby="pie-categorias">
           <h2 class="pie-titulo" id="pie-categorias">Categorías</h2>
           <ul>
-            <li><a href="#">Parchesotes</a></li>
-            <li><a href="#">Parches</a></li>
-            <li><a href="#">Parchesitos</a></li>
+            <li><a href="index.html?parche=parchesote#parches">Parchesotes</a></li>
+            <li><a href="index.html?parche=parche#parches">Parches</a></li>
+            <li><a href="index.html?parche=parchesito#parches">Parchesitos</a></li>
           </ul>
         </nav>
 
