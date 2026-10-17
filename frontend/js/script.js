@@ -234,7 +234,20 @@ var EVENTOS = [
 /* Ids de los eventos que salen en el carrusel de la portada, en este
    orden. Cambiar el orden aqui cambia el orden del carrusel.
    scripts/generar-json.cjs lee esta misma lista. */
-var DESTACADOS = [1, 4, 8, 9, 2, 11];
+var DESTACADOS = [1, 4, 8, 9, 2, 11, 3, 6, 10, 12];
+
+/* Tipos de plan (las categorías del pie de página) y el de cada evento */
+var TIPOS_PARCHE = {
+  parchesote: { nombre: "Parchesotes", texto: "Festivales y conciertos" },
+  parche: { nombre: "Parches", texto: "Teatro, comedia y cultura" },
+  parchesito: { nombre: "Parchesitos", texto: "Familiares, gastronómicos y gratis" }
+};
+
+var PARCHE_DE_EVENTO = {
+  1: "parchesote", 2: "parchesote", 3: "parchesito", 4: "parchesito",
+  5: "parchesote", 6: "parche", 7: "parche", 8: "parchesote",
+  9: "parchesote", 10: "parche", 11: "parchesote", 12: "parchesito"
+};
 
 var DEPARTAMENTOS = {
   "Colombia": ["Antioquia", "Cundinamarca", "Valle del Cauca", "Santander"],
@@ -301,7 +314,7 @@ function etiquetaEstado(estado, grande) {
     clases = clases + " estado-grande";
   }
   return '<span class="' + clases + '">' +
-           '<span class="oculto">Estado del evento: </span>' + estado +
+           '<span class="oculto">Estado del evento: </span>' + esc(estado) +
          '</span>';
 }
 
@@ -337,6 +350,28 @@ function fechaDeHoy() {
 
 
 /* ==========================================================================
+   2.b TEXTO SEGURO
+   Todo dato que viene del usuario o de la base de datos (nombres, títulos,
+   direcciones...) debe pasar por esc() antes de armarse dentro de un
+   innerHTML. Sin esto, un nombre como <img src=x onerror=...> ejecutaría
+   código en la página de quien lo vea (XSS).
+   Cuando solo se muestra texto, es más simple usar textContent.
+   ========================================================================== */
+
+function esc(valor) {
+  if (valor === undefined || valor === null) {
+    return "";
+  }
+  return String(valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+
+/* ==========================================================================
    3. USUARIO Y RESERVAS (se guardan en el navegador con localStorage)
    ========================================================================== */
 
@@ -366,6 +401,41 @@ function obtenerReservas() {
 
 function guardarReservas(reservas) {
   localStorage.setItem("reservas", JSON.stringify(reservas));
+}
+
+/* Solicitudes de verificación de identidad, una por correo (modo local) */
+function leerVerificaciones() {
+  try {
+    return JSON.parse(localStorage.getItem("verificaciones")) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function guardarVerificacion(correo, solicitud) {
+  var todas = leerVerificaciones();
+  todas[correo] = solicitud;
+  localStorage.setItem("verificaciones", JSON.stringify(todas));
+}
+
+/* Las cuentas de prueba marcadas como "verificada" ya vienen aprobadas */
+function verificacionDe(correo) {
+  var guardada = leerVerificaciones()[correo];
+  if (guardada) return guardada;
+
+  var cuenta = CUENTAS_PRUEBA.filter(function (c) { return c.correo === correo && c.verificada; })[0];
+  if (!cuenta) return null;
+
+  return {
+    estado: "Aprobada",
+    tipo: "Biométrica",
+    fechaSolicitud: "2026-09-01T10:00:00",
+    nombre: cuenta.usuario.nombre + " " + cuenta.usuario.apellidos,
+    correo: correo,
+    tipoDocumento: cuenta.usuario.tipo_identificacion,
+    documento: cuenta.usuario.numero_identificacion,
+    nacimiento: cuenta.usuario.fecha_nacimiento
+  };
 }
 
 
@@ -548,6 +618,9 @@ function pintarSesion() {
     var marca = "";
     if (usuario.tipo === "agente") {
       marca = '<span class="marca-agente">Agente</span>';
+    } else if (usuario.tipo === "admin") {
+      marca = '<span class="marca-agente">Administrador</span>';
+      agregarEnlaceAdmin();
     }
 
     /* La inicial del círculo es decorativa: el nombre completo ya va al
@@ -556,20 +629,22 @@ function pintarSesion() {
     caja.innerHTML =
       '<div class="usuario">' +
         '<span class="usuario-inicial" aria-hidden="true">' +
-          usuario.nombre.charAt(0).toUpperCase() +
+          esc(usuario.nombre.charAt(0).toUpperCase()) +
         '</span>' +
         '<span class="usuario-nombre">' +
-          '<span class="oculto">Sesión iniciada como </span>' + usuario.nombre +
+          '<span class="oculto">Sesión iniciada como </span>' + esc(usuario.nombre) +
         '</span>' +
         marca +
         '<button type="button" id="salir">' +
-          'Cerrar sesión<span class="oculto"> de ' + usuario.nombre + '</span>' +
+          'Cerrar sesión<span class="oculto"> de ' + esc(usuario.nombre) + '</span>' +
         '</button>' +
       '</div>';
 
     document.getElementById("salir").onclick = function () {
-      borrarUsuario();
-      window.location.href = "index.html";
+      registrarSesionAdmin(usuario).then(function () {
+        borrarUsuario();
+        window.location.href = "index.html";
+      });
     };
   } else {
     /* Sin sesión: los dos botones abren la ventana emergente */
@@ -585,6 +660,19 @@ function pintarSesion() {
       abrirAcceso("registro");
     };
   }
+}
+
+
+/* Con sesión de administrador, el menú principal gana el enlace al panel */
+function agregarEnlaceAdmin() {
+  var lista = document.querySelector("#menu-principal ul");
+  if (!lista || lista.querySelector('a[href="admin.html"]')) return;
+
+  var enPanel = (document.body.getAttribute("data-pagina") || "").indexOf("admin") === 0;
+  var elemento = document.createElement("li");
+  elemento.innerHTML = '<a href="admin.html"' +
+    (enPanel ? ' class="activo" aria-current="page"' : '') + '>Administración</a>';
+  lista.appendChild(elemento);
 }
 
 
@@ -608,19 +696,19 @@ function tarjetaEvento(evento) {
     '<li class="tarjeta">' +
       '<article class="tarjeta-cuerpo">' +
         '<div class="tarjeta-imagen">' +
-          '<img src="' + evento.imagen + '" ' +
-               'alt="Imagen promocional del evento ' + evento.titulo + ' en ' + evento.ciudad + '">' +
+          '<img src="' + esc(evento.imagen) + '" ' +
+               'alt="Imagen promocional del evento ' + esc(evento.titulo) + ' en ' + esc(evento.ciudad) + '">' +
           etiquetaEstado(evento.estado, false) +
         '</div>' +
         '<div class="tarjeta-texto">' +
           '<h3 class="tarjeta-titulo">' +
-            '<a class="tarjeta-enlace" href="evento.html?id=' + evento.id + '">' +
-              evento.titulo +
+            '<a class="tarjeta-enlace" href="evento.html?id=' + encodeURIComponent(evento.id) + '">' +
+              esc(evento.titulo) +
             '</a>' +
           '</h3>' +
           '<p class="tarjeta-datos">' +
             '<span class="oculto">Ciudad y fecha: </span>' +
-            evento.ciudad + ' · ' + evento.fechaCorta +
+            esc(evento.ciudad) + ' · ' + esc(evento.fechaCorta) +
           '</p>' +
           '<div class="tarjeta-pie">' +
             '<span class="tarjeta-precio">' +
@@ -685,21 +773,21 @@ function cartelPrincipal(evento) {
     '<li class="cartel">' +
       '<article class="cartel-cuerpo">' +
         '<div class="cartel-imagen">' +
-          '<img src="' + evento.imagen + '" ' +
-               'alt="Cartel del evento ' + evento.titulo + '">' +
+          '<img src="' + esc(evento.imagen) + '" ' +
+               'alt="Cartel del evento ' + esc(evento.titulo) + '">' +
           '<p class="cartel-fecha">' +
-            '<span class="oculto">Fechas: </span>' + evento.fechaCorta +
+            '<span class="oculto">Fechas: </span>' + esc(evento.fechaCorta) +
           '</p>' +
         '</div>' +
         '<div class="cartel-texto">' +
           '<h3 class="cartel-titulo">' +
-            '<a class="cartel-enlace" href="evento.html?id=' + evento.id + '">' +
-              evento.titulo +
+            '<a class="cartel-enlace" href="evento.html?id=' + encodeURIComponent(evento.id) + '">' +
+              esc(evento.titulo) +
             '</a>' +
           '</h3>' +
           '<p class="cartel-lugar">' +
             '<span class="oculto">Lugar: </span>' +
-            evento.lugar + ' · ' + evento.ciudad +
+            esc(evento.lugar) + ' · ' + esc(evento.ciudad) +
           '</p>' +
         '</div>' +
       '</article>' +
@@ -774,7 +862,7 @@ function prepararCarrusel() {
   /* ===== MOVIMIENTO AUTOMATICO =====
      WCAG 2.2.2 (Pausar, detener, ocultar): todo lo que se mueva solo mas
      de 5 segundos necesita una forma de pararlo. De ahi el boton. */
-  var SEGUNDOS = 4500;
+  var SEGUNDOS = 3000;
   var reloj = null;
   var detenidoPorElUsuario = false;
 
@@ -852,8 +940,10 @@ function paginaInicio() {
   var pais = document.getElementById("pais");
   var departamento = document.getElementById("departamento");
   var ciudad = document.getElementById("ciudad");
+  var botonesParche = document.querySelectorAll(".parche-filtro");
+  var parcheElegido = "";
 
-  /* Filtra por texto y por ciudad, y muestra máximo 8 eventos */
+  /* Filtra por texto, ciudad y tipo de plan, y muestra máximo 8 eventos */
   function actualizar() {
     var texto = busqueda.value.toLowerCase();
     var ciudadElegida = ciudad.value;
@@ -865,8 +955,9 @@ function paginaInicio() {
         evento.titulo.toLowerCase().indexOf(texto) !== -1 ||
         evento.ciudad.toLowerCase().indexOf(texto) !== -1;
       var coincideCiudad = ciudadElegida === "" || evento.ciudad === ciudadElegida;
+      var coincideParche = parcheElegido === "" || PARCHE_DE_EVENTO[evento.id] === parcheElegido;
 
-      if (coincideTexto && coincideCiudad) {
+      if (coincideTexto && coincideCiudad && coincideParche) {
         encontrados.push(evento);
       }
     }
@@ -877,10 +968,10 @@ function paginaInicio() {
   }
 
   function llenarLista(lista, opciones, textoPorDefecto) {
-    lista.innerHTML = '<option value="">' + textoPorDefecto + '</option>';
+    lista.innerHTML = '<option value="">' + esc(textoPorDefecto) + '</option>';
     for (var i = 0; i < opciones.length; i++) {
       lista.innerHTML = lista.innerHTML +
-        '<option>' + opciones[i] + '</option>';
+        '<option>' + esc(opciones[i]) + '</option>';
     }
     lista.disabled = opciones.length === 0;
 
@@ -911,6 +1002,26 @@ function paginaInicio() {
 
   ciudad.onchange = actualizar;
   busqueda.oninput = actualizar;
+
+  function elegirParche(tipo) {
+    parcheElegido = TIPOS_PARCHE[tipo] ? tipo : "";
+    for (var b = 0; b < botonesParche.length; b++) {
+      var activo = botonesParche[b].getAttribute("data-parche") === parcheElegido;
+      botonesParche[b].setAttribute("aria-pressed", activo ? "true" : "false");
+    }
+    actualizar();
+  }
+
+  for (var p = 0; p < botonesParche.length; p++) {
+    botonesParche[p].onclick = function () {
+      elegirParche(this.getAttribute("data-parche"));
+    };
+  }
+
+  /* Los enlaces del pie llegan con ?parche=parchesote (o parche, parchesito) */
+  if (parametro("parche")) {
+    elegirParche(parametro("parche"));
+  }
 
   /* El filtrado es instantáneo, así que al pulsar Enter dentro del
      buscador no hay que recargar la página: solo se vuelve a filtrar.
@@ -1029,7 +1140,7 @@ function paginaEvento() {
   var ficha = "";
   for (var i = 0; i < datos.length; i++) {
     ficha = ficha +
-      "<div><dt>" + datos[i][0] + "</dt><dd>" + datos[i][1] + "</dd></div>";
+      "<div><dt>" + esc(datos[i][0]) + "</dt><dd>" + esc(datos[i][1]) + "</dd></div>";
   }
   document.getElementById("evento-ficha").innerHTML = ficha;
 
@@ -1097,8 +1208,8 @@ function paginaReservar() {
   document.getElementById("resumen-fecha").textContent = evento.fechaInicio;
 
   document.getElementById("aviso-usuario").innerHTML =
-    "Hola, <strong>" + usuario.nombre + "</strong>. Tu reserva se registrará a tu nombre. " +
-    "Recibirás un correo con los detalles a <strong>" + usuario.correo + "</strong>.";
+    "Hola, <strong>" + esc(usuario.nombre) + "</strong>. Tu reserva se registrará a tu nombre. " +
+    "Recibirás un correo con los detalles a <strong>" + esc(usuario.correo) + "</strong>.";
 
   /* Actualiza el resumen de precios */
   function actualizarResumen() {
@@ -1136,84 +1247,363 @@ function paginaReservar() {
     }
   };
 
-  /* Guardar la reserva y pasar a la confirmación */
-  document.getElementById("confirmar").onclick = function () {
-    var total = 0;
-    if (evento.precio > 0) {
-      total = (evento.precio + cargo) * tickets;
-    }
+  actualizarResumen();
 
+  /* Solo reservan los clientes con la identidad verificada (regla de negocio) */
+  var botonConfirmar = document.getElementById("confirmar");
+  var verificacion = verificacionDe(usuario.correo);
+  var bloqueo = "";
+
+  if (usuario.tipo !== "usuario") {
+    bloqueo = "Solo las cuentas de cliente pueden reservar entradas.";
+  } else if (!verificacion || verificacion.estado === "Rechazada") {
+    bloqueo = (verificacion
+      ? "Tu verificación de identidad fue rechazada" +
+        (verificacion.motivo ? ": " + esc(verificacion.motivo) : "") + ". Vuelve a intentarlo para poder reservar."
+      : "Para reservar entradas necesitas verificar tu identidad. Es un paso único: escaneas tu cédula y te tomas una selfie.") +
+      ' <a href="verificar.html">Verificar mi identidad</a>';
+  } else if (verificacion.estado === "Pendiente") {
+    bloqueo = "Tu verificación de identidad está en revisión. Podrás reservar en cuanto un administrador la apruebe. " +
+      '<a href="verificar.html">Ver el estado de mi verificación</a>';
+  }
+
+  if (bloqueo) {
+    var avisoBloqueo = document.createElement("p");
+    avisoBloqueo.className = "aviso-verificacion";
+    avisoBloqueo.id = "aviso-verificacion";
+    avisoBloqueo.innerHTML = bloqueo;
+    botonConfirmar.parentNode.insertBefore(avisoBloqueo, botonConfirmar);
+    botonConfirmar.disabled = true;
+    botonConfirmar.setAttribute("aria-describedby", "aviso-verificacion");
+    return;
+  }
+
+  var errorPago = document.createElement("p");
+  errorPago.className = "mensaje error";
+  errorPago.id = "error-pago";
+  errorPago.setAttribute("role", "alert");
+  botonConfirmar.parentNode.insertBefore(errorPago, botonConfirmar);
+
+  var textoBoton = botonConfirmar.textContent.trim();
+
+  /* Guarda la reserva y pasa a la confirmación */
+  function guardarYConfirmar(codigo, total, pago) {
     var reserva = {
-      codigo: generarCodigo(),
+      codigo: codigo,
       idEvento: evento.id,
       titulo: evento.titulo,
       lugar: evento.lugar,
       ciudad: evento.ciudad,
       fechaEvento: evento.fechaInicio,
       titular: usuario.nombre,
+      correo: usuario.correo,
+      documento: (usuario.tipoDocumento || "CC") + " " + usuario.id,
       tickets: tickets,
       observaciones: document.getElementById("observaciones").value,
       total: total,
       fechaReserva: fechaDeHoy(),
-      estado: "Reservada"
+      fechaIso: new Date().toISOString(),
+      estado: !pago || pago.estado === "APPROVED" ? "Confirmada" : "Reservada",
+      pago: pago
     };
 
     var reservas = obtenerReservas();
     reservas.unshift(reserva);
     guardarReservas(reservas);
 
-    /* Se guarda el código para mostrarlo en la página de confirmación */
     localStorage.setItem("ultimaReserva", reserva.codigo);
     window.location.href = "confirmacion.html";
-  };
+  }
 
-  actualizarResumen();
+  botonConfirmar.onclick = function () {
+    errorPago.textContent = "";
+
+    /* Evento gratuito: no pasa por Wompi */
+    if (evento.precio === 0) {
+      guardarYConfirmar(generarCodigoReserva(), 0, null);
+      return;
+    }
+
+    var total = (evento.precio + cargo) * tickets;
+    var datos = {
+      evento: evento,
+      tickets: tickets,
+      total: total,
+      usuario: usuario,
+      observaciones: document.getElementById("observaciones").value,
+      alAbrir: function () {
+        botonConfirmar.disabled = false;
+        botonConfirmar.textContent = textoBoton;
+      }
+    };
+
+    botonConfirmar.disabled = true;
+    botonConfirmar.textContent = "Abriendo el pago…";
+
+    var pago = USAR_API ? pagarConWompi(datos) : pasarelaSimulada(datos);
+
+    pago.then(function (resultado) {
+      botonConfirmar.disabled = false;
+      botonConfirmar.textContent = textoBoton;
+
+      /* Cerró la pasarela sin pagar */
+      if (!resultado) {
+        botonConfirmar.focus();
+        return;
+      }
+
+      if (resultado.estado === "APPROVED" || resultado.estado === "PENDING") {
+        guardarYConfirmar(resultado.referencia, total, {
+          id: resultado.id,
+          metodo: resultado.metodo,
+          estado: resultado.estado,
+          montoCentavos: total * 100,
+          moneda: "COP"
+        });
+        return;
+      }
+
+      errorPago.innerHTML = "<strong>Error:</strong> " +
+        (resultado.estado === "DECLINED"
+          ? "Tu banco o la entidad rechazó el pago."
+          : "Hubo un problema al procesar el pago.") +
+        " No se hizo ningún cobro. Puedes intentarlo de nuevo, si quieres con otro medio de pago.";
+      botonConfirmar.focus();
+    }).catch(function (error) {
+      botonConfirmar.disabled = false;
+      botonConfirmar.textContent = textoBoton;
+      errorPago.innerHTML = "<strong>Error:</strong> " + esc(error.message);
+      botonConfirmar.focus();
+    });
+  };
 }
 
 
 /* ==========================================================================
-   10. CÓDIGO QR
-   Es un dibujo de adorno: una rejilla de 21x21 cuadritos con un patrón fijo.
+   9.b PAGO CON WOMPI
+   - Con USAR_API = true se abre el widget real de Wompi. El backend crea la
+     reserva pendiente, calcula la firma de integridad (SHA-256 de
+     referencia + monto en centavos + moneda + secreto de integridad, que
+     nunca sale del servidor) y confirma el pago con el webhook
+     transaction.updated. Lo que dice el navegador es solo informativo.
+     POST /api/pagos/wompi/iniciar  cuerpo { idEvento, entradas, observaciones }
+       -> 201 { referencia, montoCentavos, moneda, llavePublica, firmaIntegridad }
+     GET  /api/pagos/wompi/transacciones/:id  -> { referencia, estado, metodo }
+   - Con USAR_API = false se abre una pasarela simulada para poder probar.
    ========================================================================== */
 
-var CUADROS_NEGROS = [
-  "0,0","1,0","2,0","3,0","4,0","5,0","6,0",
-  "0,1","6,1","0,2","2,2","3,2","4,2","6,2",
-  "0,3","2,3","3,3","4,3","6,3","0,4","2,4","3,4","4,4","6,4",
-  "0,5","6,5","0,6","1,6","2,6","3,6","4,6","5,6","6,6",
-  "14,0","15,0","16,0","17,0","18,0","19,0","20,0",
-  "14,1","20,1","14,2","16,2","17,2","18,2","20,2",
-  "14,3","16,3","17,3","18,3","20,3","14,4","16,4","17,4","18,4","20,4",
-  "14,5","20,5","14,6","15,6","16,6","17,6","18,6","19,6","20,6",
-  "0,14","1,14","2,14","3,14","4,14","5,14","6,14",
-  "0,15","6,15","0,16","2,16","3,16","4,16","6,16",
-  "0,17","2,17","3,17","4,17","6,17","0,18","2,18","3,18","4,18","6,18",
-  "0,19","6,19","0,20","1,20","2,20","3,20","4,20","5,20","6,20",
-  "8,6","10,6","12,6","6,8","6,10","6,12",
-  "14,8","16,8","18,8","20,8","8,14","8,16","8,18","8,20",
-  "8,8","9,8","11,8","13,8","8,9","10,9","12,9","9,10","11,10","13,10",
-  "8,11","10,11","12,11","9,12","11,12","13,12","8,13","10,13","12,13",
-  "16,10","18,10","20,10","17,11","19,11","16,12","18,12","20,12",
-  "15,13","17,13","19,13","16,14","18,14","15,15","17,15","19,15",
-  "10,15","12,15","14,15","11,16","13,16","10,17","12,17","14,17",
-  "11,18","13,18","15,18","10,19","12,19","14,19","11,20","13,20"
-];
+var METODOS_PAGO = {
+  "CARD": "Tarjeta",
+  "NEQUI": "Nequi",
+  "PSE": "PSE",
+  "BANCOLOMBIA_TRANSFER": "Botón Bancolombia"
+};
 
-/* Dibuja el QR dentro de un elemento */
-function pintarQr(elemento) {
-  var html = "";
+var ESTADOS_PAGO = {
+  "APPROVED": "Aprobado",
+  "PENDING": "Pendiente",
+  "DECLINED": "Rechazado",
+  "VOIDED": "Anulado",
+  "ERROR": "Error"
+};
 
-  for (var fila = 0; fila < 21; fila++) {
-    for (var columna = 0; columna < 21; columna++) {
-      if (CUADROS_NEGROS.indexOf(columna + "," + fila) !== -1) {
-        html = html + '<span class="negro"></span>';
-      } else {
-        html = html + '<span></span>';
-      }
+/* Código de reserva, que también es la referencia del pago en Wompi */
+function generarCodigoReserva() {
+  return "DES-" + generarCodigo();
+}
+
+function cargarWidgetWompi() {
+  if (window.WidgetCheckout) {
+    return Promise.resolve();
+  }
+  return new Promise(function (listo, fallo) {
+    var script = document.createElement("script");
+    script.src = "https://checkout.wompi.co/widget.js";
+    script.onload = listo;
+    script.onerror = function () {
+      fallo(new Error("No se pudo cargar la pasarela de Wompi. Revisa tu conexión e inténtalo de nuevo."));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+function pagarConWompi(datos) {
+  return llamarApi("/pagos/wompi/iniciar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + datos.usuario.token },
+    body: JSON.stringify({ idEvento: datos.evento.id, entradas: datos.tickets, observaciones: datos.observaciones })
+  }).then(function (resultado) {
+    if (resultado.estado !== 201) {
+      throw new Error(resultado.datos.error || "No se pudo iniciar el pago.");
     }
+    var p = resultado.datos;
+
+    return cargarWidgetWompi().then(function () {
+      return new Promise(function (listo) {
+        var checkout = new window.WidgetCheckout({
+          currency: p.moneda,
+          amountInCents: p.montoCentavos,
+          reference: p.referencia,
+          publicKey: p.llavePublica,
+          signature: { integrity: p.firmaIntegridad },
+          redirectUrl: window.location.origin + "/confirmacion.html",
+          customerData: {
+            email: datos.usuario.correo,
+            fullName: datos.usuario.nombre,
+            legalId: datos.usuario.id,
+            legalIdType: datos.usuario.tipoDocumento || "CC"
+          }
+        });
+
+        checkout.open(function (respuesta) {
+          var t = respuesta.transaction;
+          listo({ referencia: p.referencia, id: t.id, estado: t.status || "PENDING", metodo: t.paymentMethodType || "" });
+        });
+
+        if (datos.alAbrir) datos.alAbrir();
+      });
+    });
+  });
+}
+
+/* Pasarela de prueba que imita a Wompi. No pide datos de tarjeta ni cobra nada. */
+function pasarelaSimulada(datos) {
+  var referencia = generarCodigoReserva();
+  var dialogo = document.getElementById("pasarela-simulada");
+
+  if (!dialogo) {
+    dialogo = document.createElement("dialog");
+    dialogo.className = "modal pasarela";
+    dialogo.id = "pasarela-simulada";
+    dialogo.setAttribute("aria-labelledby", "pasarela-titulo");
+    document.body.appendChild(dialogo);
   }
 
-  elemento.innerHTML = html;
+  dialogo.innerHTML =
+    '<div class="modal-caja">' +
+      '<button type="button" class="modal-cerrar" data-pasarela="cerrar" aria-label="Cerrar el pago sin pagar">' +
+        '<span aria-hidden="true">&times;</span>' +
+      '</button>' +
+      '<div class="pasarela-cabecera">' +
+        '<p class="pasarela-marca">Pago seguro con Wompi</p>' +
+        '<h2 id="pasarela-titulo" tabindex="-1">Paga tu reserva</h2>' +
+        '<p class="pasarela-total">' + pesos(datos.total) + '</p>' +
+      '</div>' +
+      '<p class="pasarela-aviso"><strong>Pago de prueba.</strong> La base de datos está desactivada, así que este pago es simulado: ' +
+        'no se cobra dinero ni se piden datos de tarjeta.</p>' +
+      '<dl class="pasarela-datos">' +
+        '<div><dt>Evento</dt><dd>' + datos.evento.titulo + '</dd></div>' +
+        '<div><dt>Entradas</dt><dd>' + datos.tickets + '</dd></div>' +
+        '<div><dt>Referencia</dt><dd>' + referencia + '</dd></div>' +
+      '</dl>' +
+      '<form id="pasarela-form">' +
+        '<fieldset class="pasarela-grupo">' +
+          '<legend>Medio de pago</legend>' +
+          Object.keys(METODOS_PAGO).map(function (clave, i) {
+            return '<label><input type="radio" name="pasarela-metodo" value="' + clave + '"' + (i === 0 ? " checked" : "") + ' /> ' +
+              METODOS_PAGO[clave] + '</label>';
+          }).join("") +
+        '</fieldset>' +
+        '<fieldset class="pasarela-grupo">' +
+          '<legend>Resultado de la prueba</legend>' +
+          '<label><input type="radio" name="pasarela-resultado" value="APPROVED" checked /> Pago aprobado</label>' +
+          '<label><input type="radio" name="pasarela-resultado" value="DECLINED" /> Pago rechazado</label>' +
+          '<label><input type="radio" name="pasarela-resultado" value="PENDING" /> Pago pendiente</label>' +
+        '</fieldset>' +
+        '<p class="pasarela-procesando" id="pasarela-procesando" role="status"></p>' +
+        '<button type="submit" class="boton boton-morado boton-ancho">Pagar ' + pesos(datos.total) + '</button>' +
+        '<button type="button" class="pasarela-cancelar" data-pasarela="cerrar">Cancelar y volver</button>' +
+      '</form>' +
+    '</div>';
+
+  return new Promise(function (listo) {
+    var terminado = false;
+
+    function terminar(resultado) {
+      if (terminado) return;
+      terminado = true;
+      if (dialogo.open) dialogo.close();
+      listo(resultado);
+    }
+
+    dialogo.querySelectorAll('[data-pasarela="cerrar"]').forEach(function (boton) {
+      boton.onclick = function () { terminar(null); };
+    });
+    dialogo.onclose = function () {
+      if (!dialogo.open) terminar(null);
+    };
+
+    document.getElementById("pasarela-form").onsubmit = function (evento) {
+      evento.preventDefault();
+      var metodo = dialogo.querySelector('input[name="pasarela-metodo"]:checked').value;
+      var estado = dialogo.querySelector('input[name="pasarela-resultado"]:checked').value;
+
+      this.querySelectorAll("button, input").forEach(function (control) { control.disabled = true; });
+      document.getElementById("pasarela-procesando").textContent = "Procesando el pago…";
+
+      setTimeout(function () {
+        var marca = Math.floor(Date.now() / 1000);
+        terminar({
+          referencia: referencia,
+          id: (10000 + Math.floor(Math.random() * 89999)) + "-" + marca + "-" + (10000 + Math.floor(Math.random() * 89999)),
+          estado: estado,
+          metodo: metodo
+        });
+      }, 1200);
+    };
+
+    dialogo.showModal();
+    document.getElementById("pasarela-titulo").focus();
+  });
+}
+
+
+/* ==========================================================================
+   10. CÓDIGO QR DE LA ENTRADA
+   El QR guarda "ELDESPARCHE|<código de reserva>|<id del evento>|<token>".
+   En modo local el token es una suma de control (detecta códigos escritos
+   a mano o inventados). Con el backend, el token lo firma el servidor con
+   HMAC y la validación en la puerta se hace siempre contra el servidor.
+   ========================================================================== */
+
+/* FNV-1a de 32 bits en hexadecimal */
+function tokenEntrada(codigo, idEvento) {
+  var texto = "eldesparche|" + codigo + "|" + idEvento;
+  var hash = 0x811c9dc5;
+  for (var i = 0; i < texto.length; i++) {
+    hash ^= texto.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return ("0000000" + hash.toString(16)).slice(-8).toUpperCase();
+}
+
+function contenidoQr(codigo, idEvento, token) {
+  return "ELDESPARCHE|" + codigo + "|" + idEvento + "|" + (token || tokenEntrada(codigo, idEvento));
+}
+
+/* Lee el texto de un QR. Devuelve null si no es de El Desparche. */
+function leerContenidoQr(texto) {
+  var partes = String(texto).trim().split("|");
+  if (partes.length !== 4 || partes[0] !== "ELDESPARCHE") return null;
+  return { codigo: partes[1], idEvento: Number(partes[2]), token: partes[3] };
+}
+
+/* Dibuja el QR real (SVG) dentro de un elemento */
+function pintarQrReal(elemento, codigo, idEvento, token) {
+  elemento.classList.add("qr-real");
+  elemento.innerHTML = "";
+
+  return import("@zxing/browser").then(function (zxing) {
+    var svg = new zxing.BrowserQRCodeSvgWriter().write(contenidoQr(codigo, idEvento, token), 240, 240);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Código QR de la reserva " + codigo);
+    svg.setAttribute("viewBox", "0 0 240 240");
+    svg.removeAttribute("width");
+    svg.removeAttribute("height");
+    elemento.appendChild(svg);
+  }).catch(function () {
+    elemento.innerHTML = '<p class="qr-error">No se pudo dibujar el QR. Usa el código ' + codigo + ' en la entrada.</p>';
+  });
 }
 
 
@@ -1222,6 +1612,27 @@ function pintarQr(elemento) {
    ========================================================================== */
 
 function paginaConfirmacion() {
+  /* Wompi vuelve a esta página con ?id=<transacción> (por ejemplo, después de PSE).
+     El estado real lo da el backend, que lo recibió por el webhook. */
+  var idTransaccion = parametro("id");
+  if (idTransaccion && USAR_API) {
+    llamarApi("/pagos/wompi/transacciones/" + encodeURIComponent(idTransaccion)).then(function (resultado) {
+      if (resultado.estado !== 200) return;
+      var lista = obtenerReservas();
+      lista.forEach(function (r) {
+        if (r.codigo === resultado.datos.referencia && r.pago) {
+          r.pago.estado = resultado.datos.estado;
+          r.estado = resultado.datos.estado === "APPROVED" ? "Confirmada"
+            : (resultado.datos.estado === "PENDING" ? "Reservada" : "Cancelada");
+        }
+      });
+      guardarReservas(lista);
+      localStorage.setItem("ultimaReserva", resultado.datos.referencia);
+      window.location.replace("confirmacion.html");
+    });
+    return;
+  }
+
   var codigo = localStorage.getItem("ultimaReserva");
   var reservas = obtenerReservas();
   var reserva = null;
@@ -1245,18 +1656,41 @@ function paginaConfirmacion() {
     ["Lugar", reserva.lugar + " - " + reserva.ciudad],
     ["Titular", reserva.titular],
     ["Tickets", reserva.tickets],
-    ["Total pagado", reserva.total === 0 ? "Gratis" : pesos(reserva.total)],
+    ["Total", reserva.total === 0 ? "Gratis" : pesos(reserva.total)],
     ["Fecha de reserva", reserva.fechaReserva]
   ];
 
+  var pago = reserva.pago;
+  if (pago) {
+    datos.push(["Pago", ESTADOS_PAGO[pago.estado] + (METODOS_PAGO[pago.metodo] ? " con " + METODOS_PAGO[pago.metodo] : "")]);
+    datos.push(["Transacción Wompi", pago.id]);
+  }
+
   var html = "";
   for (var j = 0; j < datos.length; j++) {
-    html = html + "<div><dt>" + datos[j][0] + "</dt><dd>" + datos[j][1] + "</dd></div>";
+    html = html + "<div><dt>" + esc(datos[j][0]) + "</dt><dd>" + esc(datos[j][1]) + "</dd></div>";
   }
 
   document.getElementById("detalles").innerHTML = html;
   document.getElementById("codigo").textContent = reserva.codigo;
-  pintarQr(document.getElementById("qr"));
+
+  /* El QR solo sirve cuando el pago está aprobado */
+  if (reserva.estado === "Confirmada") {
+    pintarQrReal(document.getElementById("qr"), reserva.codigo, reserva.idEvento, reserva.tokenQr);
+  } else {
+    document.title = "Pago en proceso - El Desparche";
+    document.querySelector(".titulo-exito").textContent = "Tu pago está en proceso";
+    document.querySelector(".subtitulo-exito").textContent =
+      "Guardamos tu reserva mientras Wompi confirma el pago. Te avisaremos por correo cuando esté listo.";
+
+    var qr = document.getElementById("qr");
+    var aviso = document.createElement("p");
+    aviso.className = "qr-pendiente";
+    aviso.innerHTML = "<strong>Pago pendiente.</strong> Tu QR aparecerá aquí y en \"Mis reservas\" " +
+      "en cuanto Wompi apruebe el pago (a veces tarda unos minutos con PSE o Nequi).";
+    qr.parentNode.replaceChild(aviso, qr);
+    document.querySelector(".caja-qr .texto-pequeno-claro").textContent = "Código de tu reserva";
+  }
 }
 
 
@@ -1275,7 +1709,7 @@ function paginaMisReservas() {
   }
 
   document.getElementById("saludo").innerHTML =
-    "Hola, <strong>" + usuario.nombre + "</strong>. Aquí puedes ver y gestionar tus reservas.";
+    "Hola, <strong>" + esc(usuario.nombre) + "</strong>. Aquí puedes ver y gestionar tus reservas.";
 
   function pintar() {
     var reservas = obtenerReservas();
@@ -1306,22 +1740,27 @@ function paginaMisReservas() {
 
       if (r.estado === "Cancelada") {
         acciones = '<span class="sin-qr">QR no disponible</span>';
+      } else if (r.pago && r.pago.estado === "PENDING") {
+        acciones =
+          '<span class="sin-qr">Pago pendiente: el QR aparece al aprobarse</span>' +
+          '<button class="boton-mini boton-cancelar" data-cancelar="' + r.codigo + '">Cancelar</button>';
       } else {
         acciones =
-          '<button class="boton-mini boton-qr" data-qr="' + r.codigo + '">Ver QR</button>' +
-          '<button class="boton-mini boton-cancelar" data-cancelar="' + r.codigo + '">Cancelar</button>';
+          '<button class="boton-mini boton-qr" data-qr="' + esc(r.codigo) + '">Ver QR</button>' +
+          '<button class="boton-mini boton-cancelar" data-cancelar="' + esc(r.codigo) + '">Cancelar</button>';
       }
 
-      var claseReserva = r.estado === "Cancelada" ? "reserva-cancelada" : "reserva-reservada";
+      var claseReserva = r.estado === "Cancelada" ? "reserva-cancelada"
+        : (r.estado === "Confirmada" ? "reserva-confirmada" : "reserva-reservada");
 
       html = html +
         '<tr>' +
-          '<td data-titulo="Evento"><a href="evento.html?id=' + r.idEvento + '">' + r.titulo + '</a></td>' +
-          '<td data-titulo="Fecha">' + r.fechaEvento + '</td>' +
-          '<td data-titulo="Lugar">' + r.lugar + '</td>' +
-          '<td data-titulo="Tickets">' + r.tickets + '</td>' +
+          '<td data-titulo="Evento"><a href="evento.html?id=' + encodeURIComponent(r.idEvento) + '">' + esc(r.titulo) + '</a></td>' +
+          '<td data-titulo="Fecha">' + esc(r.fechaEvento) + '</td>' +
+          '<td data-titulo="Lugar">' + esc(r.lugar) + '</td>' +
+          '<td data-titulo="Tickets">' + esc(r.tickets) + '</td>' +
           '<td data-titulo="Total">' + (r.total === 0 ? "Gratis" : pesos(r.total)) + '</td>' +
-          '<td data-titulo="Estado"><span class="etiqueta-reserva ' + claseReserva + '">' + r.estado + '</span></td>' +
+          '<td data-titulo="Estado"><span class="etiqueta-reserva ' + claseReserva + '">' + esc(r.estado) + '</span></td>' +
           '<td data-titulo="Acciones">' + acciones + '</td>' +
         '</tr>';
     }
@@ -1700,9 +2139,137 @@ function mostrarCamposDelTipo() {
    antes de cargar este archivo. */
 var API_URL = window.DESPARCHE_API_URL || "http://localhost:5000/api";
 
+/* INTERRUPTOR DE LA BASE DE DATOS
+   true  = todo pasa por el API y PostgreSQL.
+   false = modo local: el API y la base de datos no se usan, y las
+           respuestas salen de respuestaLocal() con datos de ejemplo.
+   El código del API no se toca: para volver a usarlo basta con poner true. */
+var USAR_API = false;
+
+/* Cuentas de prueba para el modo local (solo funcionan con USAR_API = false) */
+var CUENTAS_PRUEBA = [
+  {
+    correo: "admin@eldesparche.online",
+    contrasena: "Desparche2026",
+    usuario: {
+      numero_identificacion: "1000000001",
+      nombre: "Sebastián",
+      apellidos: "Jaramillo",
+      correo: "admin@eldesparche.online",
+      tipo_usuario: "ADMIN"
+    }
+  },
+  {
+    correo: "valentina@eldesparche.online",
+    contrasena: "Cliente2026",
+    verificada: true,
+    usuario: {
+      numero_identificacion: "1116254789",
+      tipo_identificacion: "CC",
+      nombre: "Valentina",
+      apellidos: "Ríos Castaño",
+      correo: "valentina@eldesparche.online",
+      fecha_nacimiento: "2001-04-17",
+      tipo_usuario: "CLIENTE"
+    }
+  },
+  {
+    correo: "juandavid@eldesparche.online",
+    contrasena: "Cliente2026",
+    verificada: true,
+    usuario: {
+      numero_identificacion: "1006478123",
+      tipo_identificacion: "CC",
+      nombre: "Juan David",
+      apellidos: "Ospina",
+      correo: "juandavid@eldesparche.online",
+      fecha_nacimiento: "1998-11-02",
+      tipo_usuario: "CLIENTE"
+    }
+  },
+  {
+    correo: "andres@eldesparche.online",
+    contrasena: "Cliente2026",
+    verificada: true,
+    usuario: {
+      numero_identificacion: "1088345612",
+      tipo_identificacion: "CC",
+      nombre: "Andrés Felipe",
+      apellidos: "Cardona",
+      correo: "andres@eldesparche.online",
+      fecha_nacimiento: "1987-03-08",
+      tipo_usuario: "CLIENTE"
+    }
+  }
+];
+
+/* Imita las respuestas del API cuando USAR_API está en false */
+function respuestaLocal(ruta, opciones) {
+  var cuerpo = opciones && opciones.body ? JSON.parse(opciones.body) : {};
+
+  if (ruta === "/ciudades") {
+    var ciudades = [];
+    Object.keys(CIUDADES).forEach(function (departamento) {
+      CIUDADES[departamento].forEach(function (nombre) {
+        ciudades.push({ id_ciudad: ciudades.length + 1, nombre: nombre, departamento: departamento });
+      });
+    });
+    return { estado: 200, datos: { ciudades: ciudades } };
+  }
+
+  if (ruta === "/auth/login") {
+    for (var i = 0; i < CUENTAS_PRUEBA.length; i++) {
+      if (CUENTAS_PRUEBA[i].correo === cuerpo.correo.toLowerCase()) {
+        if (CUENTAS_PRUEBA[i].contrasena !== cuerpo.contrasena) {
+          return { estado: 401, datos: { error: "El correo o la contraseña no son correctos." } };
+        }
+        return { estado: 200, datos: { usuario: CUENTAS_PRUEBA[i].usuario, token: "local" } };
+      }
+    }
+
+    return {
+      estado: 200,
+      datos: {
+        usuario: {
+          numero_identificacion: "local",
+          nombre: cuerpo.correo.split("@")[0],
+          apellidos: "",
+          correo: cuerpo.correo,
+          tipo_usuario: "CLIENTE"
+        },
+        token: "local"
+      }
+    };
+  }
+
+  if (ruta === "/auth/register") {
+    return {
+      estado: 201,
+      datos: {
+        usuario: {
+          numero_identificacion: cuerpo.numero_identificacion,
+          tipo_identificacion: cuerpo.tipo_identificacion,
+          nombre: cuerpo.nombre,
+          apellidos: cuerpo.apellidos,
+          correo: cuerpo.correo,
+          fecha_nacimiento: cuerpo.fecha_nacimiento || null,
+          tipo_usuario: cuerpo.tipo_cuenta
+        },
+        token: "local"
+      }
+    };
+  }
+
+  return { estado: 503, datos: { error: "La base de datos está desactivada por ahora." } };
+}
+
 /* Llama al API y devuelve { estado, datos }. Si el servidor no responde,
    rechaza la promesa con un mensaje que se puede mostrar tal cual. */
 function llamarApi(ruta, opciones) {
+  if (!USAR_API) {
+    return Promise.resolve(respuestaLocal(ruta, opciones));
+  }
+
   return fetch(API_URL + ruta, opciones).then(
     function (respuesta) {
       return respuesta.json().then(
@@ -1777,7 +2344,7 @@ function cambiarPestana(cual) {
 function mostrarError(idMensaje, texto, idCampo) {
   var caja = document.getElementById(idMensaje);
 
-  caja.innerHTML = '<span><strong>Error:</strong> ' + texto + '</span>';
+  caja.innerHTML = '<span><strong>Error:</strong> ' + esc(texto) + '</span>';
 
   /* El foco va al campo que falló para poder corregirlo enseguida */
   if (idCampo) {
@@ -1816,16 +2383,47 @@ function abrirAcceso(cual) {
 function iniciarSesionLocal(respuesta) {
   var u = respuesta.usuario;
 
+  var tipos = { AGENTE: "agente", ADMIN: "admin" };
+
   guardarUsuario({
-    nombre: u.nombre + " " + u.apellidos,
+    nombre: (u.nombre + " " + u.apellidos).trim(),
     correo: u.correo,
-    tipo: u.tipo_usuario === "AGENTE" ? "agente" : "usuario",
+    tipo: tipos[u.tipo_usuario] || "usuario",
     rol: u.tipo_usuario,
     id: u.numero_identificacion,
-    token: respuesta.token
+    tipoDocumento: u.tipo_identificacion || "",
+    nacimiento: u.fecha_nacimiento || "",
+    token: respuesta.token,
+    inicioSesion: new Date().toISOString()
   });
 
   window.location.reload();
+}
+
+/* SESION_ADMIN se guarda al cerrar la sesión de un administrador.
+   Con el API, el backend la registra en POST /api/auth/logout (con la IP real). */
+function registrarSesionAdmin(usuario) {
+  if (usuario.tipo !== "admin") return Promise.resolve();
+
+  if (USAR_API) {
+    return llamarApi("/auth/logout", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + usuario.token }
+    }).catch(function () {});
+  }
+
+  try {
+    var sesiones = JSON.parse(localStorage.getItem("sesionesAdmin")) || [];
+    sesiones.push({
+      numero_identificacion: usuario.id,
+      nombre: usuario.nombre,
+      fecha_hora_conexion: usuario.inicioSesion || new Date().toISOString(),
+      fecha_hora_desconexion: new Date().toISOString(),
+      direccion_ip: "127.0.0.1"
+    });
+    localStorage.setItem("sesionesAdmin", JSON.stringify(sesiones));
+  } catch (e) {}
+  return Promise.resolve();
 }
 
 /* Envía el formulario al API. Mientras espera, el botón queda desactivado
@@ -1980,31 +2578,120 @@ function registrar(evento) {
 }
 
 
+/* ===== MENÚ LATERAL (celular y tableta) =====
+   El botón «Menú» abre un panel que entra desde la derecha con los
+   enlaces e iconos de línea. Es un <dialog> con showModal(): atrapa el
+   foco, se cierra con Escape y deja inerte el resto de la página.
+   La zona de cuenta y accesibilidad (#menu-cuenta) se MUEVE dentro del
+   panel mientras está abierto y vuelve a la cabecera al cerrarlo; así
+   conserva sus ids y sus eventos sin duplicar nada. */
+var ICONOS_MENU = {
+  inicio: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
+  eventos: '<path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.3 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z"/>',
+  reservas: '<path d="M4 7a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 000 4v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2a2 2 0 000-4z"/><path d="M14 5v12" stroke-dasharray="2 2"/>',
+  nosotros: '<circle cx="9" cy="8" r="3"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.8-.3 5 1.4 5 4.3"/>',
+  admin: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/>'
+};
+
+function iconoMenu(nombre) {
+  return '<svg class="lateral-icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    ICONOS_MENU[nombre] + '</svg>';
+}
+
 function prepararMenuMovil() {
   var cabecera = document.querySelector(".cabecera");
   var boton = document.getElementById("boton-menu");
+  var cuenta = document.getElementById("menu-cuenta");
   if (!cabecera || !boton) return;
 
+  /* Sin JavaScript la cabecera muestra todo; con él, en pantallas
+     angostas se esconde y vive en el panel lateral. */
   cabecera.classList.add("cabecera-plegable");
+  boton.setAttribute("aria-controls", "menu-lateral");
+  boton.setAttribute("aria-haspopup", "dialog");
 
-  function abrir(abierto) {
-    cabecera.classList.toggle("menu-abierto", abierto);
-    boton.setAttribute("aria-expanded", abierto ? "true" : "false");
+  var panel = document.createElement("dialog");
+  panel.className = "menu-lateral";
+  panel.id = "menu-lateral";
+  panel.setAttribute("aria-labelledby", "menu-lateral-titulo");
+  panel.innerHTML =
+    '<div class="lateral-cabeza">' +
+      '<h2 class="lateral-titulo" id="menu-lateral-titulo">Menú</h2>' +
+      '<button type="button" class="lateral-cerrar" aria-label="Cerrar el menú">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+      '</button>' +
+    '</div>' +
+    '<nav aria-label="Navegación principal en el menú lateral">' +
+      '<ul class="lateral-lista" id="lateral-paginas"></ul>' +
+    '</nav>' +
+    '<section class="lateral-cuenta" aria-labelledby="lateral-cuenta-titulo">' +
+      '<h3 class="lateral-subtitulo" id="lateral-cuenta-titulo">Tu cuenta</h3>' +
+    '</section>';
+  document.body.appendChild(panel);
+
+  var lugarCuenta = panel.querySelector(".lateral-cuenta");
+  var origenCuenta = cuenta ? cuenta.parentNode : null;
+  var siguienteCuenta = cuenta ? cuenta.nextSibling : null;
+
+  /* Los enlaces se arman al abrir: así incluye «Administración» si la
+     sesión de administrador se inició después de cargar la página. */
+  function pintarPaginas() {
+    var actual = location.pathname.split("/").pop() || "index.html";
+    var paginas = [
+      { href: "index.html", texto: "Inicio", icono: "inicio" },
+      { href: "eventos.html", texto: "Eventos", icono: "eventos" },
+      { href: "mis-reservas.html", texto: "Mis reservas", icono: "reservas" },
+      { href: "nosotros.html", texto: "Nosotros", icono: "nosotros" }
+    ];
+    if (document.querySelector('#menu-principal a[href="admin.html"]')) {
+      paginas.push({ href: "admin.html", texto: "Administración", icono: "admin" });
+    }
+
+    var html = "";
+    for (var i = 0; i < paginas.length; i++) {
+      var esActual = paginas[i].href === actual ||
+        (paginas[i].href === "admin.html" && actual.indexOf("admin") === 0);
+      html += '<li><a href="' + paginas[i].href + '"' +
+        (esActual ? ' aria-current="page"' : '') + '>' +
+        iconoMenu(paginas[i].icono) + paginas[i].texto + '</a></li>';
+    }
+    panel.querySelector("#lateral-paginas").innerHTML = html;
   }
 
-  boton.onclick = function () {
-    abrir(boton.getAttribute("aria-expanded") !== "true");
-  };
+  function abrir() {
+    pintarPaginas();
+    if (cuenta) lugarCuenta.appendChild(cuenta);
+    panel.showModal();
+    boton.setAttribute("aria-expanded", "true");
+  }
 
-  document.addEventListener("keydown", function (evento) {
-    if (evento.key === "Escape" && boton.getAttribute("aria-expanded") === "true") {
-      abrir(false);
-      boton.focus();
-    }
+  function cerrar() {
+    if (panel.open) panel.close();
+  }
+
+  /* Al cerrar (botón, Escape o clic fuera) la cuenta vuelve a su sitio
+     y el foco regresa al botón «Menú». */
+  panel.addEventListener("close", function () {
+    if (cuenta && origenCuenta) origenCuenta.insertBefore(cuenta, siguienteCuenta);
+    boton.setAttribute("aria-expanded", "false");
+    setTimeout(function () { boton.focus(); }, 0);
+  });
+
+  boton.onclick = abrir;
+  panel.querySelector(".lateral-cerrar").onclick = cerrar;
+
+  /* Clic en el fondo oscuro (fuera del panel) también cierra */
+  panel.addEventListener("click", function (evento) {
+    if (evento.target === panel) cerrar();
+  });
+
+  /* Al elegir un enlace el panel se cierra */
+  panel.addEventListener("click", function (evento) {
+    if (evento.target.closest && evento.target.closest("a")) cerrar();
   });
 
   window.addEventListener("resize", function () {
-    if (window.innerWidth >= 900) abrir(false);
+    if (window.innerWidth >= 900) cerrar();
   });
 }
 
@@ -2019,6 +2706,36 @@ pintarSesion();
 prepararMenuMovil();
 prepararPanelAccesibilidad();
 prepararTamanoTexto();
+
+/* En modo local, los cambios de estado hechos desde la administración
+   se aplican a toda la web */
+if (!USAR_API) {
+  try {
+    var estadosGuardados = JSON.parse(localStorage.getItem("estadoEventos")) || {};
+    EVENTOS.forEach(function (evento) {
+      if (estadosGuardados[evento.id]) evento.estado = estadosGuardados[evento.id];
+    });
+  } catch (e) {}
+}
+
+/* Lo que necesitan las páginas de administración (js/admin.js) */
+window.Desparche = {
+  usarApi: USAR_API,
+  llamarApi: llamarApi,
+  obtenerUsuario: obtenerUsuario,
+  guardarUsuario: guardarUsuario,
+  obtenerReservas: obtenerReservas,
+  tokenEntrada: tokenEntrada,
+  leerContenidoQr: leerContenidoQr,
+  registrarSesionAdmin: registrarSesionAdmin,
+  pintarQrReal: pintarQrReal,
+  leerVerificaciones: leerVerificaciones,
+  guardarVerificacion: guardarVerificacion,
+  verificacionDe: verificacionDe,
+  abrirAcceso: abrirAcceso,
+  etiquetaEstado: etiquetaEstado,
+  eventos: EVENTOS
+};
 
 var pagina = document.body.getAttribute("data-pagina");
 
