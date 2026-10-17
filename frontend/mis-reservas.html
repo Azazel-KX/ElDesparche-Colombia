@@ -131,18 +131,77 @@
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
-    <footer class="pie">
+    <footer class="pie" role="contentinfo">
       <div class="pie-columnas">
         <div class="pie-marca">
-          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
+          <img
+            class="logo-texto"
+            src="img/logo-eldesparche.svg"
+            alt="El Desparche"
+          />
           <p>
-            Conectando la cultura urbana de Colombia con planes que vale la pena
-            vivir.
+            Conectando la cultura urbana de Colombia. El punto de encuentro de
+            los mejores conciertos, eventos y experiencias inolvidables en tu
+            ciudad.
           </p>
         </div>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-nosotros">
+          <h2 class="pie-titulo" id="pie-nosotros">Sobre nosotros</h2>
+          <ul>
+            <li><a href="nosotros.html#comunidad">Comunidad</a></li>
+            <li><a href="#">Prensa</a></li>
+            <li><a href="#">Términos de servicio</a></li>
+          </ul>
+        </nav>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-ayuda">
+          <h2 class="pie-titulo" id="pie-ayuda">Ayuda</h2>
+          <ul>
+            <li><a href="#">Soporte</a></li>
+            <li><a href="#">Organizar evento</a></li>
+            <li><a href="#">Preguntas frecuentes</a></li>
+          </ul>
+        </nav>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-categorias">
+          <h2 class="pie-titulo" id="pie-categorias">Categorías</h2>
+          <ul>
+            <li><a href="index.html?parche=parchesote#parches">Parchesotes</a></li>
+            <li><a href="index.html?parche=parche#parches">Parches</a></li>
+            <li><a href="index.html?parche=parchesito#parches">Parchesitos</a></li>
+          </ul>
+        </nav>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-redes">
+          <h2 class="pie-titulo" id="pie-redes">Síguenos</h2>
+          <!-- Enlaces solo con icono: el nombre accesible lo da aria-label -->
+          <ul class="redes">
+            <li>
+              <a href="#" aria-label="El Desparche en Instagram">
+                <img src="img/cadd5.svg" alt="" aria-hidden="true" />
+              </a>
+            </li>
+            <li>
+              <a href="#" aria-label="El Desparche en Twitter">
+                <img src="img/fbe59.svg" alt="" aria-hidden="true" />
+              </a>
+            </li>
+            <li>
+              <a href="#" aria-label="El Desparche en YouTube">
+                <img src="img/26b07.svg" alt="" aria-hidden="true" />
+              </a>
+            </li>
+          </ul>
+        </nav>
       </div>
+
       <p class="pie-final">
-        <span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span>
+        <span
+          >© 2026 ElDesparche. Todos los derechos reservados a nuestro grupo de
+          proyecto integrador.</span
+        >
+        <span>Tuluá, Colombia</span>
       </p>
     </footer>
 
