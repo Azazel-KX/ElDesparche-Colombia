@@ -45,7 +45,9 @@ export default defineConfig({
         adminVerificaciones: resolve(import.meta.dirname, 'admin-verificaciones.html'),
         adminValidar: resolve(import.meta.dirname, 'admin-validar.html'),
         adminSesiones: resolve(import.meta.dirname, 'admin-sesiones.html'),
-        nosotros: resolve(import.meta.dirname, 'nosotros.html')
+        nosotros: resolve(import.meta.dirname, 'nosotros.html'),
+        preguntas: resolve(import.meta.dirname, 'preguntas-frecuentes.html'),
+        terminos: resolve(import.meta.dirname, 'terminos.html')
       }
     }
   }

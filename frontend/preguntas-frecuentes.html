@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Preguntas frecuentes - El Desparche</title>
+    <meta
+      name="description"
+      content="Resuelve tus dudas sobre reservas, pagos con Wompi, verificación de identidad y el QR de tu entrada en El Desparche."
+    />
+    <link rel="icon" href="img/14603.png" />
+
+    <!-- Tipografías del diseño -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="css/paginas.css" />
+
+    <!-- Aplica el tamaño de texto guardado antes del primer pintado, para que
+       la página no dé un salto visual al cargar. -->
+    <script>
+      (function () {
+        try {
+          var v = localStorage.getItem("escalaTexto");
+          if (v)
+            document.documentElement.style.setProperty("--escala-texto", v);
+        } catch (e) {
+          /* modo privado: se queda en el tamaño normal */
+        }
+      })();
+    </script>
+  </head>
+
+  <body data-pagina="preguntas">
+    <!-- ===== ENLACE DE SALTO (Operable: navegación por teclado) =====
+       Está oculto hasta que recibe el foco con la tecla Tab. Permite
+       saltarse la cabecera y el menú para llegar directo al contenido. -->
+    <a class="salto-contenido" href="#contenido"
+      >Saltar al contenido principal</a
+    >
+
+    <!-- ===== CABECERA ===== -->
+    <header class="cabecera" role="banner">
+      <button type="button" class="boton-menu" id="boton-menu"
+              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
+        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Menú</span>
+      </button>
+
+      <div class="cabecera-izquierda">
+        <a
+          class="logo"
+          href="index.html"
+          aria-label="El Desparche, ir a la página de inicio"
+        >
+          <img
+            class="logo-texto"
+            src="img/logo-eldesparche.svg"
+            alt=""
+            aria-hidden="true"
+          />
+        </a>
+
+        <nav class="menu" id="menu-principal" role="navigation" aria-label="Navegación principal">
+          <ul>
+            <li>
+              <a href="index.html">Inicio</a>
+            </li>
+            <li><a href="eventos.html">Eventos</a></li>
+            <li><a href="mis-reservas.html">Mis reservas</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="cabecera-derecha" id="menu-cuenta">
+        <!-- El script escribe aquí los botones de acceso o los datos del usuario -->
+        <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
+
+        <!-- ===== BOTÓN DE ACCESIBILIDAD (patron "disclosure") =====
+           aria-expanded es un ESTADO: dice si el panel esta abierto o
+           cerrado, y el lector de pantalla lo anuncia en cada pulsación
+           ("contraído" / "expandido"). aria-controls lo enlaza con el
+           panel que abre. El panel se oculta con el atributo hidden, que
+           lo saca del orden de tabulación y también del lector: así no se
+           puede llegar con el teclado a botones que no se ven. -->
+        <div class="accesibilidad">
+          <button
+            type="button"
+            class="boton-accesibilidad"
+            id="abrir-accesibilidad"
+            aria-expanded="false"
+            aria-controls="panel-accesibilidad"
+          >
+            <span>Accesibilidad</span>
+            <!-- La flecha va en el marcado con aria-hidden, no como
+               contenido generado en CSS: el contenido de ::after SÍ entra
+               en el nombre accesible del botón en algunos navegadores, y
+               el lector acabaría diciendo "Accesibilidad triángulo". -->
+            <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
+          </button>
+
+          <div class="panel-accesibilidad" id="panel-accesibilidad" hidden>
+            <h2 class="panel-titulo" id="titulo-panel-acc">
+              Opciones de accesibilidad
+            </h2>
+
+            <!-- role="group" + aria-labelledby agrupan los botones bajo un
+               mismo nombre, para que el lector anuncie de qué van antes
+               de leer cada uno. -->
+            <div
+              class="tamano-texto"
+              role="group"
+              aria-labelledby="titulo-tamano"
+            >
+              <span class="oculto" id="titulo-tamano">Tamaño del texto</span>
+
+              <button
+                type="button"
+                class="tamano-menor"
+                id="texto-menos"
+                aria-label="Disminuir el tamaño del texto"
+              >
+                A<span aria-hidden="true">&minus;</span>
+              </button>
+
+              <!-- Señal visible del estado. El lector no lo lee (ya se lo
+                 anuncia la región role="status") para no repetirlo. -->
+              <span class="tamano-valor" id="texto-valor" aria-hidden="true"
+                >100%</span
+              >
+
+              <button
+                type="button"
+                class="tamano-mayor"
+                id="texto-mas"
+                aria-label="Aumentar el tamaño del texto"
+              >
+                A<span aria-hidden="true">+</span>
+              </button>
+
+              <button
+                type="button"
+                class="tamano-reinicio"
+                id="texto-normal"
+                aria-label="Restablecer el tamaño normal del texto"
+              >
+                Normal
+              </button>
+            </div>
+
+            <p class="panel-ayuda">
+              Se guarda en este navegador para tus próximas visitas.
+            </p>
+          </div>
+        </div>
+
+        <!-- Anuncia el nuevo tamaño en voz alta al pulsar (WCAG 4.1.3) -->
+        <p
+          class="oculto"
+          id="aviso-tamano"
+          role="status"
+          aria-live="polite"
+        ></p>
+      </div>
+    </header>
+
+    <!-- tabindex="-1" permite que el enlace de salto mueva el foco hasta aquí -->
+    <main id="contenido" class="info faq" tabindex="-1">
+      <!-- ===== PORTADA: la ventanilla de la taquilla ===== -->
+      <section class="ayuda-portada" aria-labelledby="ayuda-titulo">
+        <div class="ayuda-portada-marco">
+          <h1 id="ayuda-titulo" class="ayuda-titulo">
+            <span>¿Dudas?</span>
+            <span>Pregunta en taquilla</span>
+          </h1>
+          <p class="ayuda-entrada">
+            Reservas, pagos, verificación y el QR de tu entrada. Si no está
+            aquí, escríbenos y te ayudamos.
+          </p>
+
+          <div class="faq-buscador" role="search">
+            <label for="faq-buscar">Busca tu pregunta</label>
+            <div class="faq-buscador-campo">
+              <svg class="faq-lupa" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="M16 16l4.5 4.5" />
+              </svg>
+              <input
+                type="search"
+                id="faq-buscar"
+                placeholder="Ejemplo: Nequi, QR, cancelar"
+                autocomplete="off"
+                aria-describedby="faq-cuantas"
+              />
+            </div>
+            <p class="faq-cuantas" id="faq-cuantas" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <div class="ayuda-cuerpo">
+        <!-- ===== ÍNDICE DE TEMAS ===== -->
+        <nav class="ayuda-indice" aria-labelledby="ayuda-indice-titulo">
+          <h2 class="ayuda-indice-titulo" id="ayuda-indice-titulo">Temas</h2>
+          <ul>
+            <li><a href="#tema-reservas">Reservas y entradas</a></li>
+            <li><a href="#tema-pagos">Pagos con Wompi</a></li>
+            <li><a href="#tema-verificacion">Verificación de identidad</a></li>
+            <li><a href="#tema-qr">El QR y el día del evento</a></li>
+            <li><a href="#tema-cuenta">Tu cuenta y los agentes</a></li>
+          </ul>
+        </nav>
+
+        <div class="faq-grupos">
+          <!-- ===== RESERVAS ===== -->
+          <section class="faq-grupo" id="tema-reservas" aria-labelledby="tema-reservas-titulo">
+            <h2 id="tema-reservas-titulo">Reservas y entradas</h2>
+
+            <details class="faq-pregunta" id="como-reservar">
+              <summary>¿Cómo reservo una entrada?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Busca el evento en el <a href="index.html">inicio</a> o en
+                  <a href="eventos.html">Eventos</a>, entra a su página y pulsa
+                  «Reservar». Eliges cuántas entradas quieres, revisas el total
+                  y pagas. Necesitas una cuenta con la identidad verificada.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="cuantas-entradas">
+              <summary>¿Cuántas entradas puedo reservar a la vez?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Hasta 10 entradas por reserva. Si necesitas más, puedes hacer
+                  otra reserva para el mismo evento.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="ver-reservas">
+              <summary>¿Dónde veo las entradas que ya reservé?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  En <a href="mis-reservas.html">Mis reservas</a>, con tu sesión
+                  iniciada. Ahí aparece cada reserva con su fecha, lugar, total y
+                  estado: Confirmada, Reservada (pago pendiente) o Cancelada.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="cancelar-reserva">
+              <summary>¿Puedo cancelar una reserva?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Sí. En <a href="mis-reservas.html">Mis reservas</a> pulsa
+                  «Cancelar» junto a la reserva y confirma. Al cancelarla, su QR
+                  deja de servir para entrar al evento.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="eventos-gratis">
+              <summary>¿Los eventos gratis también se reservan?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Sí. Así el organizador sabe cuántas personas van y tú recibes
+                  tu QR para entrar, aunque no pagues nada.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <!-- ===== PAGOS ===== -->
+          <section class="faq-grupo" id="tema-pagos" aria-labelledby="tema-pagos-titulo">
+            <h2 id="tema-pagos-titulo">Pagos con Wompi</h2>
+
+            <details class="faq-pregunta" id="medios-pago">
+              <summary>¿Con qué puedo pagar?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Con tarjeta débito o crédito, Nequi, PSE o el Botón
+                  Bancolombia. Todos los pagos se hacen en pesos colombianos a
+                  través de Wompi.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="pago-seguro">
+              <summary>¿Es seguro pagar aquí?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Sí. El pago lo procesa Wompi, una pasarela de pagos de
+                  Bancolombia. Los datos de tu tarjeta o de tu banco se escriben
+                  en la ventana de Wompi: El Desparche nunca los ve ni los guarda.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="pago-pendiente">
+              <summary>Mi pago quedó «Pendiente». ¿Qué hago?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Nada por ahora. Algunos pagos, sobre todo con PSE, tardan unos
+                  minutos en confirmarse. Mientras tanto la reserva aparece como
+                  «Reservada» y el QR se activa solo cuando el pago se aprueba.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="pago-rechazado">
+              <summary>Mi pago fue rechazado. ¿Me cobraron?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  No. Si el pago aparece como rechazado o con error, no se hizo
+                  ningún cobro y la reserva no queda activa. Revisa los datos o
+                  el saldo e inténtalo de nuevo, o prueba con otro medio de pago.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <!-- ===== VERIFICACIÓN ===== -->
+          <section class="faq-grupo" id="tema-verificacion" aria-labelledby="tema-verificacion-titulo">
+            <h2 id="tema-verificacion-titulo">Verificación de identidad</h2>
+
+            <details class="faq-pregunta" id="por-que-verificar">
+              <summary>¿Por qué tengo que verificar mi identidad?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Para que cada entrada quede a nombre de una persona real. Así
+                  evitamos la reventa y las entradas falsas. Solo se hace una
+                  vez por cuenta.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="como-verificar">
+              <summary>¿Cómo me verifico?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  En la página de <a href="verificar.html">verificación</a>
+                  sigues 4 pasos: confirmas tus datos, subes una foto del reverso
+                  de tu cédula, otra del frente y una selfie. El código de barras
+                  de la cédula se lee en tu propio navegador.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="cuanto-tarda">
+              <summary>¿Cuánto tarda la revisión?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Un administrador revisa cada solicitud a mano. Mientras tanto
+                  aparece como «Pendiente»; cuando la aprueben ya puedes reservar.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="verificacion-rechazada">
+              <summary>Rechazaron mi verificación. ¿Y ahora?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Al intentar reservar verás el motivo del rechazo, por ejemplo
+                  una foto borrosa o datos que no coinciden. Corrige eso y envía
+                  la verificación otra vez.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <!-- ===== QR ===== -->
+          <section class="faq-grupo" id="tema-qr" aria-labelledby="tema-qr-titulo">
+            <h2 id="tema-qr-titulo">El QR y el día del evento</h2>
+
+            <details class="faq-pregunta" id="donde-qr">
+              <summary>¿Dónde está el QR de mi entrada?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  En <a href="mis-reservas.html">Mis reservas</a>, con el botón
+                  «Ver QR». Aparece en cuanto el pago está aprobado. También lo
+                  ves en la página de confirmación justo después de pagar.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="qr-dos-veces">
+              <summary>¿Puedo usar el mismo QR dos veces?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  No. En la entrada lo escanean y queda marcado como usado. Si
+                  alguien intenta entrar otra vez con el mismo QR, el sistema lo
+                  rechaza. Por eso no lo compartas.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="qr-captura">
+              <summary>¿Sirve una captura de pantalla del QR?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Sí, y es buena idea guardarla por si no tienes señal en el
+                  lugar. Sube el brillo de la pantalla al mostrarla.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="evento-cancelado">
+              <summary>¿Qué pasa si cancelan el evento?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  La página del evento lo mostrará como «Cancelado» y explicará
+                  cómo se hace la devolución del dinero. Tu reserva queda
+                  cancelada y su QR deja de funcionar.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <!-- ===== CUENTA ===== -->
+          <section class="faq-grupo" id="tema-cuenta" aria-labelledby="tema-cuenta-titulo">
+            <h2 id="tema-cuenta-titulo">Tu cuenta y los agentes</h2>
+
+            <details class="faq-pregunta" id="crear-cuenta">
+              <summary>¿Cómo creo una cuenta?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Con el botón «Registrarse» de la parte de arriba. Te pide tus
+                  datos básicos: documento, nombres y apellidos, teléfono,
+                  ciudad, fecha de nacimiento, correo y una contraseña.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="ser-agente">
+              <summary>Quiero publicar mi evento. ¿Cómo hago?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Regístrate como Agente. Los agentes son los organizadores que
+                  publican eventos en El Desparche; un administrador revisa y
+                  aprueba cada cuenta de agente.
+                  <a href="#" data-registro-agente>Registrarme como agente</a>
+                </p>
+              </div>
+            </details>
+
+            <details class="faq-pregunta" id="texto-grande">
+              <summary>La letra se ve muy pequeña. ¿Puedo agrandarla?</summary>
+              <div class="faq-respuesta">
+                <p>
+                  Sí. Con el botón «Accesibilidad» de la parte de arriba puedes
+                  aumentar o disminuir el tamaño del texto. Se guarda en tu
+                  navegador para las próximas visitas.
+                </p>
+              </div>
+            </details>
+          </section>
+
+          <p class="faq-vacio" id="faq-vacio" hidden>
+            No encontramos preguntas con esas palabras. Prueba con otra o
+            escríbenos.
+          </p>
+
+          <!-- ===== CIERRE ===== -->
+          <section class="faq-cierre" aria-labelledby="faq-cierre-titulo">
+            <h2 id="faq-cierre-titulo">¿No encontraste tu respuesta?</h2>
+            <p>
+              Escríbenos y te respondemos de lunes a viernes, de 8:00 a. m. a
+              6:00 p. m.
+            </p>
+            <a class="info-boleta-boton info-boleta-morada" href="mailto:soporte@eldesparche.online"
+              >Escribir a soporte</a
+            >
+          </section>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ===== PIE DE PÁGINA ===== -->
+    <footer class="pie" role="contentinfo">
+      <div class="pie-columnas">
+        <div class="pie-marca">
+          <img
+            class="logo-texto"
+            src="img/logo-eldesparche.svg"
+            alt="El Desparche"
+          />
+          <p>
+            Conectando la cultura urbana de Colombia. El punto de encuentro de
+            los mejores conciertos, eventos y experiencias inolvidables en tu
+            ciudad.
+          </p>
+        </div>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-nosotros">
+          <h2 class="pie-titulo" id="pie-nosotros">Sobre nosotros</h2>
+          <ul>
+            <li><a href="nosotros.html#comunidad">Comunidad</a></li>
+            <li><a href="#">Prensa</a></li>
+            <li><a href="terminos.html">Términos de servicio</a></li>
+          </ul>
+        </nav>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-ayuda">
+          <h2 class="pie-titulo" id="pie-ayuda">Ayuda</h2>
+          <ul>
+            <li><a href="#">Soporte</a></li>
+            <li><a href="#">Organizar evento</a></li>
+            <li><a href="preguntas-frecuentes.html" aria-current="page">Preguntas frecuentes</a></li>
+          </ul>
+        </nav>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-categorias">
+          <h2 class="pie-titulo" id="pie-categorias">Categorías</h2>
+          <ul>
+            <li><a href="index.html?parche=parchesote#parches">Parchesotes</a></li>
+            <li><a href="index.html?parche=parche#parches">Parches</a></li>
+            <li><a href="index.html?parche=parchesito#parches">Parchesitos</a></li>
+          </ul>
+        </nav>
+
+        <nav class="pie-enlaces" aria-labelledby="pie-redes">
+          <h2 class="pie-titulo" id="pie-redes">Síguenos</h2>
+          <!-- Enlaces solo con icono: el nombre accesible lo da aria-label -->
+          <ul class="redes">
+            <li>
+              <a href="#" aria-label="El Desparche en Instagram">
+                <img src="img/cadd5.svg" alt="" aria-hidden="true" />
+              </a>
+            </li>
+            <li>
+              <a href="#" aria-label="El Desparche en Twitter">
+                <img src="img/fbe59.svg" alt="" aria-hidden="true" />
+              </a>
+            </li>
+            <li>
+              <a href="#" aria-label="El Desparche en YouTube">
+                <img src="img/26b07.svg" alt="" aria-hidden="true" />
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <p class="pie-final">
+        <span
+          >© 2026 ElDesparche. Todos los derechos reservados a nuestro grupo de
+          proyecto integrador.</span
+        >
+        <span>Tuluá, Colombia</span>
+      </p>
+    </footer>
+
+    <script type="module" src="js/script.js"></script>
+    <script type="module" src="js/paginas.js"></script>
+  </body>
+</html>

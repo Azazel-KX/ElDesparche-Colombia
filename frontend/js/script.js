@@ -1743,7 +1743,7 @@ function paginaMisReservas() {
       } else if (r.pago && r.pago.estado === "PENDING") {
         acciones =
           '<span class="sin-qr">Pago pendiente: el QR aparece al aprobarse</span>' +
-          '<button class="boton-mini boton-cancelar" data-cancelar="' + r.codigo + '">Cancelar</button>';
+          '<button class="boton-mini boton-cancelar" data-cancelar="' + esc(r.codigo) + '">Cancelar</button>';
       } else {
         acciones =
           '<button class="boton-mini boton-qr" data-qr="' + esc(r.codigo) + '">Ver QR</button>' +
