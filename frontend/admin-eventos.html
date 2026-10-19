@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestión de eventos - El Desparche</title>
-    <link rel="icon" href="img/14603.png" />
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -110,13 +110,14 @@
           <nav aria-labelledby="titulo-lateral">
             <ul>
               <li><a href="admin.html">Panel</a></li>
+              <li><a href="admin-reportes.html">Reportes</a></li>
               <li><a href="admin-agentes.html">Agentes</a></li>
               <li><a class="activo" href="admin-eventos.html" aria-current="page">Eventos</a></li>
               <li><a href="admin-clientes.html">Clientes</a></li>
+              <li><a href="admin-administradores.html">Administradores</a></li>
               <li><a href="admin-reservas.html">Reservas y pagos</a></li>
+              <li><a href="admin-ubicaciones.html">Ubicaciones</a></li>
               <li><a href="admin-validar.html">Validar entradas</a></li>
-              <li><a href="admin-verificaciones.html">Verificaciones</a></li>
-              <li><a href="admin-sesiones.html">Sesiones</a></li>
             </ul>
           </nav>
         </aside>
@@ -125,11 +126,19 @@
           <div class="recuadro-titulo admin-cabecera">
             <div>
               <h1>Gestión de eventos</h1>
-              <p>Revisa la ocupación de cada evento y cambia su estado cuando haga falta.</p>
+              <p>Registra, consulta, modifica y elimina eventos, revisa su ocupación y cambia su estado.</p>
             </div>
+            <button type="button" class="admin-boton" id="nuevo-evento">Registrar evento</button>
           </div>
 
           <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <!-- Eventos que crearon los agentes y esperan aprobación -->
+          <section class="admin-tarjeta revision-eventos" aria-labelledby="titulo-por-revisar">
+            <h2 id="titulo-por-revisar" tabindex="-1">Por revisar</h2>
+            <p class="admin-conteo" id="conteo-por-revisar"></p>
+            <ul class="agente-eventos" id="lista-por-revisar"></ul>
+          </section>
 
           <section aria-labelledby="titulo-resumen-eventos">
             <h2 class="oculto" id="titulo-resumen-eventos">Eventos por estado</h2>
@@ -142,7 +151,7 @@
             <form class="admin-filtros" role="search" aria-label="Filtrar eventos" id="filtros-eventos">
               <div class="admin-filtro admin-filtro-buscar">
                 <label for="buscar-evento">Buscar</label>
-                <input type="search" id="buscar-evento" placeholder="Nombre, lugar o agente" autocomplete="off" />
+                <input type="search" id="buscar-evento" placeholder="Nombre, teatro o agente" autocomplete="off" />
               </div>
               <div class="admin-filtro">
                 <label for="filtro-estado-evento">Estado</label>

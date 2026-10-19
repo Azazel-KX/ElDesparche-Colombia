@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mis eventos - Panel de agente - El Desparche</title>
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Geist:wght@400;600;700&family=Outfit:wght@800&family=Kadwa&family=Source+Sans+3:wght@600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="css/admin.css" />
+
+    <script>
+      (function () {
+        try {
+          var v = localStorage.getItem("escalaTexto");
+          if (v) document.documentElement.style.setProperty("--escala-texto", v);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+
+  <body data-pagina="agente-eventos">
+    <a class="salto-contenido" href="#contenido-principal">Saltar al contenido principal</a>
+
+    <!-- ===== CABECERA ===== -->
+    <header class="cabecera">
+      <button type="button" class="boton-menu" id="boton-menu"
+              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
+        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Menú</span>
+      </button>
+
+      <div class="cabecera-izquierda">
+        <a class="logo" href="index.html">
+          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
+        </a>
+
+        <nav class="menu" id="menu-principal">
+          <ul>
+            <li><a href="index.html">Inicio</a></li>
+            <li><a href="eventos.html">Eventos</a></li>
+            <li><a href="mis-reservas.html">Mis reservas</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="cabecera-derecha" id="menu-cuenta">
+        <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
+
+        <div class="accesibilidad">
+          <button type="button" class="boton-accesibilidad" id="abrir-accesibilidad"
+                  aria-expanded="false" aria-controls="panel-accesibilidad">
+            <span>Accesibilidad</span>
+            <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
+          </button>
+
+          <div class="panel-accesibilidad" id="panel-accesibilidad" hidden>
+            <h2 class="panel-titulo" id="titulo-panel-acc">Opciones de accesibilidad</h2>
+
+            <div class="tamano-texto" role="group" aria-labelledby="titulo-tamano">
+              <span class="oculto" id="titulo-tamano">Tamaño del texto</span>
+
+              <button type="button" class="tamano-menor" id="texto-menos"
+                      aria-label="Disminuir el tamaño del texto">
+                A<span aria-hidden="true">&minus;</span>
+              </button>
+
+              <span class="tamano-valor" id="texto-valor" aria-hidden="true">100%</span>
+
+              <button type="button" class="tamano-mayor" id="texto-mas"
+                      aria-label="Aumentar el tamaño del texto">
+                A<span aria-hidden="true">+</span>
+              </button>
+
+              <button type="button" class="tamano-reinicio" id="texto-normal"
+                      aria-label="Restablecer el tamaño normal del texto">
+                Normal
+              </button>
+            </div>
+
+            <p class="panel-ayuda">Se guarda en este navegador para tus próximas visitas.</p>
+          </div>
+        </div>
+
+        <p class="oculto" id="aviso-tamano" role="status" aria-live="polite"></p>
+      </div>
+    </header>
+
+    <main class="admin admin-agente" id="contenido-principal" tabindex="-1">
+      <!-- Sin sesión de agente -->
+      <section class="admin-bloqueo" id="admin-bloqueo" aria-labelledby="titulo-bloqueo" hidden>
+        <div class="recuadro-titulo">
+          <h1 id="titulo-bloqueo">Panel de agentes</h1>
+          <p>Esta página es para los organizadores de eventos. Inicia sesión con tu cuenta de agente para ver cómo van tus eventos.</p>
+          <button type="button" class="admin-boton" id="bloqueo-entrar">Iniciar sesión</button>
+        </div>
+      </section>
+
+      <!-- Con sesión de agente -->
+      <div class="admin-marco" id="admin-marco" hidden>
+        <aside class="admin-lateral">
+          <p class="admin-lateral-titulo" id="titulo-lateral">Mi panel de agente</p>
+          <nav aria-labelledby="titulo-lateral">
+            <ul>
+              <li><a href="agente.html">Resumen</a></li>
+              <li><a class="activo" href="agente-eventos.html" aria-current="page">Mis eventos</a></li>
+              <li><a href="agente-reservas.html">Reservas</a></li>
+              <li><a href="agente-validar.html">Validar entradas</a></li>
+              <li><a href="agente-perfil.html">Perfil de la empresa</a></li>
+            </ul>
+          </nav>
+        </aside>
+
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Mis eventos</h1>
+              <p>Crea eventos nuevos y sigue su revisión. Un administrador revisa cada evento antes de publicarlo.</p>
+            </div>
+            <button type="button" class="admin-boton agente-crear" id="crear-evento">Crear evento</button>
+          </div>
+
+          <p class="agente-cuenta" id="agente-cuenta" role="status" hidden></p>
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+          <p class="mensaje exito" id="exito-evento" role="status"></p>
+
+          <section class="admin-tarjeta" aria-labelledby="titulo-lista-eventos">
+            <h2 id="titulo-lista-eventos" class="oculto">Lista de tus eventos</h2>
+            <form class="admin-filtros agente-filtros" role="search" aria-label="Filtrar tus eventos" id="filtros-agente">
+              <div class="admin-filtro admin-filtro-buscar">
+                <label for="buscar-mis-eventos">Buscar</label>
+                <input type="search" id="buscar-mis-eventos" placeholder="Nombre, teatro o ciudad" autocomplete="off" />
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-mis-eventos">Estado</label>
+                <select id="filtro-mis-eventos">
+                  <option value="">Todos</option>
+                  <option value="En revisión">En revisión</option>
+                  <option value="Rechazado">Rechazado</option>
+                  <option value="Programado">Programado</option>
+                  <option value="En Boletería">En Boletería</option>
+                  <option value="En Vivo">En Vivo</option>
+                  <option value="Finalizado">Finalizado</option>
+                  <option value="Cancelado">Cancelado</option>
+                </select>
+              </div>
+            </form>
+            <p class="admin-conteo" id="resultado-mis-eventos" role="status" aria-live="polite"></p>
+            <ul class="agente-eventos" id="lista-mis-eventos"></ul>
+          </section>
+        </div>
+      </div>
+
+      <!-- Formulario para crear o editar un evento -->
+      <dialog class="modal modal-detalle modal-evento" id="dialogo-evento" aria-labelledby="titulo-formulario">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="cerrar-formulario" aria-label="Cerrar el formulario">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div class="detalle-cabecera">
+            <div>
+              <h2 id="titulo-formulario">Crear evento</h2>
+              <p>Al enviarlo queda en revisión hasta que un administrador lo apruebe.</p>
+            </div>
+          </div>
+
+          <form id="formulario-evento" novalidate>
+            <p class="mensaje error" id="error-evento" role="alert"></p>
+
+            <div class="campo">
+              <label for="evento-nombre">Nombre del evento</label>
+              <input type="text" id="evento-nombre" maxlength="150" required autocomplete="off" />
+            </div>
+
+            <div class="agente-campos-dobles">
+              <div class="campo">
+                <label for="evento-categoria">Categoría</label>
+                <select id="evento-categoria" required>
+                  <option value="">Elige una</option>
+                  <option value="musica">Música</option>
+                  <option value="teatro">Teatro</option>
+                  <option value="danza">Danza</option>
+                  <option value="circo">Circo</option>
+                  <option value="comedia">Comedia</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="evento-plan">Tipo de plan</label>
+                <select id="evento-plan" required aria-describedby="ayuda-plan">
+                  <option value="">Elige uno</option>
+                  <option value="parchesote">Parchesote</option>
+                  <option value="parche">Parche</option>
+                  <option value="parchesito">Parchesito</option>
+                </select>
+                <p class="agente-ayuda" id="ayuda-plan">Parchesote: festivales y conciertos. Parche: teatro, comedia y cultura. Parchesito: familiar, gastronómico o gratis.</p>
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="evento-descripcion">Descripción</label>
+              <textarea id="evento-descripcion" rows="4" required aria-describedby="ayuda-descripcion"></textarea>
+              <p class="agente-ayuda" id="ayuda-descripcion">Mínimo 30 caracteres. Cuenta qué va a pasar y por qué vale la pena ir.</p>
+            </div>
+
+            <div class="agente-campos-dobles">
+              <div class="campo">
+                <label for="evento-inicio">Empieza</label>
+                <input type="datetime-local" id="evento-inicio" required />
+              </div>
+              <div class="campo">
+                <label for="evento-fin">Termina</label>
+                <input type="datetime-local" id="evento-fin" required />
+              </div>
+            </div>
+
+            <div class="agente-campos-dobles">
+              <div class="campo">
+                <label for="evento-ciudad">Ciudad</label>
+                <select id="evento-ciudad" required>
+                  <option value="">Cargando ciudades</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="evento-teatro">Teatro</label>
+                <input type="text" id="evento-teatro" maxlength="150" required placeholder="Ejemplo: Teatro Municipal" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="evento-direccion">Dirección</label>
+              <input type="text" id="evento-direccion" maxlength="200" required autocomplete="off" />
+            </div>
+
+            <!-- Punto exacto del evento: se marca en el mapa o se escribe -->
+            <fieldset class="agente-mapa-campo">
+              <legend>Ubicación en el mapa</legend>
+              <p class="agente-ayuda" id="ayuda-mapa">
+                Toca el mapa para marcar el punto exacto del evento o arrastra el marcador.
+                También puedes buscar la dirección o escribir las coordenadas.
+              </p>
+              <div class="agente-mapa-barra">
+                <button type="button" class="admin-boton-sec" id="buscar-direccion">Buscar la dirección en el mapa</button>
+                <p class="agente-ayuda" id="estado-mapa" role="status"></p>
+              </div>
+              <div class="agente-mapa" id="mapa-evento" role="region"
+                   aria-label="Mapa para marcar la ubicación del evento" aria-describedby="ayuda-mapa"></div>
+              <div class="agente-campos-dobles">
+                <div class="campo">
+                  <label for="evento-lat">Latitud</label>
+                  <input type="number" id="evento-lat" step="any" min="-90" max="90" inputmode="decimal" />
+                </div>
+                <div class="campo">
+                  <label for="evento-lon">Longitud</label>
+                  <input type="number" id="evento-lon" step="any" min="-180" max="180" inputmode="decimal" />
+                </div>
+              </div>
+            </fieldset>
+
+            <div class="agente-campos-triples">
+              <div class="campo">
+                <label for="evento-capacidad">Capacidad</label>
+                <input type="number" id="evento-capacidad" min="1" step="1" inputmode="numeric" required />
+              </div>
+              <div class="campo">
+                <label for="evento-precio">Precio por entrada</label>
+                <input type="number" id="evento-precio" min="0" step="1000" inputmode="numeric" required aria-describedby="ayuda-precio" />
+                <p class="agente-ayuda" id="ayuda-precio">En pesos. Escribe 0 si es gratis.</p>
+              </div>
+              <div class="campo">
+                <label for="evento-edad">Edad mínima</label>
+                <input type="number" id="evento-edad" min="0" max="21" step="1" inputmode="numeric" value="0" required />
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="evento-imagen">Imagen del evento <span class="opcional">(opcional)</span></label>
+              <input type="file" id="evento-imagen" accept="image/*" aria-describedby="ayuda-imagen" />
+              <p class="agente-ayuda" id="ayuda-imagen">Una foto horizontal se ve mejor. Se reduce sola antes de guardarse.</p>
+              <img class="agente-vista-previa" id="vista-imagen" alt="Vista previa de la imagen del evento" hidden />
+            </div>
+
+            <div class="campo">
+              <label for="evento-observaciones">Observaciones <span class="opcional">(opcional)</span></label>
+              <textarea id="evento-observaciones" rows="2" placeholder="Ejemplo: apertura de puertas a las 6:00 p. m."></textarea>
+            </div>
+
+            <div class="agente-acciones-formulario">
+              <button type="submit" class="admin-boton" id="enviar-evento">Enviar a revisión</button>
+              <button type="button" class="admin-boton-sec" id="cancelar-formulario">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+    </main>
+
+    <!-- ===== PIE DE PÁGINA ===== -->
+    <footer class="pie">
+      <div class="pie-columnas">
+        <div class="pie-marca">
+          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
+          <p>
+            Conectando la cultura urbana de Colombia con planes que vale la pena
+            vivir.
+          </p>
+        </div>
+      </div>
+      <p class="pie-final">
+        <span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span>
+      </p>
+    </footer>
+
+    <script type="module" src="js/script.js"></script>
+    <script type="module" src="js/agente.js"></script>
+  </body>
+</html>

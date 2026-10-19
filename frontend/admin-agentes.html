@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestión de agentes - El Desparche</title>
-    <link rel="icon" href="img/14603.png" />
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -110,13 +110,14 @@
           <nav aria-labelledby="titulo-lateral">
             <ul>
               <li><a href="admin.html">Panel</a></li>
+              <li><a href="admin-reportes.html">Reportes</a></li>
               <li><a class="activo" href="admin-agentes.html" aria-current="page">Agentes</a></li>
               <li><a href="admin-eventos.html">Eventos</a></li>
               <li><a href="admin-clientes.html">Clientes</a></li>
+              <li><a href="admin-administradores.html">Administradores</a></li>
               <li><a href="admin-reservas.html">Reservas y pagos</a></li>
+              <li><a href="admin-ubicaciones.html">Ubicaciones</a></li>
               <li><a href="admin-validar.html">Validar entradas</a></li>
-              <li><a href="admin-verificaciones.html">Verificaciones</a></li>
-              <li><a href="admin-sesiones.html">Sesiones</a></li>
             </ul>
           </nav>
         </aside>
@@ -125,8 +126,9 @@
           <div class="recuadro-titulo admin-cabecera">
             <div>
               <h1>Gestión de agentes</h1>
-              <p>Revisa, aprueba o suspende las empresas que publican eventos en El Desparche.</p>
+              <p>Registra, consulta, modifica y elimina las empresas que publican eventos, y apruébalas o suspéndelas.</p>
             </div>
+            <button type="button" class="admin-boton" id="nuevo-agente">Registrar agente</button>
           </div>
 
           <p class="admin-aviso" id="admin-aviso" role="status"></p>

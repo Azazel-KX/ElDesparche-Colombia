@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Verificaciones - El Desparche</title>
-    <link rel="icon" href="img/14603.png" />
+    <title>Validar entradas - Panel de agente - El Desparche</title>
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,7 +26,7 @@
     </script>
   </head>
 
-  <body data-pagina="admin-verificaciones">
+  <body data-pagina="agente-validar">
     <a class="salto-contenido" href="#contenido-principal">Saltar al contenido principal</a>
 
     <!-- ===== CABECERA ===== -->
@@ -93,30 +93,27 @@
       </div>
     </header>
 
-    <main class="admin" id="contenido-principal" tabindex="-1">
-      <!-- Sin sesión de administrador -->
+    <main class="admin admin-agente" id="contenido-principal" tabindex="-1">
+      <!-- Sin sesión de agente -->
       <section class="admin-bloqueo" id="admin-bloqueo" aria-labelledby="titulo-bloqueo" hidden>
         <div class="recuadro-titulo">
-          <h1 id="titulo-bloqueo">Zona de administración</h1>
-          <p>Esta página es solo para administradores. Inicia sesión con una cuenta de administrador para continuar.</p>
+          <h1 id="titulo-bloqueo">Panel de agentes</h1>
+          <p>Esta página es para los organizadores de eventos. Inicia sesión con tu cuenta de agente para ver cómo van tus eventos.</p>
           <button type="button" class="admin-boton" id="bloqueo-entrar">Iniciar sesión</button>
         </div>
       </section>
 
-      <!-- Con sesión de administrador -->
+      <!-- Con sesión de agente -->
       <div class="admin-marco" id="admin-marco" hidden>
         <aside class="admin-lateral">
-          <p class="admin-lateral-titulo" id="titulo-lateral">Administración</p>
+          <p class="admin-lateral-titulo" id="titulo-lateral">Mi panel de agente</p>
           <nav aria-labelledby="titulo-lateral">
             <ul>
-              <li><a href="admin.html">Panel</a></li>
-              <li><a href="admin-agentes.html">Agentes</a></li>
-              <li><a href="admin-eventos.html">Eventos</a></li>
-              <li><a href="admin-clientes.html">Clientes</a></li>
-              <li><a href="admin-reservas.html">Reservas y pagos</a></li>
-              <li><a href="admin-validar.html">Validar entradas</a></li>
-              <li><a class="activo" href="admin-verificaciones.html" aria-current="page">Verificaciones</a></li>
-              <li><a href="admin-sesiones.html">Sesiones</a></li>
+              <li><a href="agente.html">Resumen</a></li>
+              <li><a href="agente-eventos.html">Mis eventos</a></li>
+              <li><a href="agente-reservas.html">Reservas</a></li>
+              <li><a class="activo" href="agente-validar.html" aria-current="page">Validar entradas</a></li>
+              <li><a href="agente-perfil.html">Perfil de la empresa</a></li>
             </ul>
           </nav>
         </aside>
@@ -124,83 +121,59 @@
         <div class="admin-contenido">
           <div class="recuadro-titulo admin-cabecera">
             <div>
-              <h1>Verificaciones de identidad</h1>
-              <p>Revisa el documento y la selfie de cada cliente. Solo los clientes aprobados pueden reservar entradas.</p>
+              <h1>Validar entradas</h1>
+              <p>Escanea el QR de las entradas de tus eventos con la cámara o escribe el código de la reserva.</p>
             </div>
           </div>
 
+          <p class="agente-cuenta" id="agente-cuenta" role="status" hidden></p>
           <p class="admin-aviso" id="admin-aviso" role="status"></p>
 
-          <section aria-labelledby="titulo-resumen-verificaciones">
-            <h2 class="oculto" id="titulo-resumen-verificaciones">Resumen de verificaciones</h2>
-            <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
-          </section>
+          <div class="validar-columnas">
+            <section class="admin-tarjeta" aria-labelledby="titulo-escanear">
+              <h2 id="titulo-escanear">Escanear</h2>
 
-          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-verificaciones">
-            <h2 id="titulo-lista-verificaciones" tabindex="-1">Solicitudes</h2>
-
-            <form class="admin-filtros" role="search" aria-label="Filtrar solicitudes" id="filtros-verificaciones">
-              <div class="admin-filtro admin-filtro-buscar">
-                <label for="buscar-verificacion">Buscar</label>
-                <input type="search" id="buscar-verificacion" placeholder="Nombre, documento o correo" autocomplete="off" />
-              </div>
-              <div class="admin-filtro">
-                <label for="filtro-estado-verificacion">Estado</label>
-                <select id="filtro-estado-verificacion">
-                  <option value="">Todos</option>
-                  <option value="Pendiente">Pendiente</option>
-                  <option value="Aprobada">Aprobada</option>
-                  <option value="Rechazada">Rechazada</option>
+              <div class="admin-filtro validar-evento">
+                <label for="validar-evento">Evento en la puerta</label>
+                <select id="validar-evento">
+                  <option value="">Cualquiera de tus eventos</option>
                 </select>
               </div>
-              <div class="admin-filtro">
-                <label for="filtro-lectura">Lectura automática</label>
-                <select id="filtro-lectura">
-                  <option value="">Todas</option>
-                  <option value="si">Coincide</option>
-                  <option value="no">No coincide</option>
-                  <option value="sin">Sin lectura</option>
-                </select>
-              </div>
-              <div class="admin-filtro">
-                <label for="orden-verificaciones">Ordenar por</label>
-                <select id="orden-verificaciones">
-                  <option value="cola">Pendientes primero</option>
-                  <option value="antiguas">Más antiguas</option>
-                  <option value="recientes">Más recientes</option>
-                </select>
-              </div>
-            </form>
 
-            <p class="admin-conteo" id="conteo-verificaciones" role="status"></p>
+              <div class="validar-camara" id="validar-visor" hidden>
+                <video id="validar-video" playsinline muted></video>
+                <span class="validar-marco" aria-hidden="true"></span>
+              </div>
 
-            <table class="admin-tabla" role="table">
-              <caption class="oculto">Solicitudes de verificación de identidad</caption>
-              <thead role="rowgroup">
-                <tr role="row">
-                  <th scope="col" role="columnheader">Cliente</th>
-                  <th scope="col" role="columnheader">Documento</th>
-                  <th scope="col" role="columnheader">Enviada</th>
-                  <th scope="col" role="columnheader">Lectura automática</th>
-                  <th scope="col" role="columnheader">Estado</th>
-                  <th scope="col" role="columnheader">Acciones</th>
-                </tr>
-              </thead>
-              <tbody role="rowgroup" id="cuerpo-verificaciones"></tbody>
-            </table>
+              <div class="detalle-botones">
+                <button type="button" class="admin-boton" id="validar-abrir">Abrir la cámara</button>
+                <button type="button" class="admin-boton-sec" id="validar-detener" hidden>Detener la cámara</button>
+              </div>
+
+              <form class="validar-manual" id="validar-manual" novalidate>
+                <label for="validar-codigo">O escribe el código de la reserva</label>
+                <div class="validar-manual-fila">
+                  <input type="text" id="validar-codigo" placeholder="DES-XXXXXXXX" autocomplete="off" autocapitalize="characters" />
+                  <button type="submit" class="admin-boton-sec">Validar</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="admin-tarjeta" aria-labelledby="titulo-resultado">
+              <h2 id="titulo-resultado">Resultado</h2>
+              <div id="validar-resultado" role="status" aria-live="polite">
+                <p class="validar-espera">Aquí verás si la entrada es válida en cuanto la escanees.</p>
+              </div>
+            </section>
+          </div>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-ingresos">
+            <h2 id="titulo-ingresos">Ingresos registrados</h2>
+            <p class="admin-conteo" id="conteo-ingresos"></p>
+            <ul class="admin-actividad" id="lista-ingresos"></ul>
           </section>
         </div>
       </div>
-
-      <!-- Revisión de una solicitud -->
-      <dialog class="modal modal-detalle modal-revision" id="detalle-verificacion" aria-labelledby="detalle-nombre">
-        <div class="modal-caja">
-          <button type="button" class="modal-cerrar" id="detalle-cerrar" aria-label="Cerrar la revisión">
-            <span aria-hidden="true">&times;</span>
-          </button>
-          <div id="detalle-contenido"></div>
-        </div>
-      </dialog>
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
@@ -220,6 +193,6 @@
     </footer>
 
     <script type="module" src="js/script.js"></script>
-    <script type="module" src="js/admin.js"></script>
+    <script type="module" src="js/agente.js"></script>
   </body>
 </html>

@@ -1565,3 +1565,392 @@
     padding: 0;
   }
 }
+
+/* ==========================================================================
+   PRENSA
+   Idea visual: el planeta gira y las fotos de los eventos orbitan a su
+   alrededor como polaroids, cada una unida con una línea a su ciudad.
+   ========================================================================== */
+
+.prensa-portada {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  align-items: center;
+  padding: 64px 20px 72px;
+  overflow: clip;
+  background:
+    radial-gradient(ellipse 55% 65% at 80% 50%, rgba(124, 58, 237, 0.35), transparent 70%),
+    var(--oscuro);
+  color: var(--blanco);
+}
+
+.prensa-portada :focus-visible {
+  outline-color: var(--foco-claro);
+}
+
+.prensa-portada .ayuda-entrada {
+  max-width: 44ch;
+}
+
+.prensa-globo {
+  justify-self: center;
+  width: 100%;
+  max-width: 600px;
+  margin: 0;
+}
+
+.prensa-globo-lienzo {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.prensa-globo-lienzo canvas {
+  display: block;
+  cursor: grab;
+  /* Se puede bajar por la página con el dedo; de lado gira el planeta */
+  touch-action: pan-y;
+}
+
+.prensa-arrastrando canvas {
+  cursor: grabbing;
+}
+
+.prensa-pines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Cada foto es una polaroid; la línea y el punto de su ciudad van en el lienzo */
+.prensa-pin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.prensa-pin img {
+  display: block;
+  width: 60px;
+  height: 60px;
+  padding: 4px 4px 12px;
+  border-radius: 4px;
+  background: var(--blanco);
+  box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.7);
+  object-fit: cover;
+  transform: rotate(var(--giro));
+}
+
+.prensa-globo-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 8px;
+  color: var(--texto-claro);
+  font-size: calc(14px * var(--escala-texto));
+}
+
+/* Este botón usa el estilo de la pausa de la cinta de Nosotros, pero se
+   queda junto al planeta (allá va en una esquina de la portada) */
+.prensa-pausa {
+  position: static !important;
+  margin-top: 0;
+  background: transparent !important;
+}
+
+.prensa-lugares {
+  margin-top: 12px;
+  color: var(--texto-claro);
+  font-size: calc(14px * var(--escala-texto));
+}
+
+.prensa-lugares summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--lila);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.prensa-lugares ul {
+  margin: 4px 0 0;
+  padding-left: 1.2em;
+  columns: 2 220px;
+}
+
+/* ----- Comunicados ----- */
+
+.prensa-comunicados {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prensa-comunicados article {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 20px;
+  padding: 24px 0;
+  border-top: 2px dashed var(--borde-lila);
+}
+
+/* La fecha va en un talón de boleta */
+.prensa-talon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: start;
+  min-height: 92px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--morado-claro);
+  color: var(--gris-texto);
+  font-size: calc(13px * var(--escala-texto));
+  text-align: center;
+  -webkit-mask:
+    radial-gradient(circle 7px at 50% 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle 7px at 50% 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle 7px at 50% 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle 7px at 50% 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+}
+
+.prensa-talon span {
+  color: var(--morado);
+  font-family: "Outfit", "Inter", sans-serif;
+  font-size: calc(36px * var(--escala-texto));
+  font-weight: 800;
+  line-height: 1;
+}
+
+.prensa-comunicados h3 {
+  margin: 4px 0 8px;
+  font-family: "Outfit", "Inter", sans-serif;
+  font-size: calc(clamp(20px, 2.4vw, 26px) * var(--escala-texto));
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.prensa-comunicados p {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--gris-texto);
+}
+
+/* ----- Kit de prensa ----- */
+
+.prensa-kit {
+  background: var(--papel);
+}
+
+.prensa-intro {
+  margin-bottom: 28px !important;
+  color: var(--gris-texto);
+}
+
+.prensa-kit-rejilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+.prensa-pieza {
+  padding: 22px;
+  border: 2px solid var(--borde-lila);
+  border-radius: 16px;
+  background: var(--blanco);
+}
+
+.prensa-pieza h3 {
+  margin: 0 0 16px;
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(18px * var(--escala-texto));
+  font-weight: 700;
+}
+
+.prensa-logos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.prensa-logo {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  padding: 14px;
+  border-radius: 12px;
+}
+
+.prensa-logo img {
+  width: 100%;
+  max-width: 160px;
+}
+
+/* El isotipo es casi cuadrado: va más pequeño que el logotipo */
+.prensa-isotipo img {
+  max-width: 52px;
+}
+
+.prensa-logo-oscuro {
+  background: var(--oscuro);
+}
+
+.prensa-logo-morado {
+  background: var(--morado);
+}
+
+.prensa-descarga {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  min-height: 44px;
+  color: var(--morado);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+.prensa-colores {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prensa-colores li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+}
+
+.prensa-muestra {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(19, 10, 43, 0.25);
+  border-radius: 10px;
+}
+
+.prensa-copiar {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 2px solid var(--borde-lila);
+  border-radius: 999px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: calc(14px * var(--escala-texto));
+  cursor: pointer;
+}
+
+.prensa-copiar:hover,
+.prensa-copiado {
+  border-color: var(--morado);
+  background: var(--morado-claro);
+}
+
+.prensa-letra {
+  margin: 0;
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(24px * var(--escala-texto));
+  font-weight: 600;
+}
+
+.prensa-letra-titulo {
+  font-family: "Outfit", "Inter", sans-serif;
+  font-size: calc(30px * var(--escala-texto));
+  font-weight: 800;
+}
+
+.prensa-letra-uso {
+  margin: 0 0 14px;
+  color: var(--gris-texto);
+  font-size: calc(14px * var(--escala-texto));
+}
+
+.prensa-pieza-ancha p {
+  max-width: 72ch;
+  margin: 0 0 14px;
+  color: var(--gris-texto);
+  line-height: 1.7;
+}
+
+.prensa-copiar-texto {
+  min-height: 44px;
+  padding: 0 20px;
+  border-color: var(--morado);
+  color: var(--morado);
+  font-family: "Geist", "Inter", sans-serif;
+  font-weight: 600;
+}
+
+.prensa-copiar-texto.prensa-copiado {
+  background: var(--morado-claro);
+}
+
+/* ----- Contacto ----- */
+
+.prensa-contacto {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 56px 20px 88px;
+  border-top: 0;
+}
+
+@media (min-width: 800px) {
+  .prensa-kit-rejilla {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .prensa-pieza-ancha {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1000px) {
+  .prensa-portada {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 24px;
+    padding: 72px max(48px, calc((100% - 1100px) / 2)) 80px;
+  }
+
+  .prensa-contacto {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .prensa-contacto {
+    box-sizing: content-box;
+    padding-left: 80px;
+    padding-right: 80px;
+  }
+}
+
+/* Mismos márgenes laterales que .info-seccion, para que todo quede alineado */
+@media (min-width: 600px) and (max-width: 999px) {
+  .prensa-portada,
+  .prensa-contacto {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 999px) {
+  .prensa-portada,
+  .prensa-contacto {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+}

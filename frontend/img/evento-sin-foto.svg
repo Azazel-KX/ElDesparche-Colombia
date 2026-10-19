@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <radialGradient id="luz" cx="85%" cy="100%" r="80%">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="#130a2b"/>
+  <rect width="800" height="500" fill="url(#luz)"/>
+  <!-- Boleta con muescas y línea de corte -->
+  <path d="M250 170h300a16 16 0 0 1 16 16v38a26 26 0 0 0 0 52v38a16 16 0 0 1-16 16H250a16 16 0 0 1-16-16v-38a26 26 0 0 0 0-52v-38a16 16 0 0 1 16-16z"
+        fill="none" stroke="#c4b5fd" stroke-width="6"/>
+  <line x1="470" y1="186" x2="470" y2="314" stroke="#c4b5fd" stroke-width="5" stroke-dasharray="10 10"/>
+  <path d="M360 212l11 23 25 3-18 17 5 25-23-12-23 12 5-25-18-17 25-3z" fill="none" stroke="#ffbf47" stroke-width="6" stroke-linejoin="round"/>
+</svg>

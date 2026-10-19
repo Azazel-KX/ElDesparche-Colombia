@@ -10,21 +10,43 @@
        actividad: [{ cuando, texto }] }
    - GET   /api/admin/agentes            -> { agentes: [ igual que AGENTES_DEMO ] }
    - PATCH /api/admin/agentes/:nit/estado   cuerpo { estado: "Activo" | "Suspendido" }
+   - POST   /api/admin/agentes           registra un agente (USUARIO del representante + AGENTE), con "contrasena"
+   - PUT    /api/admin/agentes/:nit      modifica sus datos (el NIT y el documento no cambian)
+   - DELETE /api/admin/agentes/:nit      lo elimina; responde 409 si tiene eventos (EVENTO.id_agente es RESTRICT)
    - GET   /api/admin/eventos            -> { eventos: [ igual que EVENTOS de script.js, con "agente" ] }
-   - PATCH /api/admin/eventos/:id/estado    cuerpo { estado, motivo }  (motivo solo al cancelar)
+   - POST   /api/admin/eventos           registra un evento (EVENTO + UBICACION) para un agente
+   - PUT    /api/admin/eventos/:id       modifica sus datos (el estado se cambia aparte)
+   - DELETE /api/admin/eventos/:id       lo elimina (sus reservas se borran en cascada)
+   - PATCH /api/admin/eventos/:id/estado    cuerpo { estado, observaciones }
+     (al cancelar, "observaciones" lleva la causa con el formato de notaCancelacion() en script.js)
    - GET   /api/admin/clientes           -> { clientes: [ igual que CLIENTES_DEMO ] }
    - PATCH /api/admin/clientes/:documento/estado   cuerpo { estado: "Activa" | "Bloqueada" }
+   - POST   /api/admin/clientes              registra un cliente (USUARIO + CLIENTE), con "contrasena"
+   - PUT    /api/admin/clientes/:documento   modifica sus datos (el documento no cambia)
+   - DELETE /api/admin/clientes/:documento   lo elimina (sus reservas se borran en cascada)
+   - GET    /api/admin/administradores        -> { administradores: [ igual que ADMINISTRADORES_DEMO ] }
+   - POST   /api/admin/administradores        registra uno (USUARIO + ADMIN), con "contrasena"
+   - PUT    /api/admin/administradores/:documento   modifica sus datos (el documento no cambia)
+   - DELETE /api/admin/administradores/:documento   lo elimina (el API no deja borrar la cuenta propia ni al último)
    - GET   /api/admin/reservas           -> { reservas: [ igual que reservasLocales() ] }
      "pago" guarda la transacción de Wompi: { id, metodo, estado, montoCentavos, moneda },
      con metodo y estado tal como los envía Wompi (CARD, NEQUI, PSE, BANCOLOMBIA_TRANSFER /
      APPROVED, PENDING, DECLINED, VOIDED, ERROR). El backend los actualiza con el webhook
      de Wompi (evento transaction.updated); la referencia de la transacción es el código.
-   - PATCH /api/admin/reservas/:codigo/estado      cuerpo { estado: "Cancelada" }
-   - GET   /api/admin/verificaciones     -> { verificaciones: [ igual que verificacionesDemo(), con "id" ] }
-   - PATCH /api/admin/verificaciones/:id            cuerpo { estado: "Aprobada" | "Rechazada", motivo }
-   - GET   /api/admin/sesiones           -> { administradores: [{ id, nombre, horario }],
-                                              sesiones: [ filas de SESION_ADMIN ] }
-   - POST  /api/auth/logout              guarda la fila de SESION_ADMIN (con la IP real) al salir un admin
+   - POST   /api/admin/reservas           registra una reserva para un cliente (sin pago en Wompi)
+   - PUT    /api/admin/reservas/:codigo   modifica entradas, estado u observaciones
+   - DELETE /api/admin/reservas/:codigo   la elimina; 409 si tiene un PAGO (PAGO.id_reserva es RESTRICT)
+   - GET    /api/admin/ubicaciones        -> { paises: [{ id, nombre }], departamentos: [{ id, nombre, idPais }],
+                                             ciudades: [{ id, nombre, idDepartamento }] }
+   - POST / PUT / DELETE /api/admin/paises[/:id], /api/admin/departamentos[/:id], /api/admin/ciudades[/:id]
+     cuerpo { nombre } (y idPais o idDepartamento al registrar). DELETE responde 409 si el país tiene
+     departamentos, el departamento tiene ciudades o la ciudad la usan personas o ubicaciones (RESTRICT).
+   - PATCH /api/admin/reservas/:codigo/estado      cuerpo { estado: "Cancelada", observaciones }
+     ("observaciones" lleva la causa, igual que en los eventos)
+   - GET   /api/admin/reportes?anio=2026  -> reportesLocal(): totales, promedios, ingresos por
+     agente / cliente / mes, reservas por evento y mes, eventos por agente y ciudad, eventos por
+     ubicación, reservas (historial y canceladas) y eventos cancelados. La causa de una
+     cancelación va en "observaciones" de RESERVA o EVENTO.
    - POST  /api/admin/entradas/:codigo/ingreso      marca la entrada como usada (201). El backend
      debe comprobar el token del QR (HMAC), el estado de la reserva y del pago, y que no se usó antes.
    ========================================================================== */
@@ -61,50 +83,59 @@ var DEMO = {
     ["Deportes", 186],
     ["Familiar", 97]
   ],
-  clientes: 18430,
-  verificaciones: 37
+  clientes: 18430
 };
 
 /* Agentes (AGENTE en la base de datos). "ventas" son las entradas vendidas
    en cada uno de los últimos 6 meses; "eventos", los id de EVENTOS. */
 var AGENTES_DEMO = [
-  { nit: "901234567-1", nombre: "Tarima Producciones", razon: "Tarima Producciones S.A.S.", correo: "contacto@tarima.example",
+  { nit: "901234567-1", tipoDoc: "CC", documento: "52874136", nombres: "Camila", apellidos: "Restrepo", direccion: "Calle 93 # 13-45 oficina 302",
+    nombre: "Tarima Producciones", razon: "Tarima Producciones S.A.S.", correo: "contacto@tarima.example",
     telefono: "3104567890", ciudad: "Bogotá", registro: "2024-02-12", comision: 8, experiencia: 9, estado: "Activo",
     eventos: [1, 3], entradas: 9840, ingresos: 525700000, ventas: [720, 810, 905, 870, 1010, 1180],
     descripcion: "Productora de festivales y conciertos de gran formato en Bogotá." },
-  { nit: "900876543-2", nombre: "Sonido Andino", razon: "Sonido Andino Ltda.", correo: "hola@sonidoandino.example",
+  { nit: "900876543-2", tipoDoc: "CC", documento: "71654320", nombres: "Jorge Iván", apellidos: "Arango Ruiz", direccion: "Carrera 43A # 1-50",
+    nombre: "Sonido Andino", razon: "Sonido Andino Ltda.", correo: "hola@sonidoandino.example",
     telefono: "3157894561", ciudad: "Medellín", registro: "2024-05-03", comision: 7.5, experiencia: 6, estado: "Activo",
     eventos: [2, 8], entradas: 7210, ingresos: 408900000, ventas: [540, 600, 650, 620, 710, 760],
     descripcion: "Giras de artistas nacionales en arenas y coliseos del país." },
-  { nit: "901112233-4", nombre: "Rumba Viva Eventos", razon: "Rumba Viva Eventos S.A.S.", correo: "eventos@rumbaviva.example",
+  { nit: "901112233-4", tipoDoc: "CC", documento: "66987123", nombres: "Paola Andrea", apellidos: "Cifuentes", direccion: "Avenida 4N # 10-22",
+    nombre: "Rumba Viva Eventos", razon: "Rumba Viva Eventos S.A.S.", correo: "eventos@rumbaviva.example",
     telefono: "3001239876", ciudad: "Cali", registro: "2024-08-21", comision: 7, experiencia: 5, estado: "Activo",
     eventos: [4, 5], entradas: 5980, ingresos: 311500000, ventas: [430, 480, 520, 500, 560, 610],
     descripcion: "Salsa, espectáculos de circo y eventos familiares en el Valle del Cauca." },
-  { nit: "900445566-7", nombre: "Telón Abierto", razon: "Fundación Telón Abierto", correo: "taquilla@telonabierto.example",
+  { nit: "900445566-7", tipoDoc: "CC", documento: "72198456", nombres: "Ricardo", apellidos: "De la Hoz Pérez", direccion: "Calle 72 # 54-35",
+    nombre: "Telón Abierto", razon: "Fundación Telón Abierto", correo: "taquilla@telonabierto.example",
     telefono: "3012345678", ciudad: "Barranquilla", registro: "2025-01-15", comision: 6, experiencia: 12, estado: "Activo",
     eventos: [6], entradas: 3120, ingresos: 175200000, ventas: [220, 250, 240, 270, 290, 310],
     descripcion: "Compañía de teatro con obras de autores latinoamericanos." },
-  { nit: "901998877-0", nombre: "Pacífico Live", razon: "Pacífico Live S.A.S.", correo: "info@pacificolive.example",
+  { nit: "901998877-0", tipoDoc: "CC", documento: "1130654987", nombres: "Yesenia", apellidos: "Mosquera Valencia", direccion: "Calle 15 # 100-40",
+    nombre: "Pacífico Live", razon: "Pacífico Live S.A.S.", correo: "info@pacificolive.example",
     telefono: "3168889900", ciudad: "Cali", registro: "2025-03-30", comision: 7, experiencia: 3, estado: "Activo",
     eventos: [9], entradas: 2650, ingresos: 136300000, ventas: [180, 200, 230, 210, 260, 290],
     descripcion: "Música del Pacífico y nuevos artistas urbanos." },
-  { nit: "900332211-5", nombre: "Caribe Fest", razon: "Caribe Fest Producciones S.A.S.", correo: "contacto@caribefest.example",
+  { nit: "900332211-5", tipoDoc: "CC", documento: "8765432", nombres: "Álvaro", apellidos: "Barrios Fontalvo", direccion: "Carrera 51B # 80-58",
+    nombre: "Caribe Fest", razon: "Caribe Fest Producciones S.A.S.", correo: "contacto@caribefest.example",
     telefono: "3045556677", ciudad: "Barranquilla", registro: "2024-11-09", comision: 8, experiencia: 4, estado: "Suspendido",
     eventos: [10], entradas: 1430, ingresos: 88400000, ventas: [210, 190, 160, 90, 0, 0],
     descripcion: "Festivales de música caribeña. Suspendido por reclamos de reembolso pendientes." },
-  { nit: "901556677-8", nombre: "Escena Urbana", razon: "Escena Urbana Colectivo S.A.S.", correo: "escena@urbana.example",
+  { nit: "901556677-8", tipoDoc: "CC", documento: "1020456789", nombres: "Kevin Andrés", apellidos: "Rojas", direccion: "Calle 63 # 9-20",
+    nombre: "Escena Urbana", razon: "Escena Urbana Colectivo S.A.S.", correo: "escena@urbana.example",
     telefono: "3201112233", ciudad: "Bogotá", registro: "2025-06-18", comision: 6.5, experiencia: 2, estado: "Activo",
     eventos: [11], entradas: 1210, ingresos: 64800000, ventas: [60, 90, 120, 150, 170, 210],
     descripcion: "Batallas de rap, grafiti y cultura hip hop." },
-  { nit: "901667788-9", nombre: "Gira Andina", razon: "Gira Andina S.A.S.", correo: "reservas@giraandina.example",
+  { nit: "901667788-9", tipoDoc: "CE", documento: "564321", nombres: "Martín", apellidos: "Quiroga Sosa", direccion: "Calle 5 # 66-18",
+    nombre: "Gira Andina", razon: "Gira Andina S.A.S.", correo: "reservas@giraandina.example",
     telefono: "3117778899", ciudad: "Cali", registro: "2025-07-02", comision: 6, experiencia: 3, estado: "Activo",
     eventos: [7, 12], entradas: 980, ingresos: 52100000, ventas: [50, 70, 90, 110, 130, 160],
     descripcion: "Conciertos acústicos y ferias gastronómicas." },
-  { nit: "901778899-3", nombre: "Montaña Sonora", razon: "Montaña Sonora S.A.S.", correo: "hola@montanasonora.example",
+  { nit: "901778899-3", tipoDoc: "CC", documento: "1098765432", nombres: "Laura Daniela", apellidos: "Prada Rueda", direccion: "Carrera 27 # 36-14",
+    nombre: "Montaña Sonora", razon: "Montaña Sonora S.A.S.", correo: "hola@montanasonora.example",
     telefono: "3189990011", ciudad: "Bucaramanga", registro: "2026-09-28", comision: 7, experiencia: 1, estado: "Pendiente",
     eventos: [], entradas: 0, ingresos: 0, ventas: [0, 0, 0, 0, 0, 0],
     descripcion: "Festivales de rock en Santander. Espera la revisión de sus documentos." },
-  { nit: "901889900-6", nombre: "Luna Llena Teatro", razon: "Corporación Luna Llena", correo: "lunallena@teatro.example",
+  { nit: "901889900-6", tipoDoc: "CC", documento: "43567890", nombres: "Beatriz Elena", apellidos: "Gaviria", direccion: "Carrera 70 # 44-23",
+    nombre: "Luna Llena Teatro", razon: "Corporación Luna Llena", correo: "lunallena@teatro.example",
     telefono: "3023334455", ciudad: "Medellín", registro: "2026-10-06", comision: 6, experiencia: 7, estado: "Pendiente",
     eventos: [], entradas: 0, ingresos: 0, ventas: [0, 0, 0, 0, 0, 0],
     descripcion: "Teatro infantil y de títeres. Espera la revisión de sus documentos." }
@@ -146,7 +177,7 @@ function resumenLocal(cantidad) {
   var actividad = [
     { cuando: "Hace 4 min", texto: "Nueva reserva de 4 entradas para " + D.eventos[0].titulo + "." },
     { cuando: "Hace 18 min", texto: "Tarima Producciones publicó un evento nuevo." },
-    { cuando: "Hace 42 min", texto: "Verificación biométrica aprobada para un cliente de Cali." },
+    { cuando: "Hace 42 min", texto: "Se aprobó un evento de Sonido Andino." },
     { cuando: "Hace 1 h", texto: "Se canceló una reserva de 2 entradas para " + D.eventos[1].titulo + "." },
     { cuando: "Hace 3 h", texto: "Se registró el agente Pacífico Live." }
   ];
@@ -156,9 +187,9 @@ function resumenLocal(cantidad) {
       eventosActivos: activos,
       reservas: totalReservas,
       ingresos: totalIngresos,
-      agentes: AGENTES_DEMO.filter(function (a) { return a.estado === "Activo"; }).length,
+      agentes: agentesLocales().filter(function (a) { return a.estado === "Activo"; }).length,
       clientes: DEMO.clientes,
-      verificacionesPendientes: DEMO.verificaciones
+      eventosPorRevisar: leerSolicitudesEventos().filter(function (s) { return s.estado === "En revisión"; }).length
     },
     meses: meses,
     estados: Object.keys(COLOR_ESTADO).map(function (estado) {
@@ -167,7 +198,7 @@ function resumenLocal(cantidad) {
     categorias: DEMO.categorias.map(function (c) {
       return { categoria: c[0], ingresos: Math.round(totalIngresos * c[1] / sumaCategorias) };
     }),
-    agentes: AGENTES_DEMO.filter(function (a) { return a.estado === "Activo"; })
+    agentes: agentesLocales().filter(function (a) { return a.estado === "Activo"; })
       .sort(function (a, b) { return b.ingresos - a.ingresos; })
       .slice(0, 5)
       .map(function (a) {
@@ -282,15 +313,16 @@ function pintarIndicadores(datos) {
     { titulo: "Ingresos", valor: ind.ingresos, formato: pesosCompacto.format, completo: pesos.format, cambio: variacion("ingresos") },
     { titulo: "Agentes", valor: ind.agentes, formato: numero.format },
     { titulo: "Clientes", valor: ind.clientes, formato: numero.format },
-    { titulo: "Verificaciones pendientes", valor: ind.verificacionesPendientes, formato: numero.format, alerta: true }
+    { titulo: "Eventos por revisar", valor: ind.eventosPorRevisar, formato: numero.format, alerta: true }
   ];
 
   pintarTarjetas(tarjetas);
 }
 
-/* Tarjetas de indicadores: { titulo, valor, formato, completo?, cambio?, alerta? } */
-function pintarTarjetas(tarjetas) {
-  var lista = document.getElementById("admin-indicadores");
+/* Tarjetas de indicadores: { titulo, valor, formato, completo?, cambio?, alerta? }.
+   "idLista" sirve para las páginas con más de un grupo de tarjetas. */
+function pintarTarjetas(tarjetas, idLista) {
+  var lista = document.getElementById(idLista || "admin-indicadores");
 
   lista.innerHTML = tarjetas.map(function (t, i) {
     var cambio = "";
@@ -335,7 +367,7 @@ function pintarMeses(datos) {
   var valores = datos.meses.map(function (m) { return m[serieActual]; });
   var maximo = Math.max.apply(null, valores) * 1.15;
   var formato = serieActual === "ingresos" ? compacto.format : numero.format;
-  var nombre = serieActual === "ingresos" ? "Ingresos" : "Reservas";
+  var nombre = serieActual === "ingresos" ? "Ingresos" : (datos.nombreCantidad || "Reservas");
 
   var paso = (ancho - izq - der) / (valores.length - 1);
   var saltoEtiqueta = Math.ceil(52 / paso);
@@ -511,6 +543,241 @@ function pintarActividad(datos) {
 }
 
 
+/* ===== FORMULARIOS DE REGISTRO Y EDICIÓN (CRUD) =====
+   Los usan Clientes, Agentes, Administradores, Eventos y Ubicaciones.
+   campos: [{ id, etiqueta, tipo, opciones?, opcional?, ayuda?, max?, min?, soloLectura?, par?, decimal? }]
+   tipo: text, email, tel, date, number, password, select, checkbox, textarea,
+   file (una imagen), "titulo" para separar el formulario en partes (solo muestra
+   un subtítulo) y "html" para un bloque propio (por ejemplo, el mapa).
+   Dos campos seguidos con "par: true" van lado a lado en pantallas anchas. */
+
+function htmlCampo(c, valor) {
+  if (c.tipo === "titulo") {
+    return '<h3 class="form-seccion">' + c.etiqueta + '</h3>';
+  }
+  if (c.tipo === "html") {
+    return c.html;
+  }
+  var id = "f-" + c.id;
+  var ayuda = c.ayuda ? '<p class="agente-ayuda" id="' + id + '-ayuda">' + c.ayuda + '</p>' : "";
+  var describe = c.ayuda ? ' aria-describedby="' + id + '-ayuda"' : "";
+  var bloqueado = c.soloLectura ? " disabled" : "";
+  var requerido = c.opcional || c.tipo === "checkbox" ? "" : " required";
+  var texto = valor === undefined || valor === null ? "" : String(valor);
+
+  if (c.tipo === "checkbox") {
+    return '<div class="campo campo-casilla">' +
+      '<label><input type="checkbox" id="' + id + '"' + (valor ? " checked" : "") + bloqueado + describe + ' /> ' + c.etiqueta + '</label>' +
+      ayuda + '</div>';
+  }
+
+  var etiqueta = '<label for="' + id + '">' + c.etiqueta +
+    (c.opcional ? ' <span class="opcional">(opcional)</span>' : '') + '</label>';
+  var control;
+
+  if (c.tipo === "select") {
+    control = '<select id="' + id + '"' + requerido + bloqueado + describe + '>' +
+      '<option value="">Elige una opción</option>' +
+      c.opciones.map(function (o) {
+        var valorOpcion = Array.isArray(o) ? o[0] : o;
+        var textoOpcion = Array.isArray(o) ? o[1] : o;
+        return '<option value="' + escapar(valorOpcion) + '"' + (String(valorOpcion) === texto ? " selected" : "") + '>' +
+          escapar(textoOpcion) + '</option>';
+      }).join("") +
+    '</select>';
+  } else if (c.tipo === "file") {
+    control = '<input type="file" id="' + id + '" accept="image/*"' + bloqueado + describe + ' />';
+  } else if (c.tipo === "textarea") {
+    control = '<textarea id="' + id + '" rows="3"' + (c.max ? ' maxlength="' + c.max + '"' : '') + requerido + bloqueado + describe + '>' +
+      escapar(texto) + '</textarea>';
+  } else {
+    control = '<input type="' + c.tipo + '" id="' + id + '" value="' + escapar(texto) + '"' +
+      (c.max && c.tipo !== "number" ? ' maxlength="' + c.max + '"' : '') +
+      (c.tipo === "number" && c.min !== undefined ? ' min="' + c.min + '"' : '') +
+      (c.tipo === "number" && c.max !== undefined ? ' max="' + c.max + '"' : '') +
+      (c.tipo === "number" && c.paso ? ' step="' + c.paso + '"' : '') +
+      (c.decimal ? ' inputmode="decimal"' : '') +
+      (c.tipo === "password" ? ' autocomplete="new-password"' : ' autocomplete="off"') +
+      requerido + bloqueado + describe + ' />';
+  }
+  return '<div class="campo">' + etiqueta + control + ayuda + '</div>';
+}
+
+/* El formulario completo, con el mensaje de error arriba y los botones abajo */
+function htmlFormulario(idForm, campos, valores, textoGuardar) {
+  var html = "";
+  for (var i = 0; i < campos.length; i++) {
+    var c = campos[i];
+    if (c.par && campos[i + 1] && campos[i + 1].par) {
+      html += '<div class="agente-campos-dobles">' + htmlCampo(c, valores[c.id]) +
+        htmlCampo(campos[i + 1], valores[campos[i + 1].id]) + '</div>';
+      i++;
+    } else {
+      html += htmlCampo(c, valores[c.id]);
+    }
+  }
+  return '<form class="form-admin" id="' + idForm + '" novalidate>' +
+    '<p class="mensaje error" id="' + idForm + '-error" role="alert"></p>' +
+    html +
+    '<div class="detalle-botones">' +
+      '<button type="submit" class="admin-boton">' + textoGuardar + '</button>' +
+      '<button type="button" class="admin-boton-sec" data-accion="cancelar-formulario">Cancelar</button>' +
+    '</div>' +
+  '</form>';
+}
+
+/* { id: valor } con los textos sin espacios de sobra */
+function leerFormulario(campos) {
+  var valores = {};
+  campos.forEach(function (c) {
+    if (c.tipo === "titulo" || c.tipo === "html") return;
+    var control = document.getElementById("f-" + c.id);
+    if (c.tipo === "file") {
+      valores[c.id] = control.files[0] || null;
+      return;
+    }
+    valores[c.id] = c.tipo === "checkbox" ? control.checked : control.value.replace(/\s+/g, " ").trim();
+  });
+  return valores;
+}
+
+/* Marca los campos con error y lleva el foco al primero. Devuelve true si hay errores. */
+function mostrarErroresFormulario(idForm, campos, errores) {
+  var primero = null;
+  campos.forEach(function (c) {
+    if (c.tipo === "titulo" || c.tipo === "html") return;
+    var control = document.getElementById("f-" + c.id);
+    if (errores[c.id]) {
+      control.setAttribute("aria-invalid", "true");
+      if (!primero) primero = c;
+    } else {
+      control.removeAttribute("aria-invalid");
+    }
+  });
+
+  var caja = document.getElementById(idForm + "-error");
+  if (!primero) {
+    caja.textContent = "";
+    return false;
+  }
+  var cuantos = Object.keys(errores).length;
+  caja.innerHTML = "<strong>Error:</strong> " + escapar(errores[primero.id]) +
+    (cuantos > 1 ? " (y " + (cuantos - 1) + (cuantos === 2 ? " campo más por revisar)" : " campos más por revisar)") : "");
+  document.getElementById("f-" + primero.id).focus();
+  return true;
+}
+
+/* Reglas de la base de datos (USUARIO): documento, correo, teléfono */
+var TIPOS_DOCUMENTO = [
+  ["CC", "Cédula de ciudadanía"],
+  ["CE", "Cédula de extranjería"],
+  ["PPT", "Permiso por protección temporal"],
+  ["PAS", "Pasaporte"]
+];
+
+var FORMATO_DOCUMENTO = {
+  CC: [/^[0-9]{6,10}$/, "La cédula de ciudadanía lleva de 6 a 10 números."],
+  CE: [/^[0-9]{4,10}$/, "La cédula de extranjería lleva de 4 a 10 números."],
+  PPT: [/^[0-9]{5,10}$/, "El permiso por protección temporal lleva de 5 a 10 números."],
+  PAS: [/^[A-Z0-9]{5,15}$/, "El pasaporte lleva de 5 a 15 letras o números."]
+};
+
+function documentoNormalizado(texto) {
+  return String(texto).toUpperCase().replace(/[\s.\-]/g, "");
+}
+
+/* Errores de los datos comunes de una persona (tabla USUARIO) */
+function validarPersona(v, errores) {
+  if (!v.tipoDoc) errores.tipoDoc = "Elige el tipo de documento.";
+  var doc = documentoNormalizado(v.documento);
+  if (!doc) {
+    errores.documento = "Escribe el número de documento.";
+  } else if (v.tipoDoc && FORMATO_DOCUMENTO[v.tipoDoc] && !FORMATO_DOCUMENTO[v.tipoDoc][0].test(doc)) {
+    errores.documento = FORMATO_DOCUMENTO[v.tipoDoc][1];
+  }
+  if (!v.nombres) errores.nombres = "Escribe los nombres.";
+  if (!v.apellidos) errores.apellidos = "Escribe los apellidos.";
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.correo)) errores.correo = "Escribe un correo válido, por ejemplo nombre@correo.com.";
+  if (v.telefono && !/^(3[0-9]{9}|60[0-9]{8})$/.test(v.telefono.replace(/\s/g, ""))) {
+    errores.telefono = "El teléfono debe ser un celular de 10 números o un fijo que empiece por 60.";
+  }
+  if (!v.direccion) errores.direccion = "Escribe la dirección.";
+  if (!v.ciudad) errores.ciudad = "Elige la ciudad.";
+  if (v.contrasena !== undefined && v.contrasena.length < 8) {
+    errores.contrasena = "La contraseña debe tener al menos 8 caracteres.";
+  }
+  return errores;
+}
+
+/* Ciudades para las listas: [["Cali", "Cali (Valle del Cauca)"], ...] */
+function obtenerCiudadesLista() {
+  return D.llamarApi("/ciudades").then(function (resultado) {
+    return ((resultado.datos && resultado.datos.ciudades) || [])
+      .slice()
+      .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); })
+      .map(function (c) { return [c.nombre, c.nombre + " (" + c.departamento + ")"]; });
+  });
+}
+
+/* Cambios hechos en este navegador (modo local) a una lista de ejemplo:
+   { nuevos: [registros], cambios: { id: { campos } }, eliminados: [ids] } */
+function leerDatosLocales(clave) {
+  try {
+    var d = JSON.parse(localStorage.getItem(clave)) || {};
+    return { nuevos: d.nuevos || [], cambios: d.cambios || {}, eliminados: d.eliminados || [] };
+  } catch (e) {
+    return { nuevos: [], cambios: {}, eliminados: [] };
+  }
+}
+
+function guardarDatosLocales(clave, datos) {
+  try {
+    localStorage.setItem(clave, JSON.stringify(datos));
+  } catch (e) {
+    throw new Error("No se pudo guardar en este navegador.");
+  }
+}
+
+/* La lista de ejemplo con lo agregado, cambiado y eliminado en este navegador */
+function aplicarDatosLocales(lista, clave, campoId) {
+  var d = leerDatosLocales(clave);
+  return lista.concat(d.nuevos)
+    .filter(function (x) { return d.eliminados.indexOf(String(x[campoId])) === -1; })
+    .map(function (x) { return Object.assign({}, x, d.cambios[x[campoId]] || {}); });
+}
+
+/* Registra (id = null), modifica o elimina (datos = null) en modo local */
+function cambiarDatoLocal(clave, campoId, id, datos) {
+  var d = leerDatosLocales(clave);
+  if (datos === null) {
+    var eraNuevo = d.nuevos.some(function (x) { return String(x[campoId]) === String(id); });
+    d.nuevos = d.nuevos.filter(function (x) { return String(x[campoId]) !== String(id); });
+    if (!eraNuevo && d.eliminados.indexOf(String(id)) === -1) d.eliminados.push(String(id));
+    delete d.cambios[id];
+  } else if (id === null) {
+    d.nuevos.push(datos);
+  } else {
+    var nuevo = d.nuevos.filter(function (x) { return String(x[campoId]) === String(id); })[0];
+    if (nuevo) Object.assign(nuevo, datos);
+    else d.cambios[id] = Object.assign(d.cambios[id] || {}, datos);
+  }
+  guardarDatosLocales(clave, d);
+}
+
+/* POST (registrar), PUT (modificar) o DELETE (eliminar) contra el API */
+function enviarCrud(ruta, metodo, datos, error) {
+  return D.llamarApi(ruta, {
+    method: metodo,
+    headers: Object.assign({ "Content-Type": "application/json" }, cabeceraToken()),
+    body: datos ? JSON.stringify(datos) : undefined
+  }).then(function (resultado) {
+    if (resultado.estado !== 200 && resultado.estado !== 201 && resultado.estado !== 204) {
+      throw new Error((resultado.datos && resultado.datos.error) || error);
+    }
+    return resultado.datos;
+  });
+}
+
 /* ===== PÁGINA: PANEL ===== */
 
 /* Muestra la página si hay sesión de administrador; si no, el aviso de acceso */
@@ -618,11 +885,36 @@ function guardarCambioLocal(nit, estado) {
   } catch (e) {}
 }
 
+/* Cambios que cada agente hizo a su perfil en agente-perfil.html (modo local) */
+function leerPerfilesAgentes() {
+  try {
+    return JSON.parse(localStorage.getItem("perfilesAgentes")) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+/* Logo del agente o, si no tiene, la inicial de su nombre */
+function avatarAgente(a, grande) {
+  if (a.logo) {
+    return '<img class="agente-inicial agente-logo' + (grande ? " agente-inicial-grande" : "") + '" src="' +
+      escapar(a.logo) + '" alt="" />';
+  }
+  return '<span class="agente-inicial' + (grande ? " agente-inicial-grande" : "") + '" aria-hidden="true">' +
+    escapar(a.nombre.charAt(0)) + '</span>';
+}
+
+/* Agentes de ejemplo con lo que se registró, modificó o eliminó en este navegador */
+function agentesLocales() {
+  return aplicarDatosLocales(AGENTES_DEMO, "datosAgentes", "nit");
+}
+
 function obtenerAgentes() {
   if (!D.usarApi) {
     var cambios = leerCambiosLocales();
-    return Promise.resolve(AGENTES_DEMO.map(function (a) {
-      var copia = Object.assign({}, a);
+    var perfiles = leerPerfilesAgentes();
+    return Promise.resolve(agentesLocales().map(function (a) {
+      var copia = Object.assign({}, a, perfiles[a.nit] || {});
       if (cambios[a.nit]) copia.estado = cambios[a.nit];
       return copia;
     }));
@@ -634,6 +926,111 @@ function obtenerAgentes() {
     }
     return resultado.datos.agentes;
   });
+}
+
+/* nit = null para registrar uno nuevo */
+function guardarAgente(datos, nit) {
+  if (!D.usarApi) {
+    var copia = Object.assign({}, datos);
+    delete copia.contrasena;   /* la contraseña nunca se guarda en el navegador */
+    cambiarDatoLocal("datosAgentes", "nit", nit, copia);
+
+    /* Lo que edita el admin manda sobre lo que el agente había cambiado en su perfil */
+    if (nit !== null) {
+      try {
+        var perfiles = leerPerfilesAgentes();
+        if (perfiles[nit]) {
+          Object.keys(copia).forEach(function (campo) { delete perfiles[nit][campo]; });
+          localStorage.setItem("perfilesAgentes", JSON.stringify(perfiles));
+        }
+      } catch (e) {}
+    }
+    return Promise.resolve();
+  }
+  return nit === null
+    ? enviarCrud("/admin/agentes", "POST", datos, "No se pudo registrar el agente.")
+    : enviarCrud("/admin/agentes/" + encodeURIComponent(nit), "PUT", datos, "No se pudieron guardar los cambios.");
+}
+
+function eliminarAgente(nit) {
+  if (!D.usarApi) {
+    cambiarDatoLocal("datosAgentes", "nit", nit, null);
+    return Promise.resolve();
+  }
+  return enviarCrud("/admin/agentes/" + encodeURIComponent(nit), "DELETE", null, "No se pudo eliminar el agente.");
+}
+
+/* Eventos de un agente: los de ejemplo y los que creó y se aprobaron */
+function eventosDeAgente(a) {
+  return D.eventos.filter(function (e) { return esEventoDe(e, a); });
+}
+
+function camposAgente(nuevo, ciudades) {
+  var campos = [
+    { tipo: "titulo", etiqueta: "Empresa" },
+    { id: "nit", etiqueta: "NIT", tipo: "text", max: 11, par: true, soloLectura: !nuevo,
+      ayuda: nuevo ? "Nueve números, guion y dígito de verificación: 900123456-7." : "El NIT no se puede cambiar." },
+    { id: "razon", etiqueta: "Razón social", tipo: "text", max: 150, par: true },
+    { id: "nombre", etiqueta: "Nombre comercial", tipo: "text", max: 150, par: true,
+      ayuda: "Es el nombre que ve el público." },
+    { id: "experiencia", etiqueta: "Años de experiencia", tipo: "number", min: 0, par: true },
+    { id: "comision", etiqueta: "Comisión (%)", tipo: "text", decimal: true, max: 6, par: true,
+      ayuda: "Lo que cobra El Desparche por cada venta, de 0 a 100. Ejemplo: 6,5." },
+    { id: "estado", etiqueta: "Estado", tipo: "select", opciones: ["Activo", "Pendiente", "Suspendido"], par: true, soloLectura: !nuevo,
+      ayuda: nuevo ? "" : "Se cambia con los botones del detalle." },
+    { id: "descripcion", etiqueta: "Descripción", tipo: "textarea", opcional: true },
+    { tipo: "titulo", etiqueta: "Representante" },
+    { id: "tipoDoc", etiqueta: "Tipo de documento", tipo: "select", opciones: TIPOS_DOCUMENTO, par: true, soloLectura: !nuevo },
+    { id: "documento", etiqueta: "Número de documento", tipo: "text", max: 20, par: true, soloLectura: !nuevo,
+      ayuda: nuevo ? "Sin puntos ni espacios." : "El documento no se puede cambiar." },
+    { id: "nombres", etiqueta: "Nombres", tipo: "text", max: 80, par: true },
+    { id: "apellidos", etiqueta: "Apellidos", tipo: "text", max: 80, par: true },
+    { id: "correo", etiqueta: "Correo", tipo: "email", max: 100, par: true },
+    { id: "telefono", etiqueta: "Teléfono", tipo: "tel", max: 10, opcional: true, par: true,
+      ayuda: "Celular de 10 números o fijo que empiece por 60." },
+    { id: "direccion", etiqueta: "Dirección", tipo: "text", max: 200, par: true },
+    { id: "ciudad", etiqueta: "Ciudad", tipo: "select", opciones: ciudades, par: true }
+  ];
+  if (nuevo) {
+    campos.push({ id: "contrasena", etiqueta: "Contraseña inicial", tipo: "password",
+      ayuda: "Mínimo 8 caracteres. El agente podrá cambiarla después." });
+  }
+  return campos;
+}
+
+/* actual = el agente que se edita (null al registrar) */
+function validarAgente(v, actual, agentes) {
+  var errores = {};
+  if (!/^[0-9]{9}-[0-9]$/.test(v.nit)) errores.nit = "El NIT debe tener el formato 900123456-7.";
+  if (!v.razon) errores.razon = "Escribe la razón social.";
+  if (!v.nombre) errores.nombre = "Escribe el nombre comercial.";
+  if (!/^[0-9]+$/.test(String(v.experiencia))) errores.experiencia = "Los años de experiencia deben ser un número entero de 0 en adelante.";
+  var comision = Number(String(v.comision).replace(",", "."));
+  if (String(v.comision) === "" || isNaN(comision) || comision < 0 || comision > 100) {
+    errores.comision = "La comisión debe ser un número de 0 a 100.";
+  }
+  if (!v.estado) errores.estado = "Elige el estado.";
+  validarPersona(v, errores);
+
+  var otros = agentes.filter(function (a) { return a !== actual; });
+  var documento = documentoNormalizado(v.documento);
+  if (!actual && !errores.nit && otros.some(function (a) { return a.nit === v.nit; })) {
+    errores.nit = "Ya hay un agente con ese NIT.";
+  }
+  if (!actual && !errores.documento && otros.some(function (a) { return a.documento === documento; })) {
+    errores.documento = "Ya hay un agente con ese documento.";
+  }
+  if (!errores.correo && otros.some(function (a) { return (a.correo || "").toLowerCase() === v.correo.toLowerCase(); })) {
+    errores.correo = "Ya hay un agente con ese correo.";
+  }
+
+  /* El formulario sigue el orden de la pantalla: primero la empresa, luego el representante */
+  var ordenados = {};
+  ["nit", "razon", "nombre", "experiencia", "comision", "estado", "descripcion", "tipoDoc", "documento",
+    "nombres", "apellidos", "correo", "telefono", "direccion", "ciudad", "contrasena"].forEach(function (k) {
+    if (errores[k]) ordenados[k] = errores[k];
+  });
+  return ordenados;
 }
 
 function cambiarEstadoAgente(nit, estado) {
@@ -754,7 +1151,7 @@ function paginaAgentes() {
       return '<tr role="row" class="' + (a.estado === "Pendiente" ? "fila-pendiente" : "") + '">' +
         '<th scope="row" role="rowheader">' +
           '<span class="agente-celda">' +
-            '<span class="agente-inicial" aria-hidden="true">' + escapar(a.nombre.charAt(0)) + '</span>' +
+            avatarAgente(a, false) +
             '<span><span class="agente-nombre">' + escapar(a.nombre) + '</span>' +
             '<span class="agente-nit">NIT ' + escapar(a.nit) + '</span></span>' +
           '</span>' +
@@ -774,13 +1171,132 @@ function paginaAgentes() {
   }
 
   function botonesAccion(a) {
+    var estado;
     if (a.estado === "Pendiente") {
-      return '<button type="button" class="admin-boton" data-accion="Activo">Aprobar agente</button>';
+      estado = '<button type="button" class="admin-boton" data-accion="Activo">Aprobar agente</button>';
+    } else if (a.estado === "Suspendido") {
+      estado = '<button type="button" class="admin-boton" data-accion="Activo">Reactivar agente</button>';
+    } else {
+      estado = '<button type="button" class="admin-boton-sec" data-accion="confirmar">Suspender agente</button>';
     }
-    if (a.estado === "Suspendido") {
-      return '<button type="button" class="admin-boton" data-accion="Activo">Reactivar agente</button>';
+    return '<button type="button" class="admin-boton-sec" data-accion="editar">Editar datos</button>' + estado +
+      '<button type="button" class="admin-boton admin-boton-peligro" data-accion="eliminar">Eliminar agente</button>';
+  }
+
+  /* ----- Registrar y editar ----- */
+  var ciudades = [];
+  var modo = null;   /* "nuevo" o "editar" mientras se ve el formulario */
+
+  function valoresAgente(a) {
+    var v = {};
+    ["nit", "razon", "nombre", "experiencia", "comision", "estado", "descripcion", "tipoDoc", "documento",
+      "nombres", "apellidos", "correo", "telefono", "direccion", "ciudad"].forEach(function (k) { v[k] = a[k]; });
+    v.comision = String(a.comision).replace(".", ",");
+    return v;
+  }
+
+  function mostrarFormulario(a) {
+    modo = a ? "editar" : "nuevo";
+    var lista = ciudades.slice();
+    if (a && a.ciudad && !lista.some(function (x) { return x[0] === a.ciudad; })) lista.push([a.ciudad, a.ciudad]);
+
+    contenido.innerHTML =
+      '<div class="detalle-cabecera"><div>' +
+        '<h2 id="detalle-nombre" tabindex="-1">' + (a ? "Editar " + escapar(a.nombre) : "Registrar agente") + '</h2>' +
+        '<p>' + (a ? "Cambia los datos que necesites y guarda." : "Crea la cuenta de una empresa que organiza eventos.") + '</p>' +
+      '</div></div>' +
+      htmlFormulario("form-agente", camposAgente(!a, lista),
+        a ? valoresAgente(a) : { tipoDoc: "CC", estado: "Activo", experiencia: 0, comision: 7 },
+        a ? "Guardar cambios" : "Registrar agente");
+    document.getElementById("detalle-nombre").focus();
+  }
+
+  contenido.addEventListener("submit", function (evento) {
+    if (evento.target.id !== "form-agente") return;
+    evento.preventDefault();
+
+    var nuevo = modo === "nuevo";
+    var campos = camposAgente(nuevo, ciudades);
+    var v = leerFormulario(campos);
+    if (!nuevo) {
+      ["nit", "tipoDoc", "documento", "estado"].forEach(function (k) { v[k] = abierto[k]; });
     }
-    return '<button type="button" class="admin-boton admin-boton-peligro" data-accion="confirmar">Suspender agente</button>';
+    if (mostrarErroresFormulario("form-agente", campos, validarAgente(v, nuevo ? null : abierto, agentes))) return;
+
+    var datos = {
+      nit: v.nit, razon: v.razon, nombre: v.nombre, experiencia: Number(v.experiencia),
+      comision: Number(String(v.comision).replace(",", ".")), descripcion: v.descripcion,
+      tipoDoc: v.tipoDoc, documento: documentoNormalizado(v.documento), nombres: v.nombres, apellidos: v.apellidos,
+      correo: v.correo.toLowerCase(), telefono: v.telefono.replace(/\s/g, ""), direccion: v.direccion, ciudad: v.ciudad
+    };
+    if (nuevo) {
+      Object.assign(datos, {
+        estado: v.estado, registro: new Date().toISOString().slice(0, 10),
+        eventos: [], entradas: 0, ingresos: 0, ventas: [0, 0, 0, 0, 0, 0]
+      });
+    }
+
+    var botones = evento.target.querySelectorAll("button");
+    botones.forEach(function (b) { b.disabled = true; });
+
+    guardarAgente(nuevo ? Object.assign({ contrasena: v.contrasena }, datos) : datos, nuevo ? null : abierto.nit)
+      .then(function () {
+        var agente;
+        if (nuevo) {
+          agente = datos;
+          agentes.push(agente);
+        } else {
+          agente = Object.assign(abierto, datos);
+        }
+        abierto = agente;
+        modo = null;
+        var mensaje = nuevo ? "Se registró a " + agente.nombre + "." : "Se guardaron los cambios de " + agente.nombre + ".";
+        aviso.textContent = mensaje;
+        pintarResumen();
+        pintarTabla();
+        pintarDetalle(agente, mensaje);
+        document.getElementById("detalle-nombre").focus();
+      })
+      .catch(function (error) {
+        document.getElementById("form-agente-error").innerHTML = "<strong>Error:</strong> " + escapar(error.message);
+        botones.forEach(function (b) { b.disabled = false; });
+      });
+  });
+
+  document.getElementById("nuevo-agente").onclick = function () {
+    abierto = null;
+    mostrarFormulario(null);
+    dialogo.showModal();
+    document.getElementById("detalle-nombre").focus();
+  };
+
+  function confirmarEliminacion(a) {
+    var acciones = document.getElementById("detalle-acciones");
+    var suyos = eventosDeAgente(a).length;
+    if (suyos) {
+      /* EVENTO.id_agente es RESTRICT: un agente con eventos no se puede borrar */
+      acciones.innerHTML =
+        '<div class="detalle-confirmar">' +
+          '<p id="texto-confirmar"><strong>No se puede eliminar a ' + escapar(a.nombre) + '.</strong> ' +
+          'Tiene ' + suyos + (suyos === 1 ? ' evento registrado' : ' eventos registrados') +
+          '. Primero elimina sus eventos en Gestión de eventos, o suspéndelo para que no publique más.</p>' +
+          '<div class="detalle-botones">' +
+            '<button type="button" class="admin-boton-sec" data-accion="cancelar">Entendido</button>' +
+          '</div>' +
+        '</div>';
+      acciones.querySelector('[data-accion="cancelar"]').focus();
+      return;
+    }
+    acciones.innerHTML =
+      '<div class="detalle-confirmar">' +
+        '<p id="texto-confirmar"><strong>¿Eliminar a ' + escapar(a.nombre) + '?</strong> ' +
+        'Se borrará la cuenta de la empresa y de su representante. Esto no se puede deshacer.</p>' +
+        '<div class="detalle-botones">' +
+          '<button type="button" class="admin-boton admin-boton-peligro" data-accion="si-eliminar" aria-describedby="texto-confirmar">Sí, eliminar</button>' +
+          '<button type="button" class="admin-boton-sec" data-accion="cancelar">Cancelar</button>' +
+        '</div>' +
+      '</div>';
+    acciones.querySelector('[data-accion="si-eliminar"]').focus();
   }
 
   function pintarDetalle(a, mensaje) {
@@ -790,7 +1306,7 @@ function paginaAgentes() {
 
     contenido.innerHTML =
       '<div class="detalle-cabecera">' +
-        '<span class="agente-inicial agente-inicial-grande" aria-hidden="true">' + escapar(a.nombre.charAt(0)) + '</span>' +
+        avatarAgente(a, true) +
         '<div>' +
           '<h2 id="detalle-nombre" tabindex="-1">' + escapar(a.nombre) + '</h2>' +
           '<p>' + escapar(a.razon) + '</p>' +
@@ -798,12 +1314,17 @@ function paginaAgentes() {
         '</div>' +
       '</div>' +
       '<p class="detalle-aviso" id="detalle-aviso" role="status">' + (mensaje || "") + '</p>' +
-      '<p class="detalle-descripcion">' + escapar(a.descripcion) + '</p>' +
+      (a.descripcion ? '<p class="detalle-descripcion">' + escapar(a.descripcion) + '</p>' : '') +
       '<dl class="detalle-datos">' +
         '<div><dt>NIT</dt><dd>' + escapar(a.nit) + '</dd></div>' +
+        (a.nombres
+          ? '<div><dt>Representante</dt><dd>' + escapar(a.nombres + " " + a.apellidos) +
+              '<br /><span class="texto-gris">' + escapar(a.tipoDoc + " " + a.documento) + '</span></dd></div>'
+          : '') +
+        (a.direccion ? '<div><dt>Dirección</dt><dd>' + escapar(a.direccion) + '</dd></div>' : '') +
         '<div><dt>Ciudad</dt><dd>' + escapar(a.ciudad) + '</dd></div>' +
         '<div><dt>Correo</dt><dd><a href="mailto:' + escapar(a.correo) + '">' + escapar(a.correo) + '</a></dd></div>' +
-        '<div><dt>Teléfono</dt><dd>' + escapar(a.telefono) + '</dd></div>' +
+        '<div><dt>Teléfono</dt><dd>' + (a.telefono ? escapar(a.telefono) : 'Sin teléfono') + '</dd></div>' +
         '<div><dt>Registrado el</dt><dd>' + fechaLarga(a.registro) + '</dd></div>' +
         '<div><dt>Experiencia</dt><dd>' + a.experiencia + (a.experiencia === 1 ? " año" : " años") + '</dd></div>' +
         '<div><dt>Comisión</dt><dd>' + String(a.comision).replace(".", ",") + ' %</dd></div>' +
@@ -860,14 +1381,47 @@ function paginaAgentes() {
 
   contenido.addEventListener("click", function (evento) {
     var boton = evento.target.closest("button[data-accion]");
-    if (!boton || !abierto) return;
+    if (!boton) return;
 
     var accion = boton.getAttribute("data-accion");
-    if (accion === "confirmar") {
+    if (accion === "cancelar-formulario") {
+      if (modo === "nuevo") {
+        dialogo.close();
+      } else {
+        modo = null;
+        pintarDetalle(abierto);
+        document.getElementById("detalle-nombre").focus();
+      }
+      return;
+    }
+    if (!abierto) return;
+
+    if (accion === "editar") {
+      mostrarFormulario(abierto);
+    } else if (accion === "eliminar") {
+      confirmarEliminacion(abierto);
+    } else if (accion === "si-eliminar") {
+      var agente = abierto;
+      var acciones = document.getElementById("detalle-acciones");
+      acciones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      eliminarAgente(agente.nit).then(function () {
+        agentes = agentes.filter(function (a) { return a !== agente; });
+        aviso.textContent = "Se eliminó a " + agente.nombre + ".";
+        abierto = null;
+        dialogo.close();
+        pintarResumen();
+        pintarTabla();
+        aviso.setAttribute("tabindex", "-1");
+        setTimeout(function () { aviso.focus(); }, 0);
+      }).catch(function (error) {
+        document.getElementById("detalle-aviso").innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
+        acciones.querySelectorAll("button").forEach(function (b) { b.disabled = false; });
+      });
+    } else if (accion === "confirmar") {
       confirmarSuspension(abierto);
     } else if (accion === "cancelar") {
       document.getElementById("detalle-acciones").innerHTML = botonesAccion(abierto);
-      document.querySelector('#detalle-acciones [data-accion="confirmar"]').focus();
+      document.querySelector('#detalle-acciones button').focus();
     } else {
       aplicarEstado(abierto, accion);
     }
@@ -892,6 +1446,13 @@ function paginaAgentes() {
   });
 
   dialogo.addEventListener("close", function () {
+    if (modo === "nuevo") {
+      modo = null;
+      /* después de que el navegador devuelve el foco por su cuenta */
+      setTimeout(function () { document.getElementById("nuevo-agente").focus(); }, 0);
+      return;
+    }
+    modo = null;
     if (!abierto) return;
     var nit = abierto.nit;
     abierto = null;
@@ -913,13 +1474,15 @@ function paginaAgentes() {
   filtroCiudad.onchange = pintarTabla;
   orden.onchange = pintarTabla;
 
+  obtenerCiudadesLista().then(function (lista) { ciudades = lista; }).catch(function () {});
+
   obtenerAgentes().then(function (lista) {
     agentes = lista;
 
-    var ciudades = agentes.map(function (a) { return a.ciudad; })
+    var ciudadesFiltro = agentes.map(function (a) { return a.ciudad; })
       .filter(function (c, i, todas) { return todas.indexOf(c) === i; })
       .sort(function (a, b) { return a.localeCompare(b, "es"); });
-    ciudades.forEach(function (ciudad) {
+    ciudadesFiltro.forEach(function (ciudad) {
       var opcion = document.createElement("option");
       opcion.value = ciudad;
       opcion.textContent = ciudad;
@@ -937,6 +1500,328 @@ function paginaAgentes() {
   });
 }
 
+/* ----- Mapa para marcar el punto del evento (Leaflet + OpenStreetMap) ----- */
+
+/* Centro de cada ciudad de la lista, para empezar el mapa cerca */
+var CENTRO_CIUDAD = {
+  "Medellín": [6.2442, -75.5812],
+  "Bogotá": [4.711, -74.0721],
+  "Cali": [3.4516, -76.532],
+  "Tuluá": [4.0847, -76.1954],
+  "Guatavita": [4.9346, -73.8331],
+  "Barranquilla": [10.9685, -74.7813],
+  "Bucaramanga": [7.1254, -73.1198],
+  "Ciudad de México": [19.4326, -99.1332],
+  "Guadalajara": [20.6597, -103.3496],
+  "Buenos Aires": [-34.6037, -58.3816]
+};
+var CENTRO_COLOMBIA = [4.5709, -74.2973];
+
+/* Leaflet se descarga solo la primera vez que se abre el formulario */
+function crearMapaEvento(campos, partes) {
+  var L = null;
+  var mapa = null;
+  var marcador = null;
+  var cargando = null;
+
+  function mostrarEstado(texto) {
+    partes.estado.textContent = texto;
+  }
+
+  function ponerPunto(lat, lon, centrar) {
+    if (!mapa || isNaN(lat) || isNaN(lon)) return;
+    var punto = [lat, lon];
+
+    if (!marcador) {
+      marcador = L.marker(punto, {
+        draggable: true,
+        keyboard: true,
+        title: "Ubicación del evento",
+        alt: "Ubicación del evento",
+        icon: L.divIcon({ className: "agente-pin", iconSize: [28, 34], iconAnchor: [14, 32] })
+      }).addTo(mapa);
+
+      marcador.on("dragend", function () {
+        var p = marcador.getLatLng();
+        escribirCoordenadas(p.lat, p.lng);
+        mostrarEstado("Moviste el marcador.");
+      });
+    } else {
+      marcador.setLatLng(punto);
+    }
+
+    escribirCoordenadas(lat, lon);
+    if (centrar) mapa.setView(punto, Math.max(mapa.getZoom(), 15));
+  }
+
+  function escribirCoordenadas(lat, lon) {
+    campos.lat.value = lat.toFixed(6);
+    campos.lon.value = lon.toFixed(6);
+    campos.lat.removeAttribute("aria-invalid");
+    campos.lon.removeAttribute("aria-invalid");
+  }
+
+  function quitarPunto() {
+    if (marcador) {
+      marcador.remove();
+      marcador = null;
+    }
+    campos.lat.value = "";
+    campos.lon.value = "";
+    mostrarEstado("");
+  }
+
+  function centrarEnCiudad(ciudad) {
+    if (!mapa) return;
+    var centro = CENTRO_CIUDAD[ciudad];
+    mapa.setView(centro || CENTRO_COLOMBIA, centro ? 12 : 5);
+  }
+
+  function preparar() {
+    if (cargando) {
+      return cargando.then(function () { mapa.invalidateSize(); });
+    }
+
+    cargando = Promise.all([import("leaflet"), import("leaflet/dist/leaflet.css")]).then(function (modulos) {
+      L = modulos[0].default || modulos[0];
+      mapa = L.map(partes.caja, { scrollWheelZoom: false }).setView(CENTRO_COLOMBIA, 5);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(mapa);
+
+      mapa.on("click", function (e) {
+        ponerPunto(e.latlng.lat, e.latlng.lng, false);
+        mostrarEstado("Marcaste el punto en el mapa.");
+      });
+    }).catch(function () {
+      mostrarEstado("No se pudo cargar el mapa. Escribe la latitud y la longitud a mano.");
+    });
+
+    return cargando.then(function () { if (mapa) mapa.invalidateSize(); });
+  }
+
+  /* Coordenadas escritas a mano */
+  function desdeCampos() {
+    var lat = parseFloat(campos.lat.value);
+    var lon = parseFloat(campos.lon.value);
+    if (!isNaN(lat) && !isNaN(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+      ponerPunto(lat, lon, true);
+    }
+  }
+  campos.lat.addEventListener("change", desdeCampos);
+  campos.lon.addEventListener("change", desdeCampos);
+
+  campos.ciudad.addEventListener("change", function () {
+    if (!marcador) centrarEnCiudad(campos.ciudad.value);
+  });
+
+  /* Busca la dirección escrita con Nominatim (el buscador de OpenStreetMap) */
+  partes.buscar.addEventListener("click", function () {
+    var direccion = campos.direccion.value.trim();
+    var opcion = campos.ciudad.selectedOptions[0];
+    if (!direccion || !campos.ciudad.value) {
+      mostrarEstado("Escribe primero la ciudad y la dirección.");
+      return;
+    }
+
+    var consulta = [direccion, campos.ciudad.value, opcion ? opcion.getAttribute("data-departamento") : ""]
+      .filter(Boolean).join(", ");
+    partes.buscar.disabled = true;
+    mostrarEstado("Buscando la dirección…");
+
+    preparar().then(function () {
+      return fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=es&q=" +
+        encodeURIComponent(consulta));
+    }).then(function (respuesta) {
+      return respuesta.json();
+    }).then(function (resultados) {
+      if (!resultados.length) {
+        mostrarEstado("No encontramos esa dirección. Marca el punto tocando el mapa.");
+        return;
+      }
+      ponerPunto(Number(resultados[0].lat), Number(resultados[0].lon), true);
+      mostrarEstado("Encontramos la dirección. Revisa que el marcador quede en el sitio correcto.");
+    }).catch(function () {
+      mostrarEstado("No se pudo buscar la dirección. Marca el punto tocando el mapa.");
+    }).then(function () {
+      partes.buscar.disabled = false;
+    });
+  });
+
+  return { preparar: preparar, ponerPunto: ponerPunto, quitarPunto: quitarPunto, centrarEnCiudad: centrarEnCiudad };
+}
+
+/* Reduce la imagen a "maximo" px de ancho (1000 si no se indica), en JPEG,
+   para que quepa en el navegador y pese poco cuando se suba al servidor */
+function reducirImagen(archivo, maximo) {
+  return new Promise(function (resolver, rechazar) {
+    var lector = new FileReader();
+    lector.onerror = function () { rechazar(new Error("No se pudo leer la imagen.")); };
+    lector.onload = function () {
+      var imagen = new Image();
+      imagen.onerror = function () { rechazar(new Error("El archivo no es una imagen válida.")); };
+      imagen.onload = function () {
+        var escala = Math.min(1, (maximo || 1000) / imagen.width);
+        var lienzo = document.createElement("canvas");
+        lienzo.width = Math.round(imagen.width * escala);
+        lienzo.height = Math.round(imagen.height * escala);
+        lienzo.getContext("2d").drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+        resolver(lienzo.toDataURL("image/jpeg", 0.8));
+      };
+      imagen.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+  });
+}
+
+/* ===== REGISTRAR, MODIFICAR Y ELIMINAR EVENTOS ===== */
+
+var CATEGORIAS_EVENTO = [
+  ["musica", "Música"], ["teatro", "Teatro"], ["danza", "Danza"], ["circo", "Circo"], ["comedia", "Comedia"]
+];
+var PLANES_EVENTO = [
+  ["parchesote", "Parchesote (festivales y conciertos)"],
+  ["parche", "Parche (teatro, comedia y cultura)"],
+  ["parchesito", "Parchesito (familiar, gastronómico o gratis)"]
+];
+
+/* ¿El evento es de este agente? Manda el NIT guardado en el evento; los de
+   ejemplo que no lo tienen se reconocen por la lista de eventos del agente. */
+function esEventoDe(evento, agente) {
+  return evento.nitAgente ? evento.nitAgente === agente.nit : agente.eventos.indexOf(evento.id) !== -1;
+}
+
+function nitDelEvento(evento) {
+  if (evento.nitAgente) return evento.nitAgente;
+  var agente = agentesLocales().filter(function (a) { return esEventoDe(evento, a); })[0];
+  return agente ? agente.nit : "";
+}
+
+/* Número para un evento nuevo (desde 1001, para no chocar con los de ejemplo).
+   Cuenta también los eliminados, para que un número borrado no se vuelva a usar. */
+function siguienteIdEvento() {
+  var usados = D.eventos.map(function (e) { return Number(e.id) || 0; })
+    .concat(leerDatosLocales("datosEventos").eliminados.map(Number), [1000]);
+  return Math.max.apply(null, usados) + 1;
+}
+
+function camposEvento(nuevo, ciudades, agentes) {
+  var campos = [
+    { tipo: "titulo", etiqueta: "Evento" },
+    { id: "titulo", etiqueta: "Nombre del evento", tipo: "text", max: 150 },
+    { id: "descripcion", etiqueta: "Descripción", tipo: "textarea", ayuda: "Mínimo 30 caracteres." },
+    { id: "categoria", etiqueta: "Categoría", tipo: "select", opciones: CATEGORIAS_EVENTO, par: true },
+    { id: "parche", etiqueta: "Tipo de plan", tipo: "select", opciones: PLANES_EVENTO, par: true },
+    { id: "nitAgente", etiqueta: "Agente que lo organiza", tipo: "select", opciones: agentes, par: true },
+    { id: "estado", etiqueta: "Estado", tipo: "select", opciones: ["Programado", "En Boletería"], par: true, soloLectura: !nuevo,
+      ayuda: nuevo ? "" : "Se cambia abajo, en el detalle del evento." },
+    { tipo: "titulo", etiqueta: "Fecha, teatro y ubicación" },
+    { id: "inicio", etiqueta: "Empieza", tipo: "datetime-local", par: true },
+    { id: "fin", etiqueta: "Termina", tipo: "datetime-local", par: true },
+    { id: "teatro", etiqueta: "Teatro", tipo: "text", max: 150, par: true,
+      ayuda: "Donde se hace el evento. Ejemplo: Teatro Municipal o Parque Simón Bolívar." },
+    { id: "ciudad", etiqueta: "Ciudad", tipo: "select", opciones: ciudades, par: true },
+    { id: "direccion", etiqueta: "Dirección", tipo: "text", max: 200, ayuda: "Ejemplo: Calle 26 # 25-50." },
+    { tipo: "html", html:
+      '<fieldset class="agente-mapa-campo">' +
+        '<legend>Ubicación en el mapa</legend>' +
+        '<p class="agente-ayuda" id="ayuda-mapa-admin">Toca el mapa para marcar el punto exacto o arrastra el marcador. ' +
+          'También puedes buscar la dirección o escribir las coordenadas.</p>' +
+        '<div class="agente-mapa-barra">' +
+          '<button type="button" class="admin-boton-sec" id="buscar-direccion-admin">Buscar la dirección en el mapa</button>' +
+          '<p class="agente-ayuda" id="estado-mapa-admin" role="status"></p>' +
+        '</div>' +
+        '<div class="agente-mapa" id="mapa-evento-admin" role="region" aria-label="Mapa para marcar la ubicación del evento" ' +
+          'aria-describedby="ayuda-mapa-admin"></div>' +
+      '</fieldset>' },
+    { id: "lat", etiqueta: "Latitud", tipo: "text", decimal: true, max: 12, par: true },
+    { id: "lon", etiqueta: "Longitud", tipo: "text", decimal: true, max: 12, par: true },
+    { tipo: "titulo", etiqueta: "Entradas" },
+    { id: "capacidad", etiqueta: "Capacidad (personas)", tipo: "number", min: 1, par: true },
+    { id: "precio", etiqueta: "Precio por entrada (pesos)", tipo: "number", min: 0, par: true, ayuda: "0 si es gratis." },
+    { id: "edad", etiqueta: "Edad mínima", tipo: "number", min: 0, par: true, ayuda: "0 si es para todo público." },
+    { id: "imagen", etiqueta: nuevo ? "Imagen" : "Cambiar la imagen", tipo: "file", opcional: true, par: true,
+      ayuda: nuevo ? "Si no subes una, se usa una imagen genérica." : "Si no eliges otra, se queda la actual." },
+    { id: "observaciones", etiqueta: "Observaciones", tipo: "textarea", opcional: true }
+  ];
+  return campos;
+}
+
+/* actual = el evento que se edita (null al registrar) */
+function validarEvento(v, actual) {
+  var errores = {};
+  if (!v.titulo) errores.titulo = "Escribe el nombre del evento.";
+  if (v.descripcion.length < 30) errores.descripcion = "La descripción debe tener al menos 30 caracteres.";
+  if (!v.categoria) errores.categoria = "Elige la categoría.";
+  if (!v.parche) errores.parche = "Elige el tipo de plan.";
+  if (!v.nitAgente) errores.nitAgente = "Elige el agente que organiza el evento.";
+  if (!v.estado) errores.estado = "Elige el estado.";
+  if (!v.inicio) errores.inicio = "Escribe cuándo empieza.";
+  if (!v.fin) errores.fin = "Escribe cuándo termina.";
+  else if (v.inicio && v.fin <= v.inicio) errores.fin = "El evento debe terminar después de empezar.";
+  if (!v.ciudad) errores.ciudad = "Elige la ciudad.";
+  if (!v.teatro) errores.teatro = "Escribe el nombre del teatro o del sitio del evento.";
+  if (!v.direccion) errores.direccion = "Escribe la dirección.";
+
+  /* Mismos límites que UBICACION en la base de datos (dentro de Colombia) */
+  var lat = Number(String(v.lat).replace(",", "."));
+  var lon = Number(String(v.lon).replace(",", "."));
+  if (v.lat === "" || isNaN(lat) || lat < -4.3 || lat > 13.6) {
+    errores.lat = "Marca el punto en el mapa o escribe una latitud de Colombia (entre -4,3 y 13,6).";
+  }
+  if (v.lon === "" || isNaN(lon) || lon < -82 || lon > -66.8) {
+    errores.lon = "Marca el punto en el mapa o escribe una longitud de Colombia (entre -82 y -66,8).";
+  }
+
+  if (!/^[0-9]+$/.test(String(v.capacidad)) || Number(v.capacidad) < 1) {
+    errores.capacidad = "La capacidad debe ser un número entero mayor que 0.";
+  } else if (actual && Number(v.capacidad) < actual.vendidas) {
+    errores.capacidad = "Ya se vendieron " + numero.format(actual.vendidas) + " entradas: la capacidad no puede ser menor.";
+  }
+  if (!/^[0-9]+$/.test(String(v.precio))) errores.precio = "El precio debe ser un número entero de 0 en adelante, sin puntos.";
+  if (!/^[0-9]+$/.test(String(v.edad)) || Number(v.edad) > 21) errores.edad = "La edad mínima debe ser un número entre 0 y 21.";
+  if (v.imagen && !/^image\//.test(v.imagen.type)) errores.imagen = "El archivo debe ser una imagen.";
+  return errores;
+}
+
+/* El evento con la forma de EVENTOS (script.js) a partir del formulario */
+function eventoDesdeFormulario(v, id, imagen, anterior) {
+  var evento = D.eventoDeSolicitud({
+    idEvento: id, nombre: v.titulo, ciudad: v.ciudad, teatro: v.teatro, direccion: v.direccion, inicio: v.inicio, fin: v.fin,
+    precio: v.precio, capacidad: v.capacidad, observaciones: v.observaciones, edad: v.edad,
+    descripcion: v.descripcion, imagen: imagen, lat: String(v.lat).replace(",", "."), lon: String(v.lon).replace(",", "."),
+    plan: v.parche, agente: nombreAgente(v.nitAgente), nit: v.nitAgente
+  });
+  evento.categoria = v.categoria;
+  evento.inicio = v.inicio;
+  evento.fin = v.fin;
+  evento.edad = Number(v.edad);
+  evento.estado = anterior ? anterior.estado : v.estado;
+  /* Las entradas ya vendidas se descuentan de la nueva capacidad */
+  evento.disponibles = anterior ? Math.max(Number(v.capacidad) - anterior.vendidas, 0) : Number(v.capacidad);
+  return evento;
+}
+
+/* id = null para registrar uno nuevo */
+function guardarEvento(evento, id) {
+  if (!D.usarApi) {
+    cambiarDatoLocal("datosEventos", "id", id, evento);
+    return Promise.resolve();
+  }
+  return id === null
+    ? enviarCrud("/admin/eventos", "POST", evento, "No se pudo registrar el evento.")
+    : enviarCrud("/admin/eventos/" + encodeURIComponent(id), "PUT", evento, "No se pudieron guardar los cambios.");
+}
+
+function eliminarEvento(id) {
+  if (!D.usarApi) {
+    cambiarDatoLocal("datosEventos", "id", id, null);
+    return Promise.resolve();
+  }
+  return enviarCrud("/admin/eventos/" + encodeURIComponent(id), "DELETE", null, "No se pudo eliminar el evento.");
+}
+
 /* ===== PÁGINA: EVENTOS ===== */
 
 var ESTADOS_EVENTO = ["Programado", "En Boletería", "En Vivo", "Finalizado", "Cancelado"];
@@ -951,14 +1836,14 @@ function capacidadNumero(evento) {
 function completarEvento(evento) {
   var capacidad = capacidadNumero(evento);
   var vendidas = Math.max(capacidad - evento.disponibles, 0);
-  var agente = AGENTES_DEMO.filter(function (a) { return a.eventos.indexOf(evento.id) !== -1; })[0];
+  var agente = agentesLocales().filter(function (a) { return esEventoDe(evento, a); })[0];
 
   return Object.assign({}, evento, {
     capacidadTotal: capacidad,
     vendidas: vendidas,
     ocupacion: capacidad ? Math.round(vendidas / capacidad * 100) : 0,
     ingresos: vendidas * evento.precio,
-    agente: evento.agente || (agente ? agente.nombre : "Sin agente")
+    agente: agente ? nombreAgente(agente.nit) : (evento.agente || "Sin agente")
   });
 }
 
@@ -983,11 +1868,12 @@ function obtenerEventosAdmin() {
   });
 }
 
-function cambiarEstadoEvento(id, estado, motivo) {
+/* "observaciones" solo cambia al cancelar (lleva la causa) */
+function cambiarEstadoEvento(id, estado, observaciones) {
   if (!D.usarApi) {
     try {
       var estados = leerEstadosEventos();
-      estados[id] = estado;
+      estados[id] = observaciones === undefined ? estado : { estado: estado, observaciones: observaciones };
       localStorage.setItem("estadoEventos", JSON.stringify(estados));
     } catch (e) {}
     return Promise.resolve();
@@ -996,7 +1882,7 @@ function cambiarEstadoEvento(id, estado, motivo) {
   return D.llamarApi("/admin/eventos/" + encodeURIComponent(id) + "/estado", {
     method: "PATCH",
     headers: Object.assign({ "Content-Type": "application/json" }, cabeceraToken()),
-    body: JSON.stringify({ estado: estado, motivo: motivo || null })
+    body: JSON.stringify(observaciones === undefined ? { estado: estado } : { estado: estado, observaciones: observaciones })
   }).then(function (resultado) {
     if (resultado.estado !== 200) {
       throw new Error(resultado.datos.error || "No se pudo cambiar el estado del evento.");
@@ -1019,6 +1905,128 @@ function barraOcupacion(e, grande) {
   '</span>';
 }
 
+/* ===== EVENTOS POR REVISAR =====
+   Los crea un agente en agente-eventos.html y quedan "En revisión".
+   - GET   /api/admin/eventos/solicitudes       -> { solicitudes: [ en revisión ] }
+   - PATCH /api/admin/eventos/solicitudes/:id   cuerpo { estado: "Aprobado" | "Rechazado", motivo }
+     Al aprobar, el backend crea la fila de EVENTO como "Programado". */
+
+var NOMBRE_CATEGORIA_EVENTO = { musica: "Música", teatro: "Teatro", danza: "Danza", circo: "Circo", comedia: "Comedia" };
+var NOMBRE_PLAN = { parchesote: "Parchesote", parche: "Parche", parchesito: "Parchesito" };
+
+function leerSolicitudesEventos() {
+  try {
+    return JSON.parse(localStorage.getItem("eventosAgente")) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function nombreAgente(nit) {
+  var perfil = leerPerfilesAgentes()[nit];
+  if (perfil && perfil.nombre) return perfil.nombre;
+  var agente = agentesLocales().filter(function (a) { return a.nit === nit; })[0];
+  return agente ? agente.nombre : "Agente " + nit;
+}
+
+function obtenerSolicitudesEventos() {
+  if (!D.usarApi) {
+    return Promise.resolve(leerSolicitudesEventos()
+      .filter(function (s) { return s.estado === "En revisión"; })
+      .map(function (s) { return Object.assign({ agente: nombreAgente(s.nit) }, s); }));
+  }
+
+  return D.llamarApi("/admin/eventos/solicitudes", { headers: cabeceraToken() }).then(function (resultado) {
+    if (resultado.estado !== 200) {
+      throw new Error(resultado.datos.error || "No se pudieron cargar los eventos por revisar.");
+    }
+    return resultado.datos.solicitudes;
+  });
+}
+
+function resolverSolicitudEvento(id, estado, motivo) {
+  if (!D.usarApi) {
+    var lista = leerSolicitudesEventos();
+    var solicitud = lista.filter(function (s) { return s.id === id; })[0];
+    if (!solicitud) {
+      return Promise.reject(new Error("Esta solicitud ya no existe: quizá el agente la retiró."));
+    }
+    if (estado === "Aprobado" && !tieneUbicacion(solicitud)) {
+      return Promise.reject(new Error("No se puede aprobar un evento sin ubicación en el mapa."));
+    }
+
+    solicitud.estado = estado;
+    solicitud.motivo = motivo || "";
+    solicitud.revisado = new Date().toISOString();
+
+    if (estado === "Aprobado") {
+      solicitud.idEvento = siguienteIdEvento();
+      solicitud.agente = nombreAgente(solicitud.nit);
+    }
+
+    try {
+      localStorage.setItem("eventosAgente", JSON.stringify(lista));
+    } catch (e) {
+      return Promise.reject(new Error("No se pudo guardar la decisión en este navegador."));
+    }
+
+    if (estado === "Aprobado") {
+      D.eventos.push(D.eventoDeSolicitud(solicitud));
+    }
+    return Promise.resolve(solicitud);
+  }
+
+  return D.llamarApi("/admin/eventos/solicitudes/" + encodeURIComponent(id), {
+    method: "PATCH",
+    headers: Object.assign({ "Content-Type": "application/json" }, cabeceraToken()),
+    body: JSON.stringify({ estado: estado, motivo: motivo || null })
+  }).then(function (resultado) {
+    if (resultado.estado !== 200) {
+      throw new Error(resultado.datos.error || "No se pudo guardar la decisión.");
+    }
+    return resultado.datos;
+  });
+}
+
+/* "2027-02-14T20:00" -> "14 de febrero de 2027, 8:00 p. m." */
+function fechaSolicitud(valor) {
+  var fecha = new Date(valor);
+  if (isNaN(fecha)) return String(valor);
+  return fecha.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" }) + ", " +
+    fecha.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+}
+
+/* Todo evento debe tener su punto en el mapa para poder publicarse */
+function tieneUbicacion(s) {
+  return s.lat !== undefined && s.lat !== "" && s.lat !== null && !isNaN(Number(s.lat)) &&
+    s.lon !== undefined && s.lon !== "" && s.lon !== null && !isNaN(Number(s.lon));
+}
+
+/* Mapa de solo lectura con el punto que marcó el agente */
+function mapaSolicitud(s) {
+  if (!tieneUbicacion(s)) {
+    return '<p class="revision-sin-ubicacion"><strong>Falta la ubicación.</strong> ' +
+      'Este evento no se puede aprobar hasta que el agente marque el punto en el mapa. ' +
+      'Recházalo para que lo corrija.</p>';
+  }
+  var lat = Number(s.lat);
+  var lon = Number(s.lon);
+  var caja = [lon - 0.01, lat - 0.006, lon + 0.01, lat + 0.006].map(function (n) { return n.toFixed(6); }).join(",");
+  return '<iframe class="revision-mapa" title="Mapa de la ubicación de ' + escapar(s.nombre) + '" ' +
+      'src="https://www.openstreetmap.org/export/embed.html?bbox=' + caja + '&amp;layer=mapnik&amp;marker=' + lat + ',' + lon + '"></iframe>' +
+    '<p><a class="detalle-enlace" href="https://www.openstreetmap.org/?mlat=' + lat + '&amp;mlon=' + lon + '#map=17/' + lat + '/' + lon + '" ' +
+      'target="_blank" rel="noreferrer">Abrir en OpenStreetMap<span class="oculto"> (se abre en otra pestaña)</span></a></p>';
+}
+
+/* Fecha corta para "Enviado el": "15 oct 2026, 9:24 a. m." */
+function fechaEnvio(valor) {
+  var fecha = new Date(valor);
+  if (isNaN(fecha)) return String(valor);
+  var meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  return fecha.getDate() + " " + meses[fecha.getMonth()] + " " + fecha.getFullYear() + ", " +
+    fecha.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+}
+
 function paginaEventosAdmin() {
   if (!entrarComoAdmin()) return;
 
@@ -1033,6 +2041,9 @@ function paginaEventosAdmin() {
   var dialogo = document.getElementById("detalle-evento");
   var contenido = document.getElementById("detalle-contenido");
   var abierto = null;
+  var modo = null;   /* "nuevo" o "editar" mientras se ve el formulario */
+  var ciudades = [];
+  var agentesLista = [];
 
   function pintarResumen() {
     var tarjetas = [{ titulo: "Eventos", valor: eventos.length, formato: numero.format }];
@@ -1051,7 +2062,7 @@ function paginaEventosAdmin() {
 
     var lista = eventos.filter(function (e) {
       var coincide = texto === "" ||
-        normalizar(e.titulo + " " + e.lugar + " " + e.ciudad + " " + e.agente).indexOf(texto) !== -1;
+        normalizar(e.titulo + " " + e.teatro + " " + e.ciudad + " " + e.agente).indexOf(texto) !== -1;
       return coincide &&
         (filtroEstado.value === "" || e.estado === filtroEstado.value) &&
         (filtroCiudad.value === "" || e.ciudad === filtroCiudad.value);
@@ -1080,7 +2091,7 @@ function paginaEventosAdmin() {
           '<span class="agente-celda">' +
             '<img class="evento-miniatura" src="' + escapar(e.imagen) + '" alt="" />' +
             '<span><span class="agente-nombre">' + escapar(e.titulo) + '</span>' +
-            '<span class="agente-nit">' + escapar(e.lugar) + ', ' + escapar(e.ciudad) + '</span></span>' +
+            '<span class="agente-nit">' + escapar(e.teatro) + ', ' + escapar(e.ciudad) + '</span></span>' +
           '</span>' +
         '</th>' +
         '<td role="cell" data-etiqueta="Fecha">' + escapar(e.fechaCorta) + '</td>' +
@@ -1113,9 +2124,8 @@ function paginaEventosAdmin() {
         }).join("") + '</select>' +
       '</div>' +
       '<div class="campo-motivo" id="campo-motivo" hidden>' +
-        '<label for="motivo-cancelacion">Motivo de la cancelación</label>' +
-        '<textarea id="motivo-cancelacion" rows="3" aria-describedby="ayuda-motivo"></textarea>' +
-        '<p class="ayuda-motivo" id="ayuda-motivo">Se les mostrará a las personas que tenían reservas.</p>' +
+        D.camposCancelacion("evento", "motivo") +
+        '<p class="ayuda-motivo">Se guarda en las observaciones del evento y se les mostrará a las personas que tenían reservas.</p>' +
       '</div>' +
       '<p class="detalle-error" id="error-estado" role="alert"></p>' +
       '<div class="detalle-botones" id="botones-estado">' +
@@ -1130,7 +2140,7 @@ function paginaEventosAdmin() {
         '<img class="evento-miniatura evento-miniatura-grande" src="' + escapar(e.imagen) + '" alt="" />' +
         '<div>' +
           '<h2 id="detalle-nombre" tabindex="-1">' + escapar(e.titulo) + '</h2>' +
-          '<p>' + escapar(e.lugar) + ', ' + escapar(e.ciudad) + '</p>' +
+          '<p>' + escapar(e.teatro) + ', ' + escapar(e.ciudad) + '</p>' +
           D.etiquetaEstado(e.estado, false) +
         '</div>' +
       '</div>' +
@@ -1149,21 +2159,156 @@ function paginaEventosAdmin() {
       '<h3>Ocupación</h3>' +
       '<div class="detalle-ocupacion" id="detalle-ocupacion">' + barraOcupacion(e, true) + '</div>' +
       '<h3>Observaciones</h3>' +
-      '<p class="detalle-descripcion">' + escapar(e.observaciones) + '</p>' +
+      '<p class="detalle-descripcion texto-con-saltos">' + escapar(e.observaciones) + '</p>' +
       '<p><a class="detalle-enlace" href="evento.html?id=' + e.id + '">Ver la página pública del evento</a></p>' +
+      '<div class="detalle-acciones" id="acciones-evento">' + botonesEvento() + '</div>' +
       '<div class="detalle-acciones">' + formularioEstado(e) + '</div>';
 
     animarAlVer(document.getElementById("detalle-ocupacion"));
   }
 
-  function guardarEstado(e, estado, motivo) {
+  function botonesEvento() {
+    return '<button type="button" class="admin-boton-sec" data-accion="editar">Editar evento</button>' +
+      '<button type="button" class="admin-boton admin-boton-peligro" data-accion="eliminar">Eliminar evento</button>';
+  }
+
+  /* ----- Registrar y editar ----- */
+
+  function valoresEvento(e) {
+    return {
+      titulo: e.titulo, descripcion: e.descripcion, categoria: e.categoria || "", parche: D.parcheDe(e),
+      nitAgente: nitDelEvento(e), estado: e.estado,
+      inicio: e.inicio || D.fechaTextoAIso(e.fechaInicio), fin: e.fin || D.fechaTextoAIso(e.fechaFin),
+      ciudad: e.ciudad, teatro: e.teatro, direccion: e.direccion || "",
+      lat: e.lat !== undefined ? String(e.lat).replace(".", ",") : "", lon: e.lon !== undefined ? String(e.lon).replace(".", ",") : "",
+      capacidad: e.capacidadTotal, precio: e.precio, edad: e.edad || 0,
+      observaciones: e.observaciones === "Sin observaciones." ? "" : e.observaciones
+    };
+  }
+
+  function mostrarFormulario(e) {
+    modo = e ? "editar" : "nuevo";
+    var listaCiudades = ciudades.slice();
+    if (e && e.ciudad && !listaCiudades.some(function (x) { return x[0] === e.ciudad; })) {
+      listaCiudades.push([e.ciudad, e.ciudad]);
+    }
+
+    contenido.innerHTML =
+      '<div class="detalle-cabecera"><div>' +
+        '<h2 id="detalle-nombre" tabindex="-1">' + (e ? "Editar " + escapar(e.titulo) : "Registrar evento") + '</h2>' +
+        '<p>' + (e ? "Cambia los datos que necesites y guarda." : "Publica un evento a nombre de un agente.") + '</p>' +
+      '</div></div>' +
+      htmlFormulario("form-evento", camposEvento(!e, listaCiudades, agentesLista),
+        e ? valoresEvento(e) : { estado: "Programado", precio: 0, edad: 0 },
+        e ? "Guardar cambios" : "Registrar evento");
+
+    /* El mapa del formulario (el mismo del agente) */
+    var mapa = crearMapaEvento({
+      lat: document.getElementById("f-lat"), lon: document.getElementById("f-lon"),
+      ciudad: document.getElementById("f-ciudad"), direccion: document.getElementById("f-direccion")
+    }, {
+      caja: document.getElementById("mapa-evento-admin"),
+      estado: document.getElementById("estado-mapa-admin"),
+      buscar: document.getElementById("buscar-direccion-admin")
+    });
+    mapa.preparar().then(function () {
+      var lat = parseFloat(String(document.getElementById("f-lat").value).replace(",", "."));
+      var lon = parseFloat(String(document.getElementById("f-lon").value).replace(",", "."));
+      if (!isNaN(lat) && !isNaN(lon)) mapa.ponerPunto(lat, lon, true);
+      else if (e) mapa.centrarEnCiudad(e.ciudad);
+    });
+
+    document.getElementById("detalle-nombre").focus();
+  }
+
+  contenido.addEventListener("submit", function (evento) {
+    if (evento.target.id !== "form-evento") return;
+    evento.preventDefault();
+
+    var nuevo = modo === "nuevo";
+    var campos = camposEvento(nuevo, ciudades, agentesLista);
+    var v = leerFormulario(campos);
+    if (!nuevo) v.estado = abierto.estado;
+    if (mostrarErroresFormulario("form-evento", campos, validarEvento(v, nuevo ? null : abierto))) return;
+
+    var botones = evento.target.querySelectorAll("button");
+    botones.forEach(function (b) { b.disabled = true; });
+
+    var id = nuevo ? siguienteIdEvento() : abierto.id;
+
+    (v.imagen ? reducirImagen(v.imagen, 1000) : Promise.resolve(nuevo ? "" : abierto.imagen))
+      .then(function (imagen) {
+        var datos = eventoDesdeFormulario(v, id, imagen, nuevo ? null : abierto);
+        return guardarEvento(datos, nuevo ? null : abierto.id).then(function () { return datos; });
+      })
+      .then(function (datos) {
+        /* La lista pública (D.eventos) y la de esta página se actualizan juntas */
+        var original = D.eventos.filter(function (x) { return x.id === datos.id; })[0];
+        if (original) Object.assign(original, datos);
+        else D.eventos.push(datos);
+
+        var completo = completarEvento(original || datos);
+        if (nuevo) eventos.push(completo);
+        else Object.assign(abierto, completo);
+        abierto = nuevo ? completo : abierto;
+        modo = null;
+
+        var mensaje = nuevo ? "Se registró " + datos.titulo + "." : "Se guardaron los cambios de " + datos.titulo + ".";
+        aviso.textContent = mensaje;
+        pintarResumen();
+        pintarTabla();
+        pintarDetalle(abierto, mensaje);
+        document.getElementById("detalle-nombre").focus();
+      })
+      .catch(function (error) {
+        document.getElementById("form-evento-error").innerHTML = "<strong>Error:</strong> " + escapar(error.message);
+        botones.forEach(function (b) { b.disabled = false; });
+      });
+  });
+
+  document.getElementById("nuevo-evento").onclick = function () {
+    abierto = null;
+    revisando = null;
+    mostrarFormulario(null);
+    dialogo.showModal();
+    document.getElementById("detalle-nombre").focus();
+  };
+
+  function confirmarEliminacion(e) {
+    var acciones = document.getElementById("acciones-evento");
+    obtenerReservasAdmin().catch(function () { return []; }).then(function (reservas) {
+      var suyas = reservas.filter(function (r) { return r.eventoId === e.id; }).length;
+      acciones.innerHTML =
+        '<div class="detalle-confirmar">' +
+          '<p id="texto-confirmar"><strong>¿Eliminar ' + escapar(e.titulo) + '?</strong> ' +
+          'Desaparece de la página' + (suyas ? ' y se borran sus ' + suyas + (suyas === 1 ? ' reserva' : ' reservas') : '') +
+          '. Esto no se puede deshacer. Si solo no se va a hacer, mejor cancélalo.</p>' +
+          '<div class="detalle-botones">' +
+            '<button type="button" class="admin-boton admin-boton-peligro" data-accion="si-eliminar" aria-describedby="texto-confirmar">Sí, eliminar</button>' +
+            '<button type="button" class="admin-boton-sec" data-accion="no-eliminar">Volver</button>' +
+          '</div>' +
+        '</div>';
+      acciones.querySelector('[data-accion="si-eliminar"]').focus();
+    });
+  }
+
+  /* "cancelacion" = { causa, detalle } cuando el nuevo estado es Cancelado */
+  function guardarEstado(e, estado, cancelacion) {
     var botones = document.getElementById("botones-estado");
     botones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
 
-    cambiarEstadoEvento(e.id, estado, motivo).then(function () {
+    var observaciones = cancelacion
+      ? D.agregarNota(e.observaciones, D.notaCancelacion("evento", "el administrador", cancelacion.causa, cancelacion.detalle))
+      : undefined;
+
+    cambiarEstadoEvento(e.id, estado, observaciones).then(function () {
       e.estado = estado;
       var original = D.eventos.filter(function (x) { return x.id === e.id; })[0];
       if (original) original.estado = estado;
+      if (observaciones !== undefined) {
+        e.observaciones = observaciones;
+        if (original) original.observaciones = observaciones;
+      }
 
       var mensaje = "El estado de " + e.titulo + " ahora es " + estado + ".";
       aviso.textContent = mensaje;
@@ -1187,16 +2332,17 @@ function paginaEventosAdmin() {
         (cancelar ? "Cancelar el evento" : "Guardar cambio") + '</button>';
   });
 
+  var cancelacionPendiente = null;
+
   contenido.addEventListener("submit", function (evento) {
+    if (evento.target.id !== "form-estado") return;
     evento.preventDefault();
     if (!abierto) return;
 
     var lista = document.getElementById("nuevo-estado");
     var elegido = lista.value;
     var error = document.getElementById("error-estado");
-    var motivo = document.getElementById("motivo-cancelacion");
     error.textContent = "";
-    motivo.removeAttribute("aria-invalid");
 
     if (elegido === abierto.estado) {
       error.innerHTML = "<strong>Error:</strong> Elige un estado distinto al actual.";
@@ -1209,10 +2355,9 @@ function paginaEventosAdmin() {
       return;
     }
 
-    if (motivo.value.trim().length < 10) {
-      error.innerHTML = "<strong>Error:</strong> Escribe el motivo de la cancelación (10 caracteres como mínimo).";
-      motivo.setAttribute("aria-invalid", "true");
-      motivo.focus();
+    cancelacionPendiente = D.datosCancelacion("motivo");
+    if (cancelacionPendiente.error) {
+      error.innerHTML = "<strong>Error:</strong> " + cancelacionPendiente.error;
       return;
     }
 
@@ -1230,11 +2375,49 @@ function paginaEventosAdmin() {
 
   contenido.addEventListener("click", function (evento) {
     var boton = evento.target.closest("button[data-accion]");
-    if (!boton || !abierto) return;
+    if (!boton) return;
+    var accion = boton.getAttribute("data-accion");
 
-    if (boton.getAttribute("data-accion") === "si-cancelar") {
-      guardarEstado(abierto, "Cancelado", document.getElementById("motivo-cancelacion").value.trim());
-    } else {
+    if (accion === "cancelar-formulario") {
+      if (modo === "nuevo") {
+        dialogo.close();
+      } else {
+        modo = null;
+        pintarDetalle(abierto);
+        document.getElementById("detalle-nombre").focus();
+      }
+      return;
+    }
+    if (!abierto) return;
+
+    if (accion === "editar") {
+      mostrarFormulario(abierto);
+    } else if (accion === "eliminar") {
+      confirmarEliminacion(abierto);
+    } else if (accion === "no-eliminar") {
+      document.getElementById("acciones-evento").innerHTML = botonesEvento();
+      document.querySelector('#acciones-evento [data-accion="eliminar"]').focus();
+    } else if (accion === "si-eliminar") {
+      var borrado = abierto;
+      var acciones = document.getElementById("acciones-evento");
+      acciones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      eliminarEvento(borrado.id).then(function () {
+        eventos = eventos.filter(function (x) { return x !== borrado; });
+        D.eventos.splice(D.eventos.findIndex(function (x) { return x.id === borrado.id; }), 1);
+        aviso.textContent = "Se eliminó " + borrado.titulo + ".";
+        abierto = null;
+        dialogo.close();
+        pintarResumen();
+        pintarTabla();
+        aviso.setAttribute("tabindex", "-1");
+        setTimeout(function () { aviso.focus(); }, 0);
+      }).catch(function (error) {
+        document.getElementById("detalle-aviso").innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
+        acciones.querySelectorAll("button").forEach(function (b) { b.disabled = false; });
+      });
+    } else if (accion === "si-cancelar") {
+      guardarEstado(abierto, "Cancelado", cancelacionPendiente);
+    } else if (accion === "volver") {
       document.getElementById("botones-estado").innerHTML =
         '<button type="submit" class="admin-boton admin-boton-peligro">Cancelar el evento</button>';
       document.querySelector("#botones-estado button").focus();
@@ -1246,6 +2429,8 @@ function paginaEventosAdmin() {
     if (!boton) return;
 
     abierto = eventos.filter(function (e) { return String(e.id) === boton.getAttribute("data-id"); })[0];
+    revisando = null;
+    modo = null;
     pintarDetalle(abierto);
     dialogo.showModal();
     document.getElementById("detalle-nombre").focus();
@@ -1260,6 +2445,13 @@ function paginaEventosAdmin() {
   });
 
   dialogo.addEventListener("close", function () {
+    if (modo === "nuevo") {
+      modo = null;
+      /* después de que el navegador devuelve el foco por su cuenta */
+      setTimeout(function () { document.getElementById("nuevo-evento").focus(); }, 0);
+      return;
+    }
+    modo = null;
     if (!abierto) return;
     var id = abierto.id;
     abierto = null;
@@ -1280,6 +2472,188 @@ function paginaEventosAdmin() {
   filtroEstado.onchange = pintarTabla;
   filtroCiudad.onchange = pintarTabla;
   orden.onchange = pintarTabla;
+
+  /* ----- Eventos por revisar ----- */
+
+  var listaRevision = document.getElementById("lista-por-revisar");
+  var conteoRevision = document.getElementById("conteo-por-revisar");
+  var solicitudes = [];
+  var revisando = null;
+
+  function pintarPorRevisar() {
+    conteoRevision.textContent = solicitudes.length === 0
+      ? "No hay eventos esperando revisión."
+      : (solicitudes.length === 1 ? "1 evento espera" : solicitudes.length + " eventos esperan") +
+        " tu aprobación antes de publicarse.";
+
+    listaRevision.innerHTML = solicitudes.map(function (s) {
+      return '<li class="agente-evento revision-item">' +
+        '<img src="' + escapar(s.imagen || "img/evento-sin-foto.svg") + '" alt="">' +
+        '<div class="agente-evento-texto">' +
+          '<h3>' + escapar(s.nombre) + '</h3>' +
+          '<p>' + escapar(s.agente) + '</p>' +
+          '<p>' + escapar(fechaSolicitud(s.inicio)) + ' · ' + escapar(s.teatro) + ', ' + escapar(s.ciudad) + '</p>' +
+          '<p class="agente-enviado">Enviado el ' + escapar(fechaEnvio(s.enviado)) + '</p>' +
+        '</div>' +
+        '<div class="revision-accion">' +
+          '<button type="button" class="admin-boton-sec" data-revisar="' + escapar(s.id) + '">Revisar' +
+            '<span class="oculto"> ' + escapar(s.nombre) + '</span></button>' +
+        '</div>' +
+      '</li>';
+    }).join("");
+
+    animarAlVer(listaRevision);
+  }
+
+  function botonesRevision() {
+    var rechazar = '<button type="button" class="admin-boton-sec agente-retirar" data-revision="mostrar-rechazo">Rechazar</button>';
+    if (revisando && !tieneUbicacion(revisando)) return rechazar;
+    return '<button type="button" class="admin-boton" data-revision="aprobar">Aprobar y publicar</button>' + rechazar;
+  }
+
+  function pintarSolicitud(s) {
+    contenido.innerHTML =
+      '<div class="detalle-cabecera">' +
+        '<img class="evento-miniatura evento-miniatura-grande" src="' + escapar(s.imagen || "img/evento-sin-foto.svg") + '" alt="" />' +
+        '<div>' +
+          '<h2 id="detalle-nombre" tabindex="-1">' + escapar(s.nombre) + '</h2>' +
+          '<p>' + escapar(s.agente) + '</p>' +
+          D.etiquetaEstado("En revisión", false) +
+        '</div>' +
+      '</div>' +
+      '<p class="detalle-descripcion">' + escapar(s.descripcion) + '</p>' +
+      '<dl class="detalle-datos">' +
+        '<div><dt>Categoría</dt><dd>' + escapar(NOMBRE_CATEGORIA_EVENTO[s.categoria] || s.categoria) + '</dd></div>' +
+        '<div><dt>Tipo de plan</dt><dd>' + escapar(NOMBRE_PLAN[s.plan] || s.plan) + '</dd></div>' +
+        '<div><dt>Inicio</dt><dd>' + escapar(fechaSolicitud(s.inicio)) + '</dd></div>' +
+        '<div><dt>Fin</dt><dd>' + escapar(fechaSolicitud(s.fin)) + '</dd></div>' +
+        '<div><dt>Ciudad</dt><dd>' + escapar(s.ciudad) + (s.departamento ? ", " + escapar(s.departamento) : "") + '</dd></div>' +
+        '<div><dt>Teatro</dt><dd>' + escapar(s.teatro) + '</dd></div>' +
+        '<div><dt>Dirección</dt><dd>' + escapar(s.direccion) + '</dd></div>' +
+        '<div><dt>Capacidad</dt><dd>' + numero.format(s.capacidad) + ' personas</dd></div>' +
+        '<div><dt>Precio</dt><dd>' + textoPrecio(Number(s.precio)) + '</dd></div>' +
+        '<div><dt>Edad mínima</dt><dd>' + (Number(s.edad) > 0 ? s.edad + " años" : "Todas las edades") + '</dd></div>' +
+      '</dl>' +
+      '<h3>Observaciones</h3>' +
+      '<p class="detalle-descripcion">' + escapar(s.observaciones || "Sin observaciones.") + '</p>' +
+      '<h3>Ubicación</h3>' + mapaSolicitud(s) +
+      '<div class="detalle-acciones">' +
+        '<div class="campo-motivo" id="campo-rechazo" hidden>' +
+          '<label for="motivo-rechazo-evento">Motivo del rechazo</label>' +
+          '<textarea id="motivo-rechazo-evento" rows="3" aria-describedby="ayuda-rechazo"></textarea>' +
+          '<p class="ayuda-motivo" id="ayuda-rechazo">El agente lo verá junto a su evento para corregirlo.</p>' +
+        '</div>' +
+        '<p class="detalle-error" id="error-revision" role="alert"></p>' +
+        '<div class="detalle-botones" id="botones-revision">' + botonesRevision() + '</div>' +
+      '</div>';
+  }
+
+  function cargarPorRevisar() {
+    return obtenerSolicitudesEventos().then(function (lista) {
+      solicitudes = lista;
+      pintarPorRevisar();
+    });
+  }
+
+  function decidir(estado, motivo) {
+    var botones = document.getElementById("botones-revision");
+    botones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+    var nombre = revisando.nombre;
+
+    resolverSolicitudEvento(revisando.id, estado, motivo).then(function () {
+      aviso.textContent = estado === "Aprobado"
+        ? "Aprobaste «" + nombre + "». Ya está publicado como Programado."
+        : "Rechazaste «" + nombre + "». El agente verá el motivo para corregirlo.";
+      /* La tarjeta revisada desaparece de la lista: el foco va al título */
+      revisando = null;
+      dialogo.close();
+      return Promise.all([cargarPorRevisar(), obtenerEventosAdmin()]);
+    }).then(function (datos) {
+      eventos = datos[1];
+      pintarResumen();
+      pintarTabla();
+      document.getElementById("titulo-por-revisar").focus();
+    }).catch(function (error) {
+      var caja = document.getElementById("error-revision");
+      if (caja) {
+        caja.innerHTML = "<strong>Error:</strong> " + escapar(error.message);
+        botones.querySelectorAll("button").forEach(function (b) { b.disabled = false; });
+      } else {
+        aviso.innerHTML = "<strong>Error:</strong> " + escapar(error.message);
+      }
+    });
+  }
+
+  listaRevision.addEventListener("click", function (evento) {
+    var boton = evento.target.closest("button[data-revisar]");
+    if (!boton) return;
+
+    revisando = solicitudes.filter(function (s) { return s.id === boton.getAttribute("data-revisar"); })[0];
+    if (!revisando) return;
+    abierto = null;
+    pintarSolicitud(revisando);
+    dialogo.showModal();
+    document.getElementById("detalle-nombre").focus();
+  });
+
+  contenido.addEventListener("click", function (evento) {
+    var boton = evento.target.closest("button[data-revision]");
+    if (!boton || !revisando) return;
+
+    var accion = boton.getAttribute("data-revision");
+    var botones = document.getElementById("botones-revision");
+    var motivo = document.getElementById("motivo-rechazo-evento");
+    var error = document.getElementById("error-revision");
+    error.textContent = "";
+
+    if (accion === "aprobar") {
+      decidir("Aprobado");
+    } else if (accion === "mostrar-rechazo") {
+      document.getElementById("campo-rechazo").hidden = false;
+      if (!tieneUbicacion(revisando) && !motivo.value) {
+        motivo.value = "Falta marcar en el mapa el punto exacto donde se hace el evento.";
+      }
+      botones.innerHTML =
+        '<button type="button" class="admin-boton admin-boton-peligro" data-revision="rechazar">Rechazar el evento</button>' +
+        '<button type="button" class="admin-boton-sec" data-revision="volver">Volver</button>';
+      motivo.focus();
+    } else if (accion === "volver") {
+      document.getElementById("campo-rechazo").hidden = true;
+      motivo.removeAttribute("aria-invalid");
+      botones.innerHTML = botonesRevision();
+      botones.querySelector("button").focus();
+    } else if (accion === "rechazar") {
+      if (motivo.value.trim().length < 10) {
+        error.innerHTML = "<strong>Error:</strong> Escribe el motivo del rechazo (10 caracteres como mínimo).";
+        motivo.setAttribute("aria-invalid", "true");
+        motivo.focus();
+        return;
+      }
+      decidir("Rechazado", motivo.value.trim());
+    }
+  });
+
+  dialogo.addEventListener("close", function () {
+    if (!revisando) return;
+    var id = revisando.id;
+    revisando = null;
+    setTimeout(function () {
+      var boton = listaRevision.querySelector('button[data-revisar="' + id + '"]');
+      (boton || document.getElementById("titulo-por-revisar")).focus();
+    }, 0);
+  });
+
+  cargarPorRevisar().catch(function (error) {
+    conteoRevision.innerHTML = "<strong>Error:</strong> " + escapar(error.message);
+  });
+
+  obtenerCiudadesLista().then(function (lista) { ciudades = lista; }).catch(function () {});
+  obtenerAgentes().then(function (lista) {
+    agentesLista = lista
+      .slice()
+      .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); })
+      .map(function (a) { return [a.nit, a.nombre + (a.estado === "Activo" ? "" : " (" + a.estado.toLowerCase() + ")")]; });
+  }).catch(function () {});
 
   obtenerEventosAdmin().then(function (lista) {
     eventos = lista;
@@ -1310,62 +2684,55 @@ function paginaEventosAdmin() {
 /* "reservas": [id del evento, entradas, estado, fecha]; "compras": entradas
    compradas en cada uno de los últimos 6 meses */
 var CLIENTES_DEMO = [
-  { documento: "1116254789", tipoDoc: "CC", nombre: "Valentina Ríos Castaño", alias: "valeri", correo: "valentina.rios@correo.example",
-    telefono: "3104452211", ciudad: "Tuluá", nacimiento: "2001-04-17", registro: "2025-02-10", puntos: 1840, publicidad: true,
-    verificacion: "Aprobada", cuenta: "Activa", compras: [2, 0, 4, 2, 0, 3],
+  { documento: "1116254789", tipoDoc: "CC", nombres: "Valentina", apellidos: "Ríos Castaño", alias: "valeri", correo: "valentina.rios@correo.example",
+    telefono: "3104452211", direccion: "Calle 27 # 30-14", ciudad: "Tuluá", nacimiento: "2001-04-17", registro: "2025-02-10", puntos: 1840, publicidad: true,
+    cuenta: "Activa", compras: [2, 0, 4, 2, 0, 3],
     reservas: [[1, 2, "Confirmada", "2026-09-02"], [4, 3, "Confirmada", "2026-07-21"], [2, 2, "Reservada", "2026-10-01"], [7, 2, "Cancelada", "2026-06-14"]] },
-  { documento: "1006478123", tipoDoc: "CC", nombre: "Juan David Ospina", alias: "juanchoo", correo: "jd.ospina@correo.example",
-    telefono: "3016547890", ciudad: "Cali", nacimiento: "1998-11-02", registro: "2024-12-03", puntos: 2650, publicidad: false,
-    verificacion: "Aprobada", cuenta: "Activa", compras: [4, 2, 0, 6, 2, 4],
+  { documento: "1006478123", tipoDoc: "CC", nombres: "Juan David", apellidos: "Ospina", alias: "juanchoo", correo: "jd.ospina@correo.example",
+    telefono: "3016547890", direccion: "Carrera 66 # 9-35", ciudad: "Cali", nacimiento: "1998-11-02", registro: "2024-12-03", puntos: 2650, publicidad: false,
+    cuenta: "Activa", compras: [4, 2, 0, 6, 2, 4],
     reservas: [[11, 4, "Confirmada", "2026-09-28"], [5, 2, "Confirmada", "2026-08-15"], [9, 6, "Confirmada", "2026-07-03"], [12, 4, "Reservada", "2026-10-09"]] },
-  { documento: "52987654", tipoDoc: "CC", nombre: "Laura Melisa Gómez", alias: "laumeli", correo: "laura.gomez@correo.example",
-    telefono: "3201234567", ciudad: "Bogotá", nacimiento: "1994-06-25", registro: "2025-05-19", puntos: 920, publicidad: true,
-    verificacion: "Pendiente", cuenta: "Activa", compras: [0, 0, 2, 0, 0, 0],
+  { documento: "52987654", tipoDoc: "CC", nombres: "Laura Melisa", apellidos: "Gómez", alias: "laumeli", correo: "laura.gomez@correo.example",
+    telefono: "3201234567", direccion: "Calle 72 # 11-40 apto 502", ciudad: "Bogotá", nacimiento: "1994-06-25", registro: "2025-05-19", puntos: 920, publicidad: true,
+    cuenta: "Activa", compras: [0, 0, 2, 0, 0, 0],
     reservas: [[3, 2, "Confirmada", "2026-07-11"]] },
-  { documento: "1144098765", tipoDoc: "CC", nombre: "Santiago Herrera Mejía", alias: "santi.hm", correo: "santiago.herrera@correo.example",
-    telefono: "3157788990", ciudad: "Medellín", nacimiento: "2003-01-30", registro: "2026-01-22", puntos: 410, publicidad: true,
-    verificacion: "Aprobada", cuenta: "Activa", compras: [0, 1, 0, 0, 2, 0],
+  { documento: "1144098765", tipoDoc: "CC", nombres: "Santiago", apellidos: "Herrera Mejía", alias: "santi.hm", correo: "santiago.herrera@correo.example",
+    telefono: "3157788990", direccion: "Carrera 43A # 18 Sur-75", ciudad: "Medellín", nacimiento: "2003-01-30", registro: "2026-01-22", puntos: 410, publicidad: true,
+    cuenta: "Activa", compras: [0, 1, 0, 0, 2, 0],
     reservas: [[2, 2, "Confirmada", "2026-09-05"], [8, 1, "Reservada", "2026-06-20"]] },
-  { documento: "AB123456", tipoDoc: "PAS", nombre: "Camila Andrade Paz", alias: "camiap", correo: "camila.andrade@correo.example",
-    telefono: "3005551234", ciudad: "Barranquilla", nacimiento: "1990-09-12", registro: "2025-10-08", puntos: 1300, publicidad: false,
-    verificacion: "Rechazada", cuenta: "Activa", compras: [0, 0, 0, 0, 0, 0],
+  { documento: "AB123456", tipoDoc: "PAS", nombres: "Camila", apellidos: "Andrade Paz", alias: "camiap", correo: "camila.andrade@correo.example",
+    telefono: "3005551234", direccion: "Calle 84 # 50-21", ciudad: "Barranquilla", nacimiento: "1990-09-12", registro: "2025-10-08", puntos: 1300, publicidad: false,
+    cuenta: "Activa", compras: [0, 0, 0, 0, 0, 0],
     reservas: [] },
-  { documento: "1088345612", tipoDoc: "CC", nombre: "Andrés Felipe Cardona", alias: "pipecardona", correo: "andres.cardona@correo.example",
-    telefono: "3112223344", ciudad: "Cali", nacimiento: "1987-03-08", registro: "2024-08-30", puntos: 3420, publicidad: true,
-    verificacion: "Aprobada", cuenta: "Activa", compras: [6, 4, 8, 2, 4, 6],
+  { documento: "1088345612", tipoDoc: "CC", nombres: "Andrés Felipe", apellidos: "Cardona", alias: "pipecardona", correo: "andres.cardona@correo.example",
+    telefono: "3112223344", direccion: "Avenida 6N # 23-50", ciudad: "Cali", nacimiento: "1987-03-08", registro: "2024-08-30", puntos: 3420, publicidad: true,
+    cuenta: "Activa", compras: [6, 4, 8, 2, 4, 6],
     reservas: [[4, 4, "Confirmada", "2026-10-02"], [11, 6, "Confirmada", "2026-09-17"], [5, 8, "Confirmada", "2026-07-25"], [10, 2, "Cancelada", "2026-05-30"]] },
-  { documento: "1234567890", tipoDoc: "TI", nombre: "Mariana López Zapata", alias: "mari.lz", correo: "mariana.lopez@correo.example",
-    telefono: "3189876543", ciudad: "Bucaramanga", nacimiento: "2010-12-05", registro: "2026-08-14", puntos: 60, publicidad: false,
-    verificacion: "Sin solicitar", cuenta: "Activa", compras: [0, 0, 0, 0, 0, 0],
+  { documento: "1234567890", tipoDoc: "CC", nombres: "Mariana", apellidos: "López Zapata", alias: "mari.lz", correo: "mariana.lopez@correo.example",
+    telefono: "3189876543", direccion: "Calle 36 # 27-18", ciudad: "Bucaramanga", nacimiento: "2006-12-05", registro: "2026-08-14", puntos: 60, publicidad: false,
+    cuenta: "Activa", compras: [0, 0, 0, 0, 0, 0],
     reservas: [] },
-  { documento: "1017223344", tipoDoc: "CC", nombre: "Daniel Esteban Muñoz", alias: "danimu", correo: "daniel.munoz@correo.example",
-    telefono: "3046667788", ciudad: "Medellín", nacimiento: "1996-07-19", registro: "2025-03-27", puntos: 0, publicidad: true,
-    verificacion: "Aprobada", cuenta: "Bloqueada", compras: [8, 6, 0, 0, 0, 0],
+  { documento: "1017223344", tipoDoc: "CC", nombres: "Daniel Esteban", apellidos: "Muñoz", alias: "danimu", correo: "daniel.munoz@correo.example",
+    telefono: "3046667788", direccion: "Circular 1 # 70-12", ciudad: "Medellín", nacimiento: "1996-07-19", registro: "2025-03-27", puntos: 0, publicidad: true,
+    cuenta: "Bloqueada", compras: [8, 6, 0, 0, 0, 0],
     reservas: [[2, 8, "Cancelada", "2026-05-11"], [9, 6, "Cancelada", "2026-06-02"]] },
-  { documento: "PPT987654", tipoDoc: "PPT", nombre: "Gabriela Pérez Rondón", alias: "gabyp", correo: "gabriela.perez@correo.example",
-    telefono: "3227654321", ciudad: "Bogotá", nacimiento: "1999-02-14", registro: "2026-03-03", puntos: 780, publicidad: true,
-    verificacion: "Pendiente", cuenta: "Activa", compras: [0, 2, 0, 1, 0, 0],
+  { documento: "987654", tipoDoc: "PPT", nombres: "Gabriela", apellidos: "Pérez Rondón", alias: "gabyp", correo: "gabriela.perez@correo.example",
+    telefono: "3227654321", direccion: "Carrera 7 # 45-10", ciudad: "Bogotá", nacimiento: "1999-02-14", registro: "2026-03-03", puntos: 780, publicidad: true,
+    cuenta: "Activa", compras: [0, 2, 0, 1, 0, 0],
     reservas: [[1, 2, "Reservada", "2026-06-29"], [3, 1, "Confirmada", "2026-08-04"]] },
-  { documento: "94321765", tipoDoc: "CC", nombre: "Carlos Alberto Restrepo", alias: "caresp", correo: "carlos.restrepo@correo.example",
-    telefono: "3135550099", ciudad: "Tuluá", nacimiento: "1975-10-21", registro: "2024-06-11", puntos: 2210, publicidad: false,
-    verificacion: "Aprobada", cuenta: "Activa", compras: [2, 0, 2, 0, 4, 2],
+  { documento: "94321765", tipoDoc: "CC", nombres: "Carlos Alberto", apellidos: "Restrepo", alias: "caresp", correo: "carlos.restrepo@correo.example",
+    telefono: "3135550099", direccion: "Carrera 25 # 25-60", ciudad: "Tuluá", nacimiento: "1975-10-21", registro: "2024-06-11", puntos: 2210, publicidad: false,
+    cuenta: "Activa", compras: [2, 0, 2, 0, 4, 2],
     reservas: [[6, 2, "Confirmada", "2026-09-30"], [12, 4, "Confirmada", "2026-08-12"], [3, 2, "Confirmada", "2026-05-18"]] },
-  { documento: "1110556677", tipoDoc: "CC", nombre: "Sofía Marín Arango", alias: "sofimarin", correo: "sofia.marin@correo.example",
-    telefono: "3009998877", ciudad: "Cali", nacimiento: "2005-05-03", registro: "2026-09-20", puntos: 120, publicidad: true,
-    verificacion: "Pendiente", cuenta: "Activa", compras: [0, 0, 0, 0, 0, 2],
+  { documento: "1110556677", tipoDoc: "CC", nombres: "Sofía", apellidos: "Marín Arango", alias: "sofimarin", correo: "sofia.marin@correo.example",
+    telefono: "3009998877", direccion: "Calle 5 # 38-25", ciudad: "Cali", nacimiento: "2005-05-03", registro: "2026-09-20", puntos: 120, publicidad: true,
+    cuenta: "Activa", compras: [0, 0, 0, 0, 0, 2],
     reservas: [[4, 2, "Reservada", "2026-10-11"]] },
-  { documento: "80654321", tipoDoc: "CE", nombre: "Mateo Fernández Ruiz", alias: "mateofr", correo: "mateo.fernandez@correo.example",
-    telefono: "3174443322", ciudad: "Barranquilla", nacimiento: "1992-08-28", registro: "2025-07-07", puntos: 0, publicidad: false,
-    verificacion: "Rechazada", cuenta: "Bloqueada", compras: [0, 0, 0, 0, 0, 0],
+  { documento: "80654321", tipoDoc: "CE", nombres: "Mateo", apellidos: "Fernández Ruiz", alias: "mateofr", correo: "mateo.fernandez@correo.example",
+    telefono: "3174443322", direccion: "Calle 98 # 52-115", ciudad: "Barranquilla", nacimiento: "1992-08-28", registro: "2025-07-07", puntos: 0, publicidad: false,
+    cuenta: "Bloqueada", compras: [0, 0, 0, 0, 0, 0],
     reservas: [] }
 ];
-
-var CLASE_VERIFICACION = {
-  "Aprobada": "agente-activo",
-  "Pendiente": "agente-pendiente",
-  "Rechazada": "estado-vivo",
-  "Sin solicitar": "estado-finalizado"
-};
 
 var CLASE_RESERVA = {
   "Confirmada": "agente-activo",
@@ -1394,15 +2761,25 @@ function leerCuentasLocales() {
   }
 }
 
+/* "nombre" es nombres + apellidos, como se muestra en las listas */
+function conNombre(persona) {
+  persona.nombre = persona.nombres !== undefined
+    ? (persona.nombres + " " + persona.apellidos).trim()
+    : persona.nombre;
+  return persona;
+}
+
+/* Clientes de ejemplo con lo que se registró, modificó o eliminó en este navegador */
+function clientesLocales() {
+  return aplicarDatosLocales(CLIENTES_DEMO, "datosClientes", "documento").map(conNombre);
+}
+
 function obtenerClientes() {
   if (!D.usarApi) {
     var cambios = leerCuentasLocales();
-    var verificaciones = D.leerVerificaciones();
-    return Promise.resolve(CLIENTES_DEMO.map(function (c) {
-      var copia = Object.assign({}, c);
-      if (cambios[c.documento]) copia.cuenta = cambios[c.documento];
-      if (verificaciones[c.correo]) copia.verificacion = verificaciones[c.correo].estado;
-      return copia;
+    return Promise.resolve(clientesLocales().map(function (c) {
+      if (cambios[c.documento]) c.cuenta = cambios[c.documento];
+      return c;
     }));
   }
 
@@ -1410,8 +2787,75 @@ function obtenerClientes() {
     if (resultado.estado !== 200) {
       throw new Error(resultado.datos.error || "No se pudo cargar la lista de clientes.");
     }
-    return resultado.datos.clientes;
+    return resultado.datos.clientes.map(conNombre);
   });
+}
+
+/* documento = null para registrar uno nuevo */
+function guardarCliente(datos, documento) {
+  if (!D.usarApi) {
+    var copia = Object.assign({}, datos);
+    delete copia.contrasena;   /* la contraseña nunca se guarda en el navegador */
+    cambiarDatoLocal("datosClientes", "documento", documento, copia);
+    return Promise.resolve();
+  }
+  return documento === null
+    ? enviarCrud("/admin/clientes", "POST", datos, "No se pudo registrar el cliente.")
+    : enviarCrud("/admin/clientes/" + encodeURIComponent(documento), "PUT", datos, "No se pudieron guardar los cambios.");
+}
+
+function eliminarCliente(documento) {
+  if (!D.usarApi) {
+    cambiarDatoLocal("datosClientes", "documento", documento, null);
+    return Promise.resolve();
+  }
+  return enviarCrud("/admin/clientes/" + encodeURIComponent(documento), "DELETE", null, "No se pudo eliminar el cliente.");
+}
+
+function camposCliente(nuevo, ciudades) {
+  var campos = [
+    { id: "tipoDoc", etiqueta: "Tipo de documento", tipo: "select", opciones: TIPOS_DOCUMENTO, par: true, soloLectura: !nuevo },
+    { id: "documento", etiqueta: "Número de documento", tipo: "text", max: 20, par: true, soloLectura: !nuevo,
+      ayuda: nuevo ? "Sin puntos ni espacios." : "El documento no se puede cambiar." },
+    { id: "nombres", etiqueta: "Nombres", tipo: "text", max: 80, par: true },
+    { id: "apellidos", etiqueta: "Apellidos", tipo: "text", max: 80, par: true },
+    { id: "correo", etiqueta: "Correo", tipo: "email", max: 100 },
+    { id: "telefono", etiqueta: "Teléfono", tipo: "tel", max: 10, opcional: true, par: true,
+      ayuda: "Celular de 10 números o fijo que empiece por 60." },
+    { id: "nacimiento", etiqueta: "Fecha de nacimiento", tipo: "date", par: true },
+    { id: "direccion", etiqueta: "Dirección", tipo: "text", max: 200 },
+    { id: "ciudad", etiqueta: "Ciudad", tipo: "select", opciones: ciudades, par: true },
+    { id: "alias", etiqueta: "Alias", tipo: "text", max: 40, opcional: true, par: true },
+    { id: "puntos", etiqueta: "Puntos", tipo: "number", min: 0 },
+    { id: "publicidad", etiqueta: "Quiere recibir publicidad", tipo: "checkbox" }
+  ];
+  if (nuevo) {
+    campos.push({ id: "contrasena", etiqueta: "Contraseña inicial", tipo: "password",
+      ayuda: "Mínimo 8 caracteres. El cliente podrá cambiarla después." });
+  }
+  return campos;
+}
+
+/* actual = el cliente que se edita (null al registrar) */
+function validarCliente(v, actual, clientes) {
+  var errores = validarPersona(v, {});
+  var hoy = new Date().toISOString().slice(0, 10);
+  var documento = documentoNormalizado(v.documento);
+  var otros = clientes.filter(function (c) { return c !== actual; });
+
+  if (!actual && otros.some(function (c) { return c.documento === documento; })) {
+    errores.documento = "Ya hay un cliente con ese documento.";
+  }
+  if (!errores.correo && otros.some(function (c) { return c.correo.toLowerCase() === v.correo.toLowerCase(); })) {
+    errores.correo = "Ya hay un cliente con ese correo.";
+  }
+  if (!v.nacimiento) errores.nacimiento = "Escribe la fecha de nacimiento.";
+  else if (v.nacimiento > hoy) errores.nacimiento = "La fecha de nacimiento no puede ser futura.";
+  if (v.alias && otros.some(function (c) { return (c.alias || "").toLowerCase() === v.alias.toLowerCase(); })) {
+    errores.alias = "Ese alias ya lo usa otro cliente.";
+  }
+  if (!/^[0-9]+$/.test(String(v.puntos))) errores.puntos = "Los puntos deben ser un número entero de 0 en adelante.";
+  return errores;
 }
 
 function cambiarCuentaCliente(documento, cuenta) {
@@ -1441,7 +2885,6 @@ function paginaClientes() {
   var clientes = [];
   var aviso = document.getElementById("admin-aviso");
   var buscar = document.getElementById("buscar-cliente");
-  var filtroVerificacion = document.getElementById("filtro-verificacion");
   var filtroCuenta = document.getElementById("filtro-cuenta");
   var orden = document.getElementById("orden-clientes");
   var conteo = document.getElementById("conteo-clientes");
@@ -1454,8 +2897,8 @@ function paginaClientes() {
     var cuantos = function (prueba) { return clientes.filter(prueba).length; };
     pintarTarjetas([
       { titulo: "Clientes registrados", valor: clientes.length, formato: numero.format },
-      { titulo: "Identidad verificada", valor: cuantos(function (c) { return c.verificacion === "Aprobada"; }), formato: numero.format },
-      { titulo: "Verificación pendiente", valor: cuantos(function (c) { return c.verificacion === "Pendiente"; }), formato: numero.format, alerta: true },
+      { titulo: "Cuentas activas", valor: cuantos(function (c) { return c.cuenta === "Activa"; }), formato: numero.format },
+      { titulo: "Clientes con reservas", valor: cuantos(function (c) { return c.reservas.length > 0; }), formato: numero.format },
       { titulo: "Cuentas bloqueadas", valor: cuantos(function (c) { return c.cuenta === "Bloqueada"; }), formato: numero.format }
     ]);
   }
@@ -1467,7 +2910,6 @@ function paginaClientes() {
       var coincide = texto === "" ||
         normalizar(c.nombre + " " + c.documento + " " + c.correo + " " + c.alias).indexOf(texto) !== -1;
       return coincide &&
-        (filtroVerificacion.value === "" || c.verificacion === filtroVerificacion.value) &&
         (filtroCuenta.value === "" || c.cuenta === filtroCuenta.value);
     });
 
@@ -1483,7 +2925,7 @@ function paginaClientes() {
       : "Mostrando " + lista.length + " de " + clientes.length + " clientes.";
 
     if (lista.length === 0) {
-      cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="7" class="tabla-vacia">' +
+      cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="6" class="tabla-vacia">' +
         'No hay clientes que coincidan con la búsqueda. Prueba con otros filtros.</td></tr>';
       return;
     }
@@ -1502,7 +2944,6 @@ function paginaClientes() {
         '<td role="cell" data-etiqueta="Edad" class="numero">' + edad(c.nacimiento) + ' años</td>' +
         '<td role="cell" data-etiqueta="Reservas" class="numero">' + c.reservas.length + '</td>' +
         '<td role="cell" data-etiqueta="Puntos" class="numero">' + numero.format(c.puntos) + '</td>' +
-        '<td role="cell" data-etiqueta="Verificación">' + etiqueta(c.verificacion, CLASE_VERIFICACION[c.verificacion], "Verificación") + '</td>' +
         '<td role="cell" class="celda-accion">' +
           '<button type="button" class="admin-boton-sec" data-documento="' + escapar(c.documento) + '">' +
             'Ver detalle<span class="oculto"> de ' + escapar(c.nombre) + '</span>' +
@@ -1513,17 +2954,106 @@ function paginaClientes() {
   }
 
   function botonesCuenta(c) {
-    return c.cuenta === "Bloqueada"
-      ? '<button type="button" class="admin-boton" data-accion="Activa">Desbloquear cuenta</button>'
-      : '<button type="button" class="admin-boton admin-boton-peligro" data-accion="confirmar">Bloquear cuenta</button>';
+    return '<button type="button" class="admin-boton-sec" data-accion="editar">Editar datos</button>' +
+      (c.cuenta === "Bloqueada"
+        ? '<button type="button" class="admin-boton" data-accion="Activa">Desbloquear cuenta</button>'
+        : '<button type="button" class="admin-boton-sec" data-accion="confirmar">Bloquear cuenta</button>') +
+      '<button type="button" class="admin-boton admin-boton-peligro" data-accion="eliminar">Eliminar cliente</button>';
   }
+
+  /* ----- Registrar y editar ----- */
+  var ciudades = [];
+  var modo = null;   /* "nuevo" o "editar" mientras se ve el formulario */
+
+  function valoresCliente(c) {
+    return {
+      tipoDoc: c.tipoDoc, documento: c.documento, nombres: c.nombres, apellidos: c.apellidos,
+      correo: c.correo, telefono: c.telefono, nacimiento: c.nacimiento, direccion: c.direccion,
+      ciudad: c.ciudad, alias: c.alias, puntos: c.puntos, publicidad: c.publicidad
+    };
+  }
+
+  function mostrarFormulario(c) {
+    modo = c ? "editar" : "nuevo";
+    var lista = ciudades.slice();
+    if (c && c.ciudad && !lista.some(function (x) { return x[0] === c.ciudad; })) lista.push([c.ciudad, c.ciudad]);
+
+    contenido.innerHTML =
+      '<div class="detalle-cabecera"><div>' +
+        '<h2 id="detalle-nombre" tabindex="-1">' + (c ? "Editar a " + escapar(c.nombre) : "Registrar cliente") + '</h2>' +
+        '<p>' + (c ? "Cambia los datos que necesites y guarda." : "Crea la cuenta de un cliente nuevo.") + '</p>' +
+      '</div></div>' +
+      htmlFormulario("form-cliente", camposCliente(!c, lista),
+        c ? valoresCliente(c) : { tipoDoc: "CC", puntos: 0, publicidad: true },
+        c ? "Guardar cambios" : "Registrar cliente");
+    document.getElementById("detalle-nombre").focus();
+  }
+
+  contenido.addEventListener("submit", function (evento) {
+    if (evento.target.id !== "form-cliente") return;
+    evento.preventDefault();
+
+    var nuevo = modo === "nuevo";
+    var campos = camposCliente(nuevo, ciudades);
+    var v = leerFormulario(campos);
+    if (!nuevo) {
+      v.tipoDoc = abierto.tipoDoc;
+      v.documento = abierto.documento;
+    }
+    if (mostrarErroresFormulario("form-cliente", campos, validarCliente(v, nuevo ? null : abierto, clientes))) return;
+
+    var datos = {
+      tipoDoc: v.tipoDoc, documento: documentoNormalizado(v.documento), nombres: v.nombres, apellidos: v.apellidos,
+      correo: v.correo.toLowerCase(), telefono: v.telefono.replace(/\s/g, ""), nacimiento: v.nacimiento,
+      direccion: v.direccion, ciudad: v.ciudad, alias: v.alias, puntos: Number(v.puntos), publicidad: v.publicidad
+    };
+    if (nuevo) {
+      Object.assign(datos, {
+        registro: new Date().toISOString().slice(0, 10), cuenta: "Activa",
+        compras: [0, 0, 0, 0, 0, 0], reservas: []
+      });
+    }
+
+    var botones = evento.target.querySelectorAll("button");
+    botones.forEach(function (b) { b.disabled = true; });
+
+    guardarCliente(nuevo ? Object.assign({ contrasena: v.contrasena }, datos) : datos, nuevo ? null : abierto.documento)
+      .then(function () {
+        var cliente;
+        if (nuevo) {
+          cliente = conNombre(datos);
+          clientes.push(cliente);
+        } else {
+          cliente = conNombre(Object.assign(abierto, datos));
+        }
+        abierto = cliente;
+        modo = null;
+        var mensaje = nuevo ? "Se registró a " + cliente.nombre + "." : "Se guardaron los cambios de " + cliente.nombre + ".";
+        aviso.textContent = mensaje;
+        pintarResumen();
+        pintarTabla();
+        pintarDetalle(cliente, mensaje);
+        document.getElementById("detalle-nombre").focus();
+      })
+      .catch(function (error) {
+        document.getElementById("form-cliente-error").innerHTML = "<strong>Error:</strong> " + escapar(error.message);
+        botones.forEach(function (b) { b.disabled = false; });
+      });
+  });
+
+  document.getElementById("nuevo-cliente").onclick = function () {
+    abierto = null;
+    mostrarFormulario(null);
+    dialogo.showModal();
+    document.getElementById("detalle-nombre").focus();
+  };
 
   function pintarDetalle(c, mensaje) {
     var gastado = 0;
     var historial = c.reservas.map(function (r) {
       var evento = D.eventos.filter(function (e) { return e.id === r[0]; })[0];
       if (!evento) return "";
-      var valor = r[1] * evento.precio;
+      var valor = r[1] * evento.precio + D.tarifaWompi(r[1] * evento.precio);
       if (r[2] !== "Cancelada") gastado += valor;
       return '<li>' +
         '<a href="evento.html?id=' + evento.id + '">' + escapar(evento.titulo) + '</a>' +
@@ -1538,10 +3068,11 @@ function paginaClientes() {
         '<span class="agente-inicial agente-inicial-grande agente-inicial-cliente" aria-hidden="true">' + escapar(c.nombre.charAt(0)) + '</span>' +
         '<div>' +
           '<h2 id="detalle-nombre" tabindex="-1">' + escapar(c.nombre) + '</h2>' +
-          '<p>@' + escapar(c.alias) + '</p>' +
+          '<p>' + (c.alias ? '@' + escapar(c.alias) : 'Sin alias') + '</p>' +
           '<span class="detalle-etiquetas">' +
-            etiqueta(c.verificacion, CLASE_VERIFICACION[c.verificacion], "Verificación") +
-            (c.cuenta === "Bloqueada" ? etiqueta("Cuenta bloqueada", "agente-suspendido", "Cuenta") : "") +
+            (c.cuenta === "Bloqueada"
+              ? etiqueta("Cuenta bloqueada", "agente-suspendido", "Cuenta")
+              : etiqueta("Cuenta activa", "agente-activo", "Cuenta")) +
           '</span>' +
         '</div>' +
       '</div>' +
@@ -1550,7 +3081,8 @@ function paginaClientes() {
         '<div><dt>Documento</dt><dd>' + escapar(c.tipoDoc) + ' ' + escapar(c.documento) + '</dd></div>' +
         '<div><dt>Ciudad</dt><dd>' + escapar(c.ciudad) + '</dd></div>' +
         '<div><dt>Correo</dt><dd><a href="mailto:' + escapar(c.correo) + '">' + escapar(c.correo) + '</a></dd></div>' +
-        '<div><dt>Teléfono</dt><dd>' + escapar(c.telefono) + '</dd></div>' +
+        '<div><dt>Teléfono</dt><dd>' + (c.telefono ? escapar(c.telefono) : 'Sin teléfono') + '</dd></div>' +
+        '<div><dt>Dirección</dt><dd>' + escapar(c.direccion || "") + '</dd></div>' +
         '<div><dt>Fecha de nacimiento</dt><dd>' + fechaLarga(c.nacimiento) + ' (' + edad(c.nacimiento) + ' años)</dd></div>' +
         '<div><dt>Registrado el</dt><dd>' + fechaLarga(c.registro) + '</dd></div>' +
         '<div><dt>Puntos</dt><dd>' + numero.format(c.puntos) + '</dd></div>' +
@@ -1589,12 +3121,56 @@ function paginaClientes() {
 
   contenido.addEventListener("click", function (evento) {
     var boton = evento.target.closest("button[data-accion]");
-    if (!boton || !abierto) return;
+    if (!boton) return;
 
     var accion = boton.getAttribute("data-accion");
     var acciones = document.getElementById("detalle-acciones");
 
-    if (accion === "confirmar") {
+    if (accion === "cancelar-formulario") {
+      if (modo === "nuevo") {
+        modo = null;
+        dialogo.close();
+      } else {
+        modo = null;
+        pintarDetalle(abierto);
+        document.getElementById("detalle-nombre").focus();
+      }
+      return;
+    }
+    if (!abierto) return;
+
+    if (accion === "editar") {
+      mostrarFormulario(abierto);
+    } else if (accion === "eliminar") {
+      var cuantas = abierto.reservas.length;
+      acciones.innerHTML =
+        '<div class="detalle-confirmar">' +
+          '<p id="texto-confirmar"><strong>¿Eliminar a ' + escapar(abierto.nombre) + '?</strong> ' +
+          'Se borrarán su cuenta' + (cuantas ? ' y sus ' + cuantas + (cuantas === 1 ? ' reserva' : ' reservas') : '') +
+          '. Esto no se puede deshacer.</p>' +
+          '<div class="detalle-botones">' +
+            '<button type="button" class="admin-boton admin-boton-peligro" data-accion="si-eliminar" aria-describedby="texto-confirmar">Sí, eliminar</button>' +
+            '<button type="button" class="admin-boton-sec" data-accion="cancelar">Cancelar</button>' +
+          '</div>' +
+        '</div>';
+      acciones.querySelector('[data-accion="si-eliminar"]').focus();
+    } else if (accion === "si-eliminar") {
+      var cliente = abierto;
+      acciones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      eliminarCliente(cliente.documento).then(function () {
+        clientes = clientes.filter(function (c) { return c !== cliente; });
+        aviso.textContent = "Se eliminó a " + cliente.nombre + ".";
+        abierto = null;
+        dialogo.close();
+        pintarResumen();
+        pintarTabla();
+        aviso.setAttribute("tabindex", "-1");
+        aviso.focus();
+      }).catch(function (error) {
+        document.getElementById("detalle-aviso").innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
+        acciones.querySelectorAll("button").forEach(function (b) { b.disabled = false; });
+      });
+    } else if (accion === "confirmar") {
       acciones.innerHTML =
         '<div class="detalle-confirmar">' +
           '<p id="texto-confirmar"><strong>¿Bloquear la cuenta de ' + escapar(abierto.nombre) + '?</strong> ' +
@@ -1632,6 +3208,13 @@ function paginaClientes() {
   });
 
   dialogo.addEventListener("close", function () {
+    if (modo === "nuevo") {
+      modo = null;
+      /* después de que el navegador devuelve el foco por su cuenta */
+      setTimeout(function () { document.getElementById("nuevo-cliente").focus(); }, 0);
+      return;
+    }
+    modo = null;
     if (!abierto) return;
     var documento = abierto.documento;
     abierto = null;
@@ -1649,9 +3232,10 @@ function paginaClientes() {
     evento.preventDefault();
   });
   buscar.addEventListener("input", pintarTabla);
-  filtroVerificacion.onchange = pintarTabla;
   filtroCuenta.onchange = pintarTabla;
   orden.onchange = pintarTabla;
+
+  obtenerCiudadesLista().then(function (lista) { ciudades = lista; }).catch(function () {});
 
   obtenerClientes().then(function (lista) {
     clientes = lista;
@@ -1662,6 +3246,807 @@ function paginaClientes() {
 
     pintarResumen();
     pintarTabla();
+  }).catch(function (error) {
+    aviso.innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
+  });
+}
+
+/* ===== PÁGINA: ADMINISTRADORES ===== */
+
+/* Administradores de ejemplo (USUARIO + ADMIN). El primero es la cuenta de prueba. */
+var ADMINISTRADORES_DEMO = [
+  { documento: "1000000001", tipoDoc: "CC", nombres: "Sebastián", apellidos: "Jaramillo", correo: "admin@eldesparche.online",
+    telefono: "3112345678", direccion: "Carrera 26 # 32-18", ciudad: "Tuluá", salario: 4500000, horario: "Completa", registro: "2024-01-15" },
+  { documento: "1116789012", tipoDoc: "CC", nombres: "Natalia", apellidos: "Cárdenas Ruiz", correo: "natalia.cardenas@eldesparche.online",
+    telefono: "3156789012", direccion: "Calle 28 # 24-40", ciudad: "Tuluá", salario: 3200000, horario: "Mañana", registro: "2024-06-03" },
+  { documento: "1144321098", tipoDoc: "CC", nombres: "Esteban", apellidos: "Villa Orozco", correo: "esteban.villa@eldesparche.online",
+    telefono: "3001239988", direccion: "Avenida Roosevelt # 38-50", ciudad: "Cali", salario: 3200000, horario: "Tarde", registro: "2025-02-20" },
+  { documento: "1023456789", tipoDoc: "CC", nombres: "Diana Marcela", apellidos: "Torres", correo: "diana.torres@eldesparche.online",
+    telefono: "", direccion: "Calle 53 # 21-30", ciudad: "Bogotá", salario: 2800000, horario: "Noche", registro: "2025-09-08" }
+];
+
+var HORARIOS = ["Mañana", "Tarde", "Noche", "Completa"];
+
+function administradoresLocales() {
+  return aplicarDatosLocales(ADMINISTRADORES_DEMO, "datosAdministradores", "documento").map(conNombre);
+}
+
+function obtenerAdministradores() {
+  if (!D.usarApi) return Promise.resolve(administradoresLocales());
+
+  return D.llamarApi("/admin/administradores", { headers: cabeceraToken() }).then(function (resultado) {
+    if (resultado.estado !== 200) {
+      throw new Error(resultado.datos.error || "No se pudo cargar la lista de administradores.");
+    }
+    return resultado.datos.administradores.map(conNombre);
+  });
+}
+
+/* documento = null para registrar uno nuevo */
+function guardarAdministrador(datos, documento) {
+  if (!D.usarApi) {
+    var copia = Object.assign({}, datos);
+    delete copia.contrasena;   /* la contraseña nunca se guarda en el navegador */
+    cambiarDatoLocal("datosAdministradores", "documento", documento, copia);
+    return Promise.resolve();
+  }
+  return documento === null
+    ? enviarCrud("/admin/administradores", "POST", datos, "No se pudo registrar el administrador.")
+    : enviarCrud("/admin/administradores/" + encodeURIComponent(documento), "PUT", datos, "No se pudieron guardar los cambios.");
+}
+
+function eliminarAdministrador(documento) {
+  if (!D.usarApi) {
+    cambiarDatoLocal("datosAdministradores", "documento", documento, null);
+    return Promise.resolve();
+  }
+  return enviarCrud("/admin/administradores/" + encodeURIComponent(documento), "DELETE", null,
+    "No se pudo eliminar el administrador.");
+}
+
+function camposAdministrador(nuevo, ciudades) {
+  var campos = [
+    { tipo: "titulo", etiqueta: "Datos personales" },
+    { id: "tipoDoc", etiqueta: "Tipo de documento", tipo: "select", opciones: TIPOS_DOCUMENTO, par: true, soloLectura: !nuevo },
+    { id: "documento", etiqueta: "Número de documento", tipo: "text", max: 20, par: true, soloLectura: !nuevo,
+      ayuda: nuevo ? "Sin puntos ni espacios." : "El documento no se puede cambiar." },
+    { id: "nombres", etiqueta: "Nombres", tipo: "text", max: 80, par: true },
+    { id: "apellidos", etiqueta: "Apellidos", tipo: "text", max: 80, par: true },
+    { id: "correo", etiqueta: "Correo", tipo: "email", max: 100, par: true },
+    { id: "telefono", etiqueta: "Teléfono", tipo: "tel", max: 10, opcional: true, par: true,
+      ayuda: "Celular de 10 números o fijo que empiece por 60." },
+    { id: "direccion", etiqueta: "Dirección", tipo: "text", max: 200, par: true },
+    { id: "ciudad", etiqueta: "Ciudad", tipo: "select", opciones: ciudades, par: true },
+    { tipo: "titulo", etiqueta: "Trabajo" },
+    { id: "salario", etiqueta: "Salario mensual (pesos)", tipo: "number", min: 0, par: true,
+      ayuda: "Sin puntos. Ejemplo: 3200000." },
+    { id: "horario", etiqueta: "Horario", tipo: "select", opciones: HORARIOS, par: true }
+  ];
+  if (nuevo) {
+    campos.push({ id: "contrasena", etiqueta: "Contraseña inicial", tipo: "password",
+      ayuda: "Mínimo 8 caracteres. La persona podrá cambiarla después." });
+  }
+  return campos;
+}
+
+/* actual = el administrador que se edita (null al registrar) */
+function validarAdministrador(v, actual, administradores) {
+  var errores = validarPersona(v, {});
+  var otros = administradores.filter(function (a) { return a !== actual; });
+  var documento = documentoNormalizado(v.documento);
+
+  if (!actual && !errores.documento && otros.some(function (a) { return a.documento === documento; })) {
+    errores.documento = "Ya hay un administrador con ese documento.";
+  }
+  if (!errores.correo && otros.some(function (a) { return a.correo.toLowerCase() === v.correo.toLowerCase(); })) {
+    errores.correo = "Ya hay un administrador con ese correo.";
+  }
+  if (!/^[0-9]+$/.test(String(v.salario))) errores.salario = "El salario debe ser un número entero de 0 en adelante, sin puntos.";
+  if (!v.horario) errores.horario = "Elige el horario.";
+
+  var ordenados = {};
+  ["tipoDoc", "documento", "nombres", "apellidos", "correo", "telefono", "direccion", "ciudad",
+    "salario", "horario", "contrasena"].forEach(function (k) { if (errores[k]) ordenados[k] = errores[k]; });
+  return ordenados;
+}
+
+function paginaAdministradores() {
+  var yo = entrarComoAdmin();
+  if (!yo) return;
+
+  var administradores = [];
+  var ciudades = [];
+  var aviso = document.getElementById("admin-aviso");
+  var buscar = document.getElementById("buscar-administrador");
+  var filtroHorario = document.getElementById("filtro-horario");
+  var orden = document.getElementById("orden-administradores");
+  var conteo = document.getElementById("conteo-administradores");
+  var cuerpo = document.getElementById("cuerpo-administradores");
+  var dialogo = document.getElementById("detalle-administrador");
+  var contenido = document.getElementById("detalle-contenido");
+  var abierto = null;
+  var modo = null;   /* "nuevo" o "editar" mientras se ve el formulario */
+
+  function esYo(a) {
+    return a.correo.toLowerCase() === (yo.correo || "").toLowerCase();
+  }
+
+  function pintarResumen() {
+    var nomina = administradores.reduce(function (s, a) { return s + a.salario; }, 0);
+    pintarTarjetas([
+      { titulo: "Administradores", valor: administradores.length, formato: numero.format },
+      { titulo: "Con jornada completa", valor: administradores.filter(function (a) { return a.horario === "Completa"; }).length, formato: numero.format },
+      { titulo: "Nómina mensual", valor: nomina, formato: pesosCompacto.format, completo: pesos.format },
+      { titulo: "Salario promedio", valor: administradores.length ? Math.round(nomina / administradores.length) : 0,
+        formato: pesosCompacto.format, completo: pesos.format }
+    ]);
+  }
+
+  function pintarTabla() {
+    var texto = normalizar(buscar.value.trim());
+    var lista = administradores.filter(function (a) {
+      return (texto === "" || normalizar(a.nombre + " " + a.documento + " " + a.correo).indexOf(texto) !== -1) &&
+        (filtroHorario.value === "" || a.horario === filtroHorario.value);
+    });
+
+    lista.sort(function (a, b) {
+      if (orden.value === "salario") return b.salario - a.salario;
+      if (orden.value === "registro") return b.registro.localeCompare(a.registro);
+      return a.nombre.localeCompare(b.nombre, "es");
+    });
+
+    conteo.textContent = lista.length === administradores.length
+      ? "Mostrando los " + administradores.length + " administradores."
+      : "Mostrando " + lista.length + " de " + administradores.length + " administradores.";
+
+    if (lista.length === 0) {
+      cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="5" class="tabla-vacia">' +
+        'No hay administradores que coincidan con la búsqueda. Prueba con otros filtros.</td></tr>';
+      return;
+    }
+
+    cuerpo.innerHTML = lista.map(function (a) {
+      return '<tr role="row">' +
+        '<th scope="row" role="rowheader">' +
+          '<span class="agente-celda">' +
+            '<span class="agente-inicial" aria-hidden="true">' + escapar(a.nombre.charAt(0)) + '</span>' +
+            '<span><span class="agente-nombre">' + escapar(a.nombre) + (esYo(a) ? ' <span class="admin-tu">(tú)</span>' : '') + '</span>' +
+            '<span class="agente-nit">' + escapar(a.tipoDoc + " " + a.documento) + '</span></span>' +
+          '</span>' +
+        '</th>' +
+        '<td role="cell" data-etiqueta="Ciudad">' + escapar(a.ciudad) + '</td>' +
+        '<td role="cell" data-etiqueta="Horario">' + escapar(a.horario) + '</td>' +
+        '<td role="cell" data-etiqueta="Salario" class="numero">' + pesos.format(a.salario) + '</td>' +
+        '<td role="cell" class="celda-accion">' +
+          '<button type="button" class="admin-boton-sec" data-documento="' + escapar(a.documento) + '">' +
+            'Ver detalle<span class="oculto"> de ' + escapar(a.nombre) + '</span>' +
+          '</button>' +
+        '</td>' +
+      '</tr>';
+    }).join("");
+  }
+
+  function botonesAdministrador() {
+    return '<button type="button" class="admin-boton-sec" data-accion="editar">Editar datos</button>' +
+      '<button type="button" class="admin-boton admin-boton-peligro" data-accion="eliminar">Eliminar administrador</button>';
+  }
+
+  function pintarDetalle(a, mensaje) {
+    contenido.innerHTML =
+      '<div class="detalle-cabecera">' +
+        '<span class="agente-inicial agente-inicial-grande" aria-hidden="true">' + escapar(a.nombre.charAt(0)) + '</span>' +
+        '<div>' +
+          '<h2 id="detalle-nombre" tabindex="-1">' + escapar(a.nombre) + '</h2>' +
+          '<p>Administrador' + (esYo(a) ? ' · es tu cuenta' : '') + '</p>' +
+        '</div>' +
+      '</div>' +
+      '<p class="detalle-aviso" id="detalle-aviso" role="status">' + (mensaje || "") + '</p>' +
+      '<dl class="detalle-datos">' +
+        '<div><dt>Documento</dt><dd>' + escapar(a.tipoDoc + " " + a.documento) + '</dd></div>' +
+        '<div><dt>Correo</dt><dd><a href="mailto:' + escapar(a.correo) + '">' + escapar(a.correo) + '</a></dd></div>' +
+        '<div><dt>Teléfono</dt><dd>' + (a.telefono ? escapar(a.telefono) : 'Sin teléfono') + '</dd></div>' +
+        '<div><dt>Dirección</dt><dd>' + escapar(a.direccion) + '</dd></div>' +
+        '<div><dt>Ciudad</dt><dd>' + escapar(a.ciudad) + '</dd></div>' +
+        '<div><dt>Horario</dt><dd>' + escapar(a.horario) + '</dd></div>' +
+        '<div><dt>Salario mensual</dt><dd>' + pesos.format(a.salario) + '</dd></div>' +
+        '<div><dt>Registrado el</dt><dd>' + fechaLarga(a.registro) + '</dd></div>' +
+      '</dl>' +
+      '<div class="detalle-acciones" id="detalle-acciones">' + botonesAdministrador() + '</div>';
+  }
+
+  function valoresAdministrador(a) {
+    var v = {};
+    ["tipoDoc", "documento", "nombres", "apellidos", "correo", "telefono", "direccion", "ciudad",
+      "salario", "horario"].forEach(function (k) { v[k] = a[k]; });
+    return v;
+  }
+
+  function mostrarFormulario(a) {
+    modo = a ? "editar" : "nuevo";
+    var lista = ciudades.slice();
+    if (a && a.ciudad && !lista.some(function (x) { return x[0] === a.ciudad; })) lista.push([a.ciudad, a.ciudad]);
+
+    contenido.innerHTML =
+      '<div class="detalle-cabecera"><div>' +
+        '<h2 id="detalle-nombre" tabindex="-1">' + (a ? "Editar a " + escapar(a.nombre) : "Registrar administrador") + '</h2>' +
+        '<p>' + (a ? "Cambia los datos que necesites y guarda." : "Crea la cuenta de una persona del equipo.") + '</p>' +
+      '</div></div>' +
+      htmlFormulario("form-administrador", camposAdministrador(!a, lista),
+        a ? valoresAdministrador(a) : { tipoDoc: "CC", horario: "Completa" },
+        a ? "Guardar cambios" : "Registrar administrador");
+    document.getElementById("detalle-nombre").focus();
+  }
+
+  function confirmarEliminacion(a) {
+    var acciones = document.getElementById("detalle-acciones");
+    var motivo = esYo(a)
+      ? "No puedes eliminar tu propia cuenta mientras la estás usando. Pídele a otro administrador que lo haga."
+      : (administradores.length === 1 ? "Es el único administrador: sin él nadie podría entrar al panel." : "");
+
+    if (motivo) {
+      acciones.innerHTML =
+        '<div class="detalle-confirmar">' +
+          '<p id="texto-confirmar"><strong>No se puede eliminar a ' + escapar(a.nombre) + '.</strong> ' + motivo + '</p>' +
+          '<div class="detalle-botones">' +
+            '<button type="button" class="admin-boton-sec" data-accion="cancelar">Entendido</button>' +
+          '</div>' +
+        '</div>';
+      acciones.querySelector('[data-accion="cancelar"]').focus();
+      return;
+    }
+    acciones.innerHTML =
+      '<div class="detalle-confirmar">' +
+        '<p id="texto-confirmar"><strong>¿Eliminar a ' + escapar(a.nombre) + '?</strong> ' +
+        'Ya no podrá entrar al panel de administración. Esto no se puede deshacer.</p>' +
+        '<div class="detalle-botones">' +
+          '<button type="button" class="admin-boton admin-boton-peligro" data-accion="si-eliminar" aria-describedby="texto-confirmar">Sí, eliminar</button>' +
+          '<button type="button" class="admin-boton-sec" data-accion="cancelar">Cancelar</button>' +
+        '</div>' +
+      '</div>';
+    acciones.querySelector('[data-accion="si-eliminar"]').focus();
+  }
+
+  contenido.addEventListener("submit", function (evento) {
+    if (evento.target.id !== "form-administrador") return;
+    evento.preventDefault();
+
+    var nuevo = modo === "nuevo";
+    var campos = camposAdministrador(nuevo, ciudades);
+    var v = leerFormulario(campos);
+    if (!nuevo) {
+      v.tipoDoc = abierto.tipoDoc;
+      v.documento = abierto.documento;
+    }
+    if (mostrarErroresFormulario("form-administrador", campos,
+      validarAdministrador(v, nuevo ? null : abierto, administradores))) return;
+
+    var datos = {
+      tipoDoc: v.tipoDoc, documento: documentoNormalizado(v.documento), nombres: v.nombres, apellidos: v.apellidos,
+      correo: v.correo.toLowerCase(), telefono: v.telefono.replace(/\s/g, ""), direccion: v.direccion, ciudad: v.ciudad,
+      salario: Number(v.salario), horario: v.horario
+    };
+    if (nuevo) datos.registro = new Date().toISOString().slice(0, 10);
+
+    var botones = evento.target.querySelectorAll("button");
+    botones.forEach(function (b) { b.disabled = true; });
+
+    guardarAdministrador(nuevo ? Object.assign({ contrasena: v.contrasena }, datos) : datos, nuevo ? null : abierto.documento)
+      .then(function () {
+        var administrador;
+        if (nuevo) {
+          administrador = conNombre(datos);
+          administradores.push(administrador);
+        } else {
+          administrador = conNombre(Object.assign(abierto, datos));
+        }
+        abierto = administrador;
+        modo = null;
+        var mensaje = nuevo ? "Se registró a " + administrador.nombre + "."
+          : "Se guardaron los cambios de " + administrador.nombre + ".";
+        aviso.textContent = mensaje;
+        pintarResumen();
+        pintarTabla();
+        pintarDetalle(administrador, mensaje);
+        document.getElementById("detalle-nombre").focus();
+      })
+      .catch(function (error) {
+        document.getElementById("form-administrador-error").innerHTML = "<strong>Error:</strong> " + escapar(error.message);
+        botones.forEach(function (b) { b.disabled = false; });
+      });
+  });
+
+  contenido.addEventListener("click", function (evento) {
+    var boton = evento.target.closest("button[data-accion]");
+    if (!boton) return;
+
+    var accion = boton.getAttribute("data-accion");
+    if (accion === "cancelar-formulario") {
+      if (modo === "nuevo") {
+        dialogo.close();
+      } else {
+        modo = null;
+        pintarDetalle(abierto);
+        document.getElementById("detalle-nombre").focus();
+      }
+      return;
+    }
+    if (!abierto) return;
+
+    if (accion === "editar") {
+      mostrarFormulario(abierto);
+    } else if (accion === "eliminar") {
+      confirmarEliminacion(abierto);
+    } else if (accion === "cancelar") {
+      document.getElementById("detalle-acciones").innerHTML = botonesAdministrador();
+      document.querySelector('#detalle-acciones [data-accion="eliminar"]').focus();
+    } else if (accion === "si-eliminar") {
+      var administrador = abierto;
+      var acciones = document.getElementById("detalle-acciones");
+      acciones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      eliminarAdministrador(administrador.documento).then(function () {
+        administradores = administradores.filter(function (a) { return a !== administrador; });
+        aviso.textContent = "Se eliminó a " + administrador.nombre + ".";
+        abierto = null;
+        dialogo.close();
+        pintarResumen();
+        pintarTabla();
+        aviso.setAttribute("tabindex", "-1");
+        setTimeout(function () { aviso.focus(); }, 0);
+      }).catch(function (error) {
+        document.getElementById("detalle-aviso").innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
+        acciones.querySelectorAll("button").forEach(function (b) { b.disabled = false; });
+      });
+    }
+  });
+
+  cuerpo.addEventListener("click", function (evento) {
+    var boton = evento.target.closest("button[data-documento]");
+    if (!boton) return;
+
+    abierto = administradores.filter(function (a) { return a.documento === boton.getAttribute("data-documento"); })[0];
+    modo = null;
+    pintarDetalle(abierto);
+    dialogo.showModal();
+    document.getElementById("detalle-nombre").focus();
+  });
+
+  document.getElementById("nuevo-administrador").onclick = function () {
+    abierto = null;
+    mostrarFormulario(null);
+    dialogo.showModal();
+    document.getElementById("detalle-nombre").focus();
+  };
+
+  document.getElementById("detalle-cerrar").onclick = function () {
+    dialogo.close();
+  };
+
+  dialogo.addEventListener("click", function (evento) {
+    if (evento.target === dialogo) dialogo.close();
+  });
+
+  dialogo.addEventListener("close", function () {
+    if (modo === "nuevo") {
+      modo = null;
+      /* después de que el navegador devuelve el foco por su cuenta */
+      setTimeout(function () { document.getElementById("nuevo-administrador").focus(); }, 0);
+      return;
+    }
+    modo = null;
+    if (!abierto) return;
+    var documento = abierto.documento;
+    abierto = null;
+    setTimeout(function () {
+      var boton = cuerpo.querySelector('button[data-documento="' + documento + '"]');
+      if (boton) {
+        boton.focus();
+      } else {
+        document.getElementById("titulo-lista-administradores").focus();
+      }
+    }, 0);
+  });
+
+  document.getElementById("filtros-administradores").addEventListener("submit", function (evento) {
+    evento.preventDefault();
+  });
+  buscar.addEventListener("input", pintarTabla);
+  filtroHorario.onchange = pintarTabla;
+  orden.onchange = pintarTabla;
+
+  obtenerCiudadesLista().then(function (lista) { ciudades = lista; }).catch(function () {});
+
+  obtenerAdministradores().then(function (lista) {
+    administradores = lista;
+    if (!D.usarApi) {
+      aviso.textContent = "Modo local: la base de datos está desactivada y se muestran datos de ejemplo.";
+    }
+    pintarResumen();
+    pintarTabla();
+  }).catch(function (error) {
+    aviso.innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
+  });
+}
+
+/* ===== PÁGINA: UBICACIONES (PAIS, DEPARTAMENTO, CIUDAD) ===== */
+
+var NIVELES_UBICACION = {
+  pais: { lista: "paises", singular: "país", plural: "países", padre: null, max: 60 },
+  departamento: { lista: "departamentos", singular: "departamento", plural: "departamentos", padre: "idPais", max: 60 },
+  ciudad: { lista: "ciudades", singular: "ciudad", plural: "ciudades", padre: "idDepartamento", max: 80 }
+};
+
+function obtenerUbicaciones() {
+  if (!D.usarApi) return Promise.resolve(D.leerUbicaciones());
+
+  return D.llamarApi("/admin/ubicaciones", { headers: cabeceraToken() }).then(function (resultado) {
+    if (resultado.estado !== 200) {
+      throw new Error(resultado.datos.error || "No se pudieron cargar las ubicaciones.");
+    }
+    return resultado.datos;
+  });
+}
+
+/* Registra (id = null), renombra o elimina (nombre = null) un país, departamento o ciudad.
+   En modo local, renombrar una ciudad también cambia el nombre guardado en las personas y
+   los eventos que la usan (con el API eso lo hace la llave foránea id_ciudad). */
+function cambiarUbicacion(nivel, id, nombre, idPadre, usos) {
+  var n = NIVELES_UBICACION[nivel];
+  var ruta = "/admin/" + n.lista + (id === null ? "" : "/" + encodeURIComponent(id));
+
+  if (D.usarApi) {
+    var metodo = id === null ? "POST" : (nombre === null ? "DELETE" : "PUT");
+    var cuerpo = nombre === null ? null : { nombre: nombre };
+    if (id === null && n.padre) cuerpo[n.padre] = idPadre;
+    return enviarCrud(ruta, metodo, cuerpo, "No se pudo guardar el cambio.");
+  }
+
+  var datos = D.leerUbicaciones();
+  var lista = datos[n.lista];
+  if (id === null) {
+    var nuevo = { id: Math.max.apply(null, lista.map(function (x) { return x.id; }).concat([0])) + 1, nombre: nombre };
+    if (n.padre) nuevo[n.padre] = idPadre;
+    lista.push(nuevo);
+  } else if (nombre === null) {
+    datos[n.lista] = lista.filter(function (x) { return x.id !== id; });
+  } else {
+    var actual = lista.filter(function (x) { return x.id === id; })[0];
+    var anterior = actual.nombre;
+    actual.nombre = nombre;
+    if (nivel === "ciudad" && usos) {
+      usos.clientes.forEach(function (c) { cambiarDatoLocal("datosClientes", "documento", c.documento, { ciudad: nombre }); });
+      usos.agentes.forEach(function (a) { cambiarDatoLocal("datosAgentes", "nit", a.nit, { ciudad: nombre }); });
+      usos.administradores.forEach(function (a) { cambiarDatoLocal("datosAdministradores", "documento", a.documento, { ciudad: nombre }); });
+      usos.eventos.forEach(function (e) {
+        cambiarDatoLocal("datosEventos", "id", e.id, { ciudad: nombre });
+        e.ciudad = nombre;
+      });
+    }
+    if (nivel === "departamento") {
+      D.eventos.forEach(function (e) {
+        if (e.departamento === anterior) {
+          cambiarDatoLocal("datosEventos", "id", e.id, { departamento: nombre });
+          e.departamento = nombre;
+        }
+      });
+    }
+  }
+  D.guardarUbicaciones(datos);
+  return Promise.resolve();
+}
+
+/* [departamento, país] de una ciudad, por su nombre */
+function ubicacionDeCiudad(nombreCiudad, ubicaciones) {
+  var u = ubicaciones || D.leerUbicaciones();
+  var ciudad = u.ciudades.filter(function (c) { return c.nombre === nombreCiudad; })[0];
+  var dep = ciudad && u.departamentos.filter(function (d) { return d.id === ciudad.idDepartamento; })[0];
+  var pais = dep && u.paises.filter(function (p) { return p.id === dep.idPais; })[0];
+  return dep ? [dep.nombre, pais ? pais.nombre : "Sin país"] : null;
+}
+
+function paginaUbicaciones() {
+  if (!entrarComoAdmin()) return;
+
+  var aviso = document.getElementById("admin-aviso");
+  var datos = { paises: [], departamentos: [], ciudades: [] };
+  var personas = { clientes: [], agentes: [], administradores: [] };
+  var elegidos = { pais: null, departamento: null };
+  /* Lo que se está editando o confirmando: { nivel, id, accion: "editar" | "eliminar" } */
+  var enCurso = null;
+
+  var listas = {
+    pais: document.getElementById("lista-paises"),
+    departamento: document.getElementById("lista-departamentos"),
+    ciudad: document.getElementById("lista-ciudades")
+  };
+
+  function hijos(nivel, id) {
+    if (nivel === "pais") return datos.departamentos.filter(function (d) { return d.idPais === id; });
+    if (nivel === "departamento") return datos.ciudades.filter(function (c) { return c.idDepartamento === id; });
+    return [];
+  }
+
+  /* Personas (USUARIO.id_ciudad) y eventos (UBICACION.id_ciudad) que usan una ciudad */
+  function usosDe(ciudad) {
+    var es = function (x) { return x.ciudad === ciudad.nombre; };
+    return {
+      clientes: personas.clientes.filter(es),
+      agentes: personas.agentes.filter(es),
+      administradores: personas.administradores.filter(es),
+      eventos: D.eventos.filter(es)
+    };
+  }
+
+  function textoUsos(u) {
+    var gente = u.clientes.length + u.agentes.length + u.administradores.length;
+    var partes = [];
+    if (u.eventos.length) partes.push(u.eventos.length + (u.eventos.length === 1 ? " evento" : " eventos"));
+    if (gente) partes.push(gente + (gente === 1 ? " persona" : " personas"));
+    return partes.length ? partes.join(" · ") : "Sin uso";
+  }
+
+  function pintarResumen() {
+    var conEventos = datos.ciudades.filter(function (c) { return usosDe(c).eventos.length > 0; }).length;
+    pintarTarjetas([
+      { titulo: "Países", valor: datos.paises.length, formato: numero.format },
+      { titulo: "Departamentos", valor: datos.departamentos.length, formato: numero.format },
+      { titulo: "Ciudades", valor: datos.ciudades.length, formato: numero.format },
+      { titulo: "Ciudades con eventos", valor: conEventos, formato: numero.format }
+    ]);
+  }
+
+  function filaEdicion(nivel, x) {
+    var n = NIVELES_UBICACION[nivel];
+    var id = "editar-" + nivel + "-" + x.id;
+    return '<form class="ubic-editar" data-nivel="' + nivel + '" data-id="' + x.id + '" novalidate>' +
+      '<label class="oculto" for="' + id + '">Nuevo nombre de ' + escapar(x.nombre) + '</label>' +
+      '<input type="text" id="' + id + '" value="' + escapar(x.nombre) + '" maxlength="' + n.max + '" autocomplete="off" />' +
+      '<div class="ubic-botones">' +
+        '<button type="submit" class="admin-boton">Guardar</button>' +
+        '<button type="button" class="admin-boton-sec" data-accion="volver">Cancelar</button>' +
+      '</div>' +
+      '<p class="detalle-error" id="error-' + id + '" role="alert"></p>' +
+    '</form>';
+  }
+
+  function filaConfirmar(nivel, x) {
+    var n = NIVELES_UBICACION[nivel];
+    var bloqueo = "";
+    if (nivel !== "ciudad" && hijos(nivel, x.id).length) {
+      var cuantos = hijos(nivel, x.id).length;
+      var hijo = nivel === "pais" ? NIVELES_UBICACION.departamento : NIVELES_UBICACION.ciudad;
+      bloqueo = "Tiene " + cuantos + " " + (cuantos === 1 ? hijo.singular : hijo.plural) + ". " +
+        (nivel === "pais" ? (cuantos === 1 ? "Elimínalo" : "Elimínalos") : (cuantos === 1 ? "Elimínala" : "Elimínalas")) + " primero.";
+    } else if (nivel === "ciudad" && textoUsos(usosDe(x)) !== "Sin uso") {
+      bloqueo = "La usan " + textoUsos(usosDe(x)) + ". Cámbialos de ciudad primero.";
+    }
+
+    if (bloqueo) {
+      return '<div class="ubic-confirmar">' +
+        '<p id="confirmar-' + nivel + '-' + x.id + '"><strong>No se puede eliminar ' + escapar(x.nombre) + '.</strong> ' + bloqueo + '</p>' +
+        '<div class="ubic-botones"><button type="button" class="admin-boton-sec" data-accion="volver">Entendido</button></div>' +
+      '</div>';
+    }
+    return '<div class="ubic-confirmar">' +
+      '<p id="confirmar-' + nivel + '-' + x.id + '"><strong>¿Eliminar ' + (nivel === "ciudad" ? "la " : "el ") + n.singular + ' ' +
+        escapar(x.nombre) + '?</strong> Esto no se puede deshacer.</p>' +
+      '<div class="ubic-botones">' +
+        '<button type="button" class="admin-boton admin-boton-peligro" data-accion="si-eliminar" ' +
+          'aria-describedby="confirmar-' + nivel + '-' + x.id + '">Sí, eliminar</button>' +
+        '<button type="button" class="admin-boton-sec" data-accion="volver">Cancelar</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function fila(nivel, x) {
+    if (enCurso && enCurso.nivel === nivel && enCurso.id === x.id) {
+      return '<li class="ubic-item ubic-item-abierto">' +
+        (enCurso.accion === "editar" ? filaEdicion(nivel, x) : filaConfirmar(nivel, x)) + '</li>';
+    }
+
+    var detalle;
+    var nombre;
+    if (nivel === "ciudad") {
+      detalle = textoUsos(usosDe(x));
+      nombre = '<span class="ubic-texto"><span class="ubic-nombre">' + escapar(x.nombre) + '</span>' +
+        '<span class="ubic-conteo">' + detalle + '</span></span>';
+    } else {
+      var cuantos = hijos(nivel, x.id).length;
+      var hijo = nivel === "pais" ? NIVELES_UBICACION.departamento : NIVELES_UBICACION.ciudad;
+      detalle = cuantos + " " + (cuantos === 1 ? hijo.singular : hijo.plural);
+      var activo = elegidos[nivel] === x.id;
+      nombre = '<button type="button" class="ubic-elegir" data-elegir="' + nivel + '" data-id="' + x.id + '" aria-pressed="' + activo + '">' +
+        '<span class="ubic-nombre">' + escapar(x.nombre) + '</span>' +
+        '<span class="ubic-conteo">' + detalle + '<span class="oculto">. Ver sus ' + hijo.plural + '</span></span>' +
+      '</button>';
+    }
+    return '<li class="ubic-item' + (elegidos[nivel] === x.id ? " ubic-item-activo" : "") + '">' + nombre +
+      '<span class="ubic-acciones">' +
+        '<button type="button" class="admin-boton-sec" data-accion="editar" data-nivel="' + nivel + '" data-id="' + x.id + '">' +
+          'Editar<span class="oculto"> ' + escapar(x.nombre) + '</span></button>' +
+        '<button type="button" class="admin-boton-sec ubic-eliminar" data-accion="eliminar" data-nivel="' + nivel + '" data-id="' + x.id + '">' +
+          'Eliminar<span class="oculto"> ' + escapar(x.nombre) + '</span></button>' +
+      '</span>' +
+    '</li>';
+  }
+
+  function ordenar(lista) {
+    return lista.slice().sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); });
+  }
+
+  function nombreDe(nivel, id) {
+    var x = datos[NIVELES_UBICACION[nivel].lista].filter(function (y) { return y.id === id; })[0];
+    return x ? x.nombre : "";
+  }
+
+  function pintar() {
+    listas.pais.innerHTML = ordenar(datos.paises).map(function (p) { return fila("pais", p); }).join("");
+
+    var pais = elegidos.pais;
+    document.getElementById("titulo-departamentos").textContent = pais ? "Departamentos de " + nombreDe("pais", pais) : "Departamentos";
+    document.getElementById("caja-departamentos").hidden = !pais;
+    document.getElementById("sin-pais").hidden = !!pais;
+    listas.departamento.innerHTML = pais
+      ? ordenar(hijos("pais", pais)).map(function (d) { return fila("departamento", d); }).join("") ||
+        '<li class="ubic-vacio">Este país todavía no tiene departamentos.</li>'
+      : "";
+
+    var dep = elegidos.departamento;
+    document.getElementById("titulo-ciudades").textContent = dep ? "Ciudades de " + nombreDe("departamento", dep) : "Ciudades";
+    document.getElementById("caja-ciudades").hidden = !dep;
+    document.getElementById("sin-departamento").hidden = !!dep;
+    listas.ciudad.innerHTML = dep
+      ? ordenar(hijos("departamento", dep)).map(function (c) { return fila("ciudad", c); }).join("") ||
+        '<li class="ubic-vacio">Este departamento todavía no tiene ciudades.</li>'
+      : "";
+  }
+
+  /* Nombre obligatorio y que no se repita entre hermanos (UNIQUE de la base de datos) */
+  function validarNombre(nivel, nombre, idPadre, idPropio) {
+    var n = NIVELES_UBICACION[nivel];
+    if (!nombre) return "Escribe el nombre.";
+    if (nombre.length > n.max) return "El nombre puede tener hasta " + n.max + " caracteres.";
+    var hermanos = datos[n.lista].filter(function (x) {
+      return x.id !== idPropio && (!n.padre || x[n.padre] === idPadre);
+    });
+    if (hermanos.some(function (x) { return normalizar(x.nombre) === normalizar(nombre); })) {
+      return "Ya existe " + (nivel === "ciudad" ? "una ciudad" : (nivel === "pais" ? "un país" : "un departamento")) +
+        " con ese nombre" + (n.padre ? " aquí." : ".");
+    }
+    return "";
+  }
+
+  function recargar(mensaje, foco) {
+    return obtenerUbicaciones().then(function (nuevos) {
+      datos = nuevos;
+      enCurso = null;
+      aviso.textContent = mensaje;
+      pintarResumen();
+      pintar();
+      var destino = foco && document.querySelector(foco);
+      (destino || aviso).focus();
+    });
+  }
+
+  /* Agregar */
+  ["pais", "departamento", "ciudad"].forEach(function (nivel) {
+    var form = document.getElementById("agregar-" + nivel);
+    form.addEventListener("submit", function (evento) {
+      evento.preventDefault();
+      var campo = document.getElementById("nuevo-" + nivel);
+      var error = document.getElementById("error-nuevo-" + nivel);
+      var nombre = campo.value.replace(/\s+/g, " ").trim();
+      var idPadre = nivel === "departamento" ? elegidos.pais : (nivel === "ciudad" ? elegidos.departamento : null);
+      var problema = validarNombre(nivel, nombre, idPadre, null);
+      if (problema) {
+        error.innerHTML = "<strong>Error:</strong> " + problema;
+        campo.setAttribute("aria-invalid", "true");
+        campo.focus();
+        return;
+      }
+      error.textContent = "";
+      campo.removeAttribute("aria-invalid");
+      cambiarUbicacion(nivel, null, nombre, idPadre).then(function () {
+        campo.value = "";
+        return recargar("Se agregó " + nombre + ".", "#nuevo-" + nivel);
+      }).catch(function (e) {
+        error.innerHTML = "<strong>Error:</strong> " + escapar(e.message);
+      });
+    });
+  });
+
+  /* Elegir, editar y eliminar */
+  document.getElementById("ubicaciones").addEventListener("click", function (evento) {
+    var elegir = evento.target.closest("[data-elegir]");
+    if (elegir) {
+      var nivel = elegir.getAttribute("data-elegir");
+      var id = Number(elegir.getAttribute("data-id"));
+      elegidos[nivel] = id;
+      if (nivel === "pais") elegidos.departamento = null;
+      enCurso = null;
+      pintar();
+      /* El foco sigue en el elegido; el título de la siguiente lista ya cambió */
+      document.querySelector('[data-elegir="' + nivel + '"][data-id="' + id + '"]').focus();
+      aviso.textContent = "Mostrando " + (nivel === "pais" ? "los departamentos" : "las ciudades") + " de " + nombreDe(nivel, id) + ".";
+      return;
+    }
+
+    var boton = evento.target.closest("button[data-accion]");
+    if (!boton) return;
+    var accion = boton.getAttribute("data-accion");
+
+    if (accion === "editar" || accion === "eliminar") {
+      enCurso = { nivel: boton.getAttribute("data-nivel"), id: Number(boton.getAttribute("data-id")), accion: accion };
+      pintar();
+      var abierto = document.querySelector(".ubic-item-abierto");
+      (abierto.querySelector("input") || abierto.querySelector("button")).focus();
+    } else if (accion === "volver") {
+      var antes = enCurso;
+      enCurso = null;
+      pintar();
+      var volver = document.querySelector('[data-accion="' + antes.accion + '"][data-nivel="' + antes.nivel + '"][data-id="' + antes.id + '"]');
+      if (volver) volver.focus();
+    } else if (accion === "si-eliminar") {
+      var borrar = enCurso;
+      var nombreBorrado = nombreDe(borrar.nivel, borrar.id);
+      cambiarUbicacion(borrar.nivel, borrar.id, null).then(function () {
+        if (elegidos[borrar.nivel] === borrar.id) {
+          elegidos[borrar.nivel] = null;
+          if (borrar.nivel === "pais") elegidos.departamento = null;
+        }
+        return recargar("Se eliminó " + nombreBorrado + ".", "#titulo-" + NIVELES_UBICACION[borrar.nivel].lista);
+      }).catch(function (e) {
+        aviso.innerHTML = "<strong>Error:</strong> " + escapar(e.message);
+      });
+    }
+  });
+
+  document.getElementById("ubicaciones").addEventListener("submit", function (evento) {
+    var form = evento.target.closest(".ubic-editar");
+    if (!form) return;
+    evento.preventDefault();
+    var nivel = form.getAttribute("data-nivel");
+    var id = Number(form.getAttribute("data-id"));
+    var x = datos[NIVELES_UBICACION[nivel].lista].filter(function (y) { return y.id === id; })[0];
+    var campo = form.querySelector("input");
+    var error = form.querySelector(".detalle-error");
+    var nombre = campo.value.replace(/\s+/g, " ").trim();
+    var n = NIVELES_UBICACION[nivel];
+    var problema = validarNombre(nivel, nombre, n.padre ? x[n.padre] : null, id);
+    if (problema) {
+      error.innerHTML = "<strong>Error:</strong> " + problema;
+      campo.setAttribute("aria-invalid", "true");
+      campo.focus();
+      return;
+    }
+    var anterior = x.nombre;
+    cambiarUbicacion(nivel, id, nombre, null, nivel === "ciudad" ? usosDe(x) : null).then(function () {
+      if (nivel === "ciudad") {
+        ["clientes", "agentes", "administradores"].forEach(function (k) {
+          personas[k].forEach(function (p) { if (p.ciudad === anterior) p.ciudad = nombre; });
+        });
+      }
+      return recargar(anterior + " ahora se llama " + nombre + ".",
+        '[data-accion="editar"][data-nivel="' + nivel + '"][data-id="' + id + '"]');
+    }).catch(function (e) {
+      error.innerHTML = "<strong>Error:</strong> " + escapar(e.message);
+    });
+  });
+
+  Promise.all([
+    obtenerUbicaciones(),
+    obtenerClientes().catch(function () { return []; }),
+    obtenerAgentes().catch(function () { return []; }),
+    obtenerAdministradores().catch(function () { return []; })
+  ]).then(function (r) {
+    datos = r[0];
+    personas = { clientes: r[1], agentes: r[2], administradores: r[3] };
+    var colombia = datos.paises.filter(function (p) { return p.nombre === "Colombia"; })[0];
+    elegidos.pais = colombia ? colombia.id : null;
+    if (!D.usarApi) {
+      aviso.textContent = "Modo local: la base de datos está desactivada y los cambios se guardan en este navegador.";
+    }
+    pintarResumen();
+    pintar();
   }).catch(function (error) {
     aviso.innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
   });
@@ -1704,20 +4089,25 @@ function dosCifras(n) {
   return (n < 10 ? "0" : "") + n;
 }
 
-/* Las reservas de ejemplo salen del historial de CLIENTES_DEMO */
+/* Las reservas de ejemplo salen del historial de los clientes de ejemplo */
 function reservasLocales() {
   var lista = [];
   var metodos = Object.keys(METODOS_WOMPI);
   var n = 0;
 
-  CLIENTES_DEMO.forEach(function (c) {
+  clientesLocales().forEach(function (c) {
     c.reservas.forEach(function (r) {
       var evento = D.eventos.filter(function (e) { return e.id === r[0]; })[0];
       if (!evento) return;
       n++;
 
       var fecha = r[3] + "T" + dosCifras(9 + n % 12) + ":" + dosCifras((n * 7) % 60) + ":00";
-      var valor = r[1] * evento.precio;
+      var valor = r[1] * evento.precio + D.tarifaWompi(r[1] * evento.precio);   /* entradas × precio + tarifa de Wompi */
+      /* Las canceladas de ejemplo traen su causa en las observaciones */
+      var observaciones = r[2] === "Cancelada"
+        ? D.notaCancelacion("reserva", ["el cliente", "el agente", "el administrador"][n % 3],
+            D.CAUSAS_CANCELACION.reserva[n % 4], "")
+        : "";
       var estadoPago = r[2] === "Confirmada" ? "APPROVED"
         : r[2] === "Reservada" ? (n % 3 === 0 ? "ERROR" : "PENDING")
         : (n % 2 ? "DECLINED" : "VOIDED");
@@ -1734,6 +4124,7 @@ function reservasLocales() {
         entradas: r[1],
         precio: evento.precio,
         valor: valor,
+        observaciones: observaciones,
         pago: valor === 0 ? null : {
           id: (11482 + n * 13) + "-" + Math.floor(new Date(fecha).getTime() / 1000) + "-" + (10000 + n * 379),
           metodo: metodos[n % metodos.length],
@@ -1760,6 +4151,7 @@ function reservasLocales() {
       entradas: r.tickets,
       precio: evento ? evento.precio : 0,
       valor: r.total,
+      observaciones: r.observaciones || "",
       pago: r.pago || null
     });
   });
@@ -1778,8 +4170,10 @@ function leerReservasLocales() {
 function obtenerReservasAdmin() {
   if (!D.usarApi) {
     var cambios = leerReservasLocales();
-    return Promise.resolve(reservasLocales().map(function (r) {
-      if (cambios[r.codigo]) r.estado = cambios[r.codigo];
+    return Promise.resolve(aplicarDatosLocales(reservasLocales(), "datosReservas", "codigo").map(function (r) {
+      var cambio = cambios[r.codigo];   /* texto (antes) o { estado, observaciones } */
+      if (typeof cambio === "string") r.estado = cambio;
+      else if (cambio) Object.assign(r, cambio);
       return r;
     }));
   }
@@ -1792,11 +4186,11 @@ function obtenerReservasAdmin() {
   });
 }
 
-function cancelarReservaAdmin(codigo) {
+function cancelarReservaAdmin(codigo, observaciones) {
   if (!D.usarApi) {
     try {
       var cambios = leerReservasLocales();
-      cambios[codigo] = "Cancelada";
+      cambios[codigo] = { estado: "Cancelada", observaciones: observaciones };
       localStorage.setItem("estadoReservas", JSON.stringify(cambios));
     } catch (e) {}
     return Promise.resolve();
@@ -1805,12 +4199,73 @@ function cancelarReservaAdmin(codigo) {
   return D.llamarApi("/admin/reservas/" + encodeURIComponent(codigo) + "/estado", {
     method: "PATCH",
     headers: Object.assign({ "Content-Type": "application/json" }, cabeceraToken()),
-    body: JSON.stringify({ estado: "Cancelada" })
+    body: JSON.stringify({ estado: "Cancelada", observaciones: observaciones })
   }).then(function (resultado) {
     if (resultado.estado !== 200) {
       throw new Error(resultado.datos.error || "No se pudo cancelar la reserva.");
     }
   });
+}
+
+/* ===== REGISTRAR, MODIFICAR Y ELIMINAR RESERVAS (solo el administrador) ===== */
+
+/* ¿La entrada sirve para entrar? Pagada en Wompi, gratis, o confirmada por un administrador
+   (por ejemplo, una reserva que registró él y se pagó en taquilla) */
+function entradaValida(r) {
+  if (r.estado === "Cancelada") return false;
+  if (r.pago) return r.pago.estado === "APPROVED";
+  return r.valor === 0 || r.estado === "Confirmada";
+}
+
+/* Código para una reserva nueva: el siguiente DES-#### */
+function siguienteCodigoReserva(reservas) {
+  var numeros = reservas.map(function (r) {
+    var m = /^DES-(\d+)$/.exec(r.codigo);
+    return m ? Number(m[1]) : 0;
+  });
+  return "DES-" + (Math.max.apply(null, numeros.concat([1040])) + 1);
+}
+
+/* codigo = null para registrar una nueva */
+function guardarReserva(datos, codigo) {
+  if (!D.usarApi) {
+    cambiarDatoLocal("datosReservas", "codigo", codigo, datos);
+    return Promise.resolve();
+  }
+  return codigo === null
+    ? enviarCrud("/admin/reservas", "POST", datos, "No se pudo registrar la reserva.")
+    : enviarCrud("/admin/reservas/" + encodeURIComponent(codigo), "PUT", datos, "No se pudieron guardar los cambios.");
+}
+
+function eliminarReserva(codigo) {
+  if (!D.usarApi) {
+    cambiarDatoLocal("datosReservas", "codigo", codigo, null);
+    return Promise.resolve();
+  }
+  return enviarCrud("/admin/reservas/" + encodeURIComponent(codigo), "DELETE", null, "No se pudo eliminar la reserva.");
+}
+
+/* r = la reserva que se edita (null al registrar). Con un pago en Wompi, el valor
+   pagado y el estado ya no se cambian desde aquí. */
+function camposReserva(r, clientes, eventos) {
+  var conPago = !!(r && r.pago);
+  var campos = [];
+  if (!r) {
+    campos.push(
+      { id: "cliente", etiqueta: "Cliente", tipo: "select", opciones: clientes },
+      { id: "evento", etiqueta: "Evento", tipo: "select", opciones: eventos }
+    );
+  }
+  campos.push(
+    { id: "entradas", etiqueta: "Número de entradas", tipo: "number", min: 1, max: 10, par: true, soloLectura: conPago,
+      ayuda: conPago ? "Ya tiene un pago en Wompi por este valor: para cambiar las entradas, cancélala y registra otra."
+        : "De 1 a 10 por reserva." },
+    { id: "estado", etiqueta: "Estado", tipo: "select", opciones: ["Reservada", "Confirmada"], par: true, soloLectura: conPago,
+      ayuda: conPago ? "Lo da el pago de Wompi." : "Confirmada: ya está pagada (por ejemplo, en taquilla) y la entrada sirve." },
+    { tipo: "html", html: '<p class="reserva-total" id="reserva-total" aria-live="polite"></p>' },
+    { id: "observaciones", etiqueta: "Observaciones", tipo: "textarea", opcional: true }
+  );
+  return campos;
 }
 
 function fechaHora(iso) {
@@ -1819,8 +4274,8 @@ function fechaHora(iso) {
   });
 }
 
-function etiquetaPago(pago) {
-  if (!pago) return '<span class="texto-gris">Sin pago (gratis)</span>';
+function etiquetaPago(pago, valor) {
+  if (!pago) return '<span class="texto-gris">' + (valor > 0 ? "Sin pago en Wompi" : "Sin pago (gratis)") + '</span>';
   return etiqueta(ESTADOS_WOMPI[pago.estado], CLASE_PAGO[pago.estado], "Pago");
 }
 
@@ -1857,20 +4312,36 @@ function graficaAnillo(items, nombreTotal, descripcion) {
     '</figure>';
 }
 
-function paginaReservasAdmin() {
-  if (!entrarComoAdmin()) return;
+/* config (opcional, la usa el panel del agente):
+   { eventos: [ids permitidos], obtenerReservas, cancelar(codigo, observaciones), notaDevolucion, quien }
+   Sin config es la página del administrador con todas las reservas. */
+function paginaReservasAdmin(config) {
+  if (!config && !entrarComoAdmin()) return;
+  config = config || {};
+  var obtener = config.obtenerReservas || obtenerReservasAdmin;
+  var cancelar = config.cancelar || cancelarReservaAdmin;
+  var quien = config.quien || "el administrador";   /* quién cancela, para la nota */
+  var notaDevolucion = config.notaDevolucion ||
+    " El pago ya fue aprobado: recuerda hacer la devolución del dinero desde el panel de comercios de Wompi.";
 
   var reservas = [];
   var aviso = document.getElementById("admin-aviso");
   var buscar = document.getElementById("buscar-reserva");
   var filtroPago = document.getElementById("filtro-pago");
   var filtroMetodo = document.getElementById("filtro-metodo");
+  var filtroEvento = document.getElementById("filtro-evento");   /* solo en el panel del agente */
   var orden = document.getElementById("orden-reservas");
   var conteo = document.getElementById("conteo-reservas");
   var cuerpo = document.getElementById("cuerpo-reservas");
   var dialogo = document.getElementById("detalle-reserva");
   var contenido = document.getElementById("detalle-contenido");
   var abierto = null;
+
+  /* Registrar, editar y eliminar: solo en la página del administrador */
+  var conCrud = !config.eventos && !!document.getElementById("nueva-reserva");
+  var modo = null;   /* "nuevo" o "editar" mientras se ve el formulario */
+  var clientesCrud = [];
+  var eventosCrud = [];
 
   function conPago(estado) {
     return reservas.filter(function (r) { return r.pago && r.pago.estado === estado; });
@@ -1923,6 +4394,7 @@ function paginaReservasAdmin() {
       var coincide = texto === "" ||
         normalizar(r.codigo + " " + r.cliente + " " + r.evento + " " + (r.pago ? r.pago.id : "")).indexOf(texto) !== -1;
       return coincide &&
+        (!filtroEvento || filtroEvento.value === "" || String(r.eventoId) === filtroEvento.value) &&
         (filtroPago.value === "" || (r.pago && r.pago.estado === filtroPago.value)) &&
         (filtroMetodo.value === "" || (r.pago && r.pago.metodo === filtroMetodo.value));
     });
@@ -1954,7 +4426,7 @@ function paginaReservasAdmin() {
         '<td role="cell" data-etiqueta="Entradas" class="numero">' + r.entradas + '</td>' +
         '<td role="cell" data-etiqueta="Valor" class="numero">' + textoPrecio(r.valor) + '</td>' +
         '<td role="cell" data-etiqueta="Pago">' +
-          '<span class="celda-pago">' + etiquetaPago(r.pago) +
+          '<span class="celda-pago">' + etiquetaPago(r.pago, r.valor) +
             (r.pago ? '<span class="agente-nit">' + METODOS_WOMPI[r.pago.metodo] + '</span>' : '') +
           '</span>' +
         '</td>' +
@@ -1968,7 +4440,12 @@ function paginaReservasAdmin() {
   }
 
   function notaPago(r) {
-    if (!r.pago) return "Evento gratuito: la reserva no necesita pago.";
+    if (!r.pago && r.valor === 0) return "Evento gratuito: la reserva no necesita pago.";
+    if (!r.pago) {
+      return r.estado === "Confirmada"
+        ? "La registró un administrador y está confirmada: se pagó por fuera de Wompi (por ejemplo, en taquilla)."
+        : "La registró un administrador y todavía no tiene pago. Cuando el cliente pague, cámbiala a Confirmada.";
+    }
     var notas = {
       "APPROVED": "Wompi confirmó el pago. La reserva quedó confirmada automáticamente.",
       "PENDING": "Wompi todavía no ha confirmado el pago (por ejemplo, un PSE o un Nequi sin terminar). La reserva se confirmará sola cuando llegue la respuesta.",
@@ -1980,10 +4457,178 @@ function paginaReservasAdmin() {
   }
 
   function botonesReserva(r) {
+    var eliminar = conCrud
+      ? '<button type="button" class="admin-boton admin-boton-peligro" data-accion="eliminar">Eliminar reserva</button>'
+      : '';
     if (r.estado === "Cancelada") {
-      return '<p class="texto-gris">Esta reserva está cancelada.</p>';
+      return '<p class="texto-gris">Esta reserva está cancelada.</p>' + eliminar;
     }
-    return '<button type="button" class="admin-boton admin-boton-peligro" data-accion="confirmar">Cancelar reserva</button>';
+    return (conCrud ? '<button type="button" class="admin-boton-sec" data-accion="editar">Editar reserva</button>' : '') +
+      '<button type="button" class="' + (conCrud ? 'admin-boton-sec' : 'admin-boton admin-boton-peligro') + '" data-accion="confirmar">Cancelar reserva</button>' +
+      eliminar;
+  }
+
+  /* ----- Registrar y editar (administrador) ----- */
+
+  function eventoDe(id) {
+    return D.eventos.filter(function (e) { return String(e.id) === String(id); })[0];
+  }
+
+  function pintarTotal() {
+    var caja = document.getElementById("reserva-total");
+    if (!caja) return;
+    var campoEntradas = document.getElementById("f-entradas");
+    var entradas = Number(campoEntradas.value);
+    var precio = modo === "nuevo"
+      ? (eventoDe(document.getElementById("f-evento").value) || {}).precio
+      : abierto.precio;
+    if (precio === undefined || !(entradas >= 1)) {
+      caja.textContent = "";
+      return;
+    }
+    var subtotal = entradas * precio;
+    var tarifa = D.tarifaWompi(subtotal);
+    caja.innerHTML = 'Valor total: <strong>' + textoPrecio(subtotal + tarifa) + '</strong>' +
+      (tarifa ? ' <span class="texto-gris">(' + entradas + ' × ' + pesos.format(precio) + ' + tarifa de Wompi ' +
+        pesos.format(tarifa) + ')</span>' : '');
+  }
+
+  function mostrarFormulario(r) {
+    modo = r ? "editar" : "nuevo";
+    contenido.innerHTML =
+      '<div class="detalle-cabecera"><div>' +
+        '<h2 id="detalle-nombre" tabindex="-1">' + (r ? "Editar la reserva " + escapar(r.codigo) : "Registrar reserva") + '</h2>' +
+        '<p>' + (r ? escapar(r.cliente) + " · " + escapar(r.evento) : "Reserva entradas a nombre de un cliente.") + '</p>' +
+      '</div></div>' +
+      htmlFormulario("form-reserva", camposReserva(r, clientesCrud, eventosCrud),
+        r ? { entradas: r.entradas, estado: r.estado, observaciones: r.observaciones }
+          : { entradas: 1, estado: "Reservada" },
+        r ? "Guardar cambios" : "Registrar reserva");
+    pintarTotal();
+    document.getElementById("detalle-nombre").focus();
+  }
+
+  contenido.addEventListener("input", function (evento) {
+    if (evento.target.id === "f-entradas") pintarTotal();
+  });
+  contenido.addEventListener("change", function (evento) {
+    if (evento.target.id === "f-evento") pintarTotal();
+  });
+
+  contenido.addEventListener("submit", function (evento) {
+    if (evento.target.id !== "form-reserva") return;
+    evento.preventDefault();
+
+    var nuevo = modo === "nuevo";
+    var campos = camposReserva(nuevo ? null : abierto, clientesCrud, eventosCrud);
+    var v = leerFormulario(campos);
+    var conPagoWompi = !nuevo && !!abierto.pago;
+    if (conPagoWompi) {
+      v.entradas = abierto.entradas;
+      v.estado = abierto.estado;
+    }
+
+    var errores = {};
+    var cliente = null;
+    var ev = nuevo ? eventoDe(v.evento) : eventoDe(abierto.eventoId);
+    if (nuevo) {
+      cliente = clientesCrud.datos.filter(function (c) { return c.documento === v.cliente; })[0];
+      if (!cliente) errores.cliente = "Elige el cliente.";
+      if (!ev) errores.evento = "Elige el evento.";
+    }
+    if (!/^[0-9]+$/.test(String(v.entradas)) || Number(v.entradas) < 1 || Number(v.entradas) > 10) {
+      errores.entradas = "El número de entradas debe ser de 1 a 10.";
+    }
+    if (!v.estado) errores.estado = "Elige el estado.";
+
+    /* Edad mínima del evento, en la fecha del evento (como el trigger de la base de datos) */
+    if (nuevo && cliente && ev && ev.edad > 0) {
+      var inicio = ev.inicio || D.fechaTextoAIso(ev.fechaInicio);
+      var edad = D.edadEn(cliente.nacimiento, inicio ? new Date(inicio) : new Date());
+      if (edad < ev.edad) {
+        errores.evento = cliente.nombre + " tendrá " + edad + " años y el evento es solo para mayores de " + ev.edad + ".";
+      }
+    }
+
+    /* Cupo: solo cuentan las entradas que se agregan */
+    if (ev && !errores.entradas) {
+      var agregadas = Number(v.entradas) - (nuevo ? 0 : abierto.entradas);
+      var cupos = D.cuposLibres(ev);
+      if (agregadas > 0 && agregadas > cupos) {
+        errores.entradas = cupos === 0 ? "El evento ya no tiene cupos."
+          : (cupos === 1 ? "Solo queda 1 cupo." : "Solo quedan " + cupos + " cupos.");
+      }
+    }
+    if (mostrarErroresFormulario("form-reserva", campos, errores)) return;
+
+    var precio = nuevo ? ev.precio : abierto.precio;   /* se conserva el precio con que se reservó */
+    var subtotal = Number(v.entradas) * precio;
+    var datos = conPagoWompi
+      ? { observaciones: v.observaciones }
+      : { entradas: Number(v.entradas), estado: v.estado, observaciones: v.observaciones,
+          valor: subtotal + D.tarifaWompi(subtotal) };
+    if (nuevo) {
+      var ahora = new Date();
+      ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset());
+      Object.assign(datos, {
+        codigo: siguienteCodigoReserva(reservas), fecha: ahora.toISOString().slice(0, 19),
+        cliente: cliente.nombre, documento: cliente.tipoDoc + " " + cliente.documento, correo: cliente.correo,
+        eventoId: ev.id, evento: ev.titulo, precio: precio, pago: null
+      });
+    }
+
+    var botones = evento.target.querySelectorAll("button");
+    botones.forEach(function (b) { b.disabled = true; });
+
+    guardarReserva(datos, nuevo ? null : abierto.codigo).then(function () {
+      var reserva;
+      if (nuevo) {
+        reserva = datos;
+        reservas.push(reserva);
+      } else {
+        reserva = Object.assign(abierto, datos);
+      }
+      abierto = reserva;
+      modo = null;
+      var mensaje = nuevo ? "Se registró la reserva " + reserva.codigo + "." : "Se guardaron los cambios de la reserva " + reserva.codigo + ".";
+      aviso.textContent = mensaje;
+      pintarResumen();
+      pintarTabla();
+      pintarDetalle(reserva, mensaje);
+      document.getElementById("detalle-nombre").focus();
+    }).catch(function (error) {
+      document.getElementById("form-reserva-error").innerHTML = "<strong>Error:</strong> " + escapar(error.message);
+      botones.forEach(function (b) { b.disabled = false; });
+    });
+  });
+
+  function confirmarEliminacion(r) {
+    var acciones = document.getElementById("detalle-acciones");
+    if (r.pago) {
+      /* PAGO.id_reserva es RESTRICT: una reserva con pago no se puede borrar */
+      acciones.innerHTML =
+        '<div class="detalle-confirmar">' +
+          '<p id="texto-confirmar"><strong>No se puede eliminar la reserva ' + escapar(r.codigo) + '.</strong> ' +
+          'Tiene un pago registrado en Wompi, que debe quedar en el historial. ' +
+          (r.estado === "Cancelada" ? "Ya está cancelada." : "Si no va a usarse, cancélala.") + '</p>' +
+          '<div class="detalle-botones">' +
+            '<button type="button" class="admin-boton-sec" data-accion="volver">Entendido</button>' +
+          '</div>' +
+        '</div>';
+      acciones.querySelector('[data-accion="volver"]').focus();
+      return;
+    }
+    acciones.innerHTML =
+      '<div class="detalle-confirmar">' +
+        '<p id="texto-confirmar"><strong>¿Eliminar la reserva ' + escapar(r.codigo) + '?</strong> ' +
+        'Desaparece del historial del cliente y de los reportes. Esto no se puede deshacer; ' +
+        'si solo no se va a usar, mejor cancélala.</p>' +
+        '<div class="detalle-botones">' +
+          '<button type="button" class="admin-boton admin-boton-peligro" data-accion="si-eliminar" aria-describedby="texto-confirmar">Sí, eliminar</button>' +
+          '<button type="button" class="admin-boton-sec" data-accion="volver">Volver</button>' +
+        '</div>' +
+      '</div>';
+    acciones.querySelector('[data-accion="si-eliminar"]').focus();
   }
 
   function pintarDetalle(r, mensaje) {
@@ -2009,7 +4654,16 @@ function paginaReservasAdmin() {
         '<div><dt>Fecha</dt><dd>' + fechaHora(r.fecha) + '</dd></div>' +
         '<div><dt>Evento</dt><dd><a href="evento.html?id=' + r.eventoId + '">' + escapar(r.evento) + '</a></dd></div>' +
         '<div><dt>Entradas</dt><dd>' + r.entradas + ' × ' + textoPrecio(r.precio) + '</dd></div>' +
+        (r.valor > r.entradas * r.precio
+          ? '<div><dt>Tarifa de Wompi</dt><dd>' + pesos.format(r.valor - r.entradas * r.precio) + '</dd></div>'
+          : '') +
         '<div><dt>Valor total</dt><dd><strong>' + textoPrecio(r.valor) + '</strong></dd></div>' +
+        (D.leerCancelacion(r.observaciones)
+          ? '<div><dt>Causa de la cancelación</dt><dd>' + escapar(D.leerCancelacion(r.observaciones).causa) +
+              ' <span class="texto-gris">(la canceló ' + escapar(D.leerCancelacion(r.observaciones).quien) + ')</span>' +
+              (D.leerCancelacion(r.observaciones).detalle ? '<br />' + escapar(D.leerCancelacion(r.observaciones).detalle) : '') +
+            '</dd></div>'
+          : '') +
       '</dl>' +
       '<h3>Pago con Wompi</h3>' +
       '<p class="detalle-nota">' + notaPago(r) + '</p>' +
@@ -2032,11 +4686,11 @@ function paginaReservasAdmin() {
 
   function seccionEntrada(r) {
     var usada = leerIngresos()[r.codigo];
-    var valida = r.estado !== "Cancelada" && (!r.pago || r.pago.estado === "APPROVED");
 
-    if (!valida) {
+    if (!entradaValida(r)) {
       return '<p class="detalle-nota">Sin QR válido: ' +
-        (r.estado === "Cancelada" ? "la reserva está cancelada." : "el pago todavía no está aprobado.") + '</p>';
+        (r.estado === "Cancelada" ? "la reserva está cancelada."
+          : (r.pago ? "el pago todavía no está aprobado." : "la reserva todavía no está pagada.")) + '</p>';
     }
 
     return '<div class="detalle-entrada">' +
@@ -2051,34 +4705,75 @@ function paginaReservasAdmin() {
 
   contenido.addEventListener("click", function (evento) {
     var boton = evento.target.closest("button[data-accion]");
-    if (!boton || !abierto) return;
+    if (!boton) return;
 
     var accion = boton.getAttribute("data-accion");
     var acciones = document.getElementById("detalle-acciones");
 
-    if (accion === "confirmar") {
-      var devolucion = abierto.pago && abierto.pago.estado === "APPROVED"
-        ? " El pago ya fue aprobado: recuerda hacer la devolución del dinero desde el panel de comercios de Wompi."
-        : "";
+    if (accion === "cancelar-formulario") {
+      if (modo === "nuevo") {
+        dialogo.close();
+      } else {
+        modo = null;
+        pintarDetalle(abierto);
+        document.getElementById("detalle-nombre").focus();
+      }
+      return;
+    }
+    if (!abierto) return;
+
+    if (accion === "editar") {
+      mostrarFormulario(abierto);
+    } else if (accion === "eliminar") {
+      confirmarEliminacion(abierto);
+    } else if (accion === "si-eliminar") {
+      var borrada = abierto;
+      acciones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      eliminarReserva(borrada.codigo).then(function () {
+        reservas = reservas.filter(function (x) { return x !== borrada; });
+        aviso.textContent = "Se eliminó la reserva " + borrada.codigo + ".";
+        abierto = null;
+        dialogo.close();
+        pintarResumen();
+        pintarGraficas();
+        pintarTabla();
+        aviso.setAttribute("tabindex", "-1");
+        setTimeout(function () { aviso.focus(); }, 0);
+      }).catch(function (error) {
+        document.getElementById("detalle-aviso").innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
+        acciones.querySelectorAll("button").forEach(function (b) { b.disabled = false; });
+      });
+    } else if (accion === "confirmar") {
+      var devolucion = abierto.pago && abierto.pago.estado === "APPROVED" ? notaDevolucion : "";
       acciones.innerHTML =
         '<div class="detalle-confirmar">' +
           '<p id="texto-confirmar"><strong>¿Cancelar la reserva ' + escapar(abierto.codigo) + '?</strong> ' +
           'Las entradas volverán a quedar disponibles.' + devolucion + '</p>' +
+          D.camposCancelacion("reserva", "cancelar") +
+          '<p class="detalle-error" id="error-cancelar" role="alert"></p>' +
           '<div class="detalle-botones">' +
             '<button type="button" class="admin-boton admin-boton-peligro" data-accion="si-cancelar" aria-describedby="texto-confirmar">Sí, cancelar la reserva</button>' +
             '<button type="button" class="admin-boton-sec" data-accion="volver">Volver</button>' +
           '</div>' +
         '</div>';
-      acciones.querySelector('[data-accion="si-cancelar"]').focus();
+      document.getElementById("cancelar-causa").focus();
     } else if (accion === "volver") {
       acciones.innerHTML = botonesReserva(abierto);
       acciones.querySelector("button").focus();
     } else if (accion === "si-cancelar") {
       var reserva = abierto;
+      var datos = D.datosCancelacion("cancelar");
+      if (datos.error) {
+        document.getElementById("error-cancelar").innerHTML = "<strong>Error:</strong> " + datos.error;
+        return;
+      }
+      var observaciones = D.agregarNota(reserva.observaciones,
+        D.notaCancelacion("reserva", quien, datos.causa, datos.detalle));
       acciones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
 
-      cancelarReservaAdmin(reserva.codigo).then(function () {
+      cancelar(reserva.codigo, observaciones).then(function () {
         reserva.estado = "Cancelada";
+        reserva.observaciones = observaciones;
         var mensaje = "La reserva " + reserva.codigo + " quedó cancelada.";
         aviso.textContent = mensaje;
         pintarResumen();
@@ -2097,6 +4792,7 @@ function paginaReservasAdmin() {
     if (!boton) return;
 
     abierto = reservas.filter(function (r) { return r.codigo === boton.getAttribute("data-codigo"); })[0];
+    modo = null;
     pintarDetalle(abierto);
     dialogo.showModal();
     document.getElementById("detalle-nombre").focus();
@@ -2111,6 +4807,13 @@ function paginaReservasAdmin() {
   });
 
   dialogo.addEventListener("close", function () {
+    if (modo === "nuevo") {
+      modo = null;
+      /* después de que el navegador devuelve el foco por su cuenta */
+      setTimeout(function () { document.getElementById("nueva-reserva").focus(); }, 0);
+      return;
+    }
+    modo = null;
     if (!abierto) return;
     var codigo = abierto.codigo;
     abierto = null;
@@ -2131,9 +4834,45 @@ function paginaReservasAdmin() {
   filtroPago.onchange = pintarTabla;
   filtroMetodo.onchange = pintarTabla;
   orden.onchange = pintarTabla;
+  if (filtroEvento) filtroEvento.onchange = pintarTabla;
 
-  obtenerReservasAdmin().then(function (lista) {
-    reservas = lista;
+  if (conCrud) {
+    document.getElementById("nueva-reserva").onclick = function () {
+      abierto = null;
+      mostrarFormulario(null);
+      dialogo.showModal();
+      document.getElementById("detalle-nombre").focus();
+    };
+
+    /* Clientes con la cuenta activa y eventos que aún se pueden reservar */
+    obtenerClientes().then(function (lista) {
+      var activos = lista.filter(function (c) { return c.cuenta !== "Bloqueada"; })
+        .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); });
+      clientesCrud = activos.map(function (c) { return [c.documento, c.nombre + " (" + c.tipoDoc + " " + c.documento + ")"]; });
+      clientesCrud.datos = activos;
+    }).catch(function () {});
+    clientesCrud.datos = [];
+    eventosCrud = D.eventos
+      .filter(function (e) { return e.estado !== "Finalizado" && e.estado !== "Cancelado"; })
+      .sort(function (a, b) { return a.titulo.localeCompare(b.titulo, "es"); })
+      .map(function (e) { return [e.id, e.titulo + " · " + e.fechaCorta]; });
+  }
+
+  obtener().then(function (lista) {
+    reservas = config.eventos
+      ? lista.filter(function (r) { return config.eventos.indexOf(r.eventoId) !== -1; })
+      : lista;
+
+    if (filtroEvento) {
+      var vistos = {};
+      reservas.forEach(function (r) { vistos[r.eventoId] = r.evento; });
+      Object.keys(vistos).sort(function (a, b) { return vistos[a].localeCompare(vistos[b]); }).forEach(function (id) {
+        var opcion = document.createElement("option");
+        opcion.value = id;
+        opcion.textContent = vistos[id];
+        filtroEvento.appendChild(opcion);
+      });
+    }
 
     if (!D.usarApi) {
       aviso.textContent = "Modo local: la base de datos está desactivada y se muestran datos de ejemplo. No se consulta a Wompi.";
@@ -2141,415 +4880,6 @@ function paginaReservasAdmin() {
 
     pintarResumen();
     pintarGraficas();
-    pintarTabla();
-  }).catch(function (error) {
-    aviso.innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
-  });
-}
-
-/* ===== PÁGINA: VERIFICACIONES ===== */
-
-var MOTIVOS_RECHAZO = [
-  "Las fotos no se ven bien",
-  "La cara de la selfie no coincide con la del documento",
-  "Los datos no coinciden con el documento",
-  "El documento parece alterado o no es válido",
-  "La selfie no es una foto real tomada en el momento"
-];
-
-/* Imagen de ejemplo (SVG) para las solicitudes de demostración */
-function fotoEjemplo(nombre, tipo) {
-  var inicial = nombre.charAt(0);
-  var svg = tipo === "selfie"
-    ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300"><rect width="300" height="300" fill="#eeeafe"/>' +
-      '<circle cx="150" cy="120" r="62" fill="#5b36f2"/><path d="M50 300c0-70 45-110 100-110s100 40 100 110z" fill="#5b36f2"/>' +
-      '<text x="150" y="140" font-family="Arial" font-size="60" font-weight="700" fill="#fff" text-anchor="middle">' + inicial + '</text>' +
-      '<text x="150" y="285" font-family="Arial" font-size="18" fill="#fff" text-anchor="middle">Selfie de ejemplo</text></svg>'
-    : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300"><rect width="480" height="300" rx="18" fill="#fdf3d7"/>' +
-      '<rect x="0" y="0" width="480" height="54" rx="18" fill="#130a2b"/><text x="24" y="35" font-family="Arial" font-size="20" font-weight="700" fill="#fff">REPÚBLICA DE COLOMBIA</text>' +
-      '<rect x="24" y="80" width="130" height="160" rx="10" fill="#5b36f2"/>' +
-      '<text x="89" y="178" font-family="Arial" font-size="60" font-weight="700" fill="#fff" text-anchor="middle">' + inicial + '</text>' +
-      '<rect x="180" y="96" width="250" height="16" rx="8" fill="#c9bfa0"/><rect x="180" y="132" width="200" height="16" rx="8" fill="#c9bfa0"/>' +
-      '<rect x="180" y="168" width="230" height="16" rx="8" fill="#c9bfa0"/>' +
-      '<text x="240" y="280" font-family="Arial" font-size="18" fill="#6d3a45" text-anchor="middle">Documento de ejemplo</text></svg>';
-  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-}
-
-/* Solicitudes de ejemplo a partir de CLIENTES_DEMO */
-function verificacionesDemo() {
-  return CLIENTES_DEMO.filter(function (c) { return c.verificacion !== "Sin solicitar"; }).map(function (c, i) {
-    var esCedula = c.tipoDoc === "CC";
-    var coincide = esCedula && i % 4 !== 2;
-    var dia = String(1 + (i * 3) % 27);
-    return {
-      estado: c.verificacion,
-      tipo: "Biométrica",
-      fechaSolicitud: "2026-" + (c.verificacion === "Pendiente" ? "10" : "0" + (3 + i % 6)) + "-" + (dia.length < 2 ? "0" : "") + dia + "T1" + (i % 10) + ":2" + (i % 10) + ":00",
-      nombre: c.nombre,
-      correo: c.correo,
-      tipoDocumento: c.tipoDoc,
-      documento: c.documento,
-      nacimiento: c.nacimiento,
-      lectura: esCedula ? {
-        metodo: "PDF417",
-        numeroLeido: c.documento,
-        nacimientoLeido: coincide ? c.nacimiento : c.nacimiento.slice(0, 8) + "01",
-        nombreLeido: c.nombre.toUpperCase(),
-        coincideNumero: true,
-        coincideNacimiento: coincide,
-        coincide: coincide
-      } : null,
-      fotoDocumento: fotoEjemplo(c.nombre, "documento"),
-      selfie: fotoEjemplo(c.nombre, "selfie"),
-      motivo: c.verificacion === "Rechazada" ? MOTIVOS_RECHAZO[i % MOTIVOS_RECHAZO.length] : "",
-      ejemplo: true
-    };
-  });
-}
-
-function obtenerVerificaciones() {
-  if (!D.usarApi) {
-    var guardadas = D.leerVerificaciones();
-    var lista = verificacionesDemo().map(function (v) {
-      return guardadas[v.correo] ? Object.assign({}, v, guardadas[v.correo]) : v;
-    });
-    Object.keys(guardadas).forEach(function (correo) {
-      if (!lista.some(function (v) { return v.correo === correo; })) lista.push(guardadas[correo]);
-    });
-    return Promise.resolve(lista);
-  }
-
-  return D.llamarApi("/admin/verificaciones", { headers: cabeceraToken() }).then(function (resultado) {
-    if (resultado.estado !== 200) {
-      throw new Error(resultado.datos.error || "No se pudo cargar la lista de verificaciones.");
-    }
-    return resultado.datos.verificaciones;
-  });
-}
-
-function decidirVerificacion(v, estado, motivo, revisor) {
-  var cambios = {
-    estado: estado,
-    motivo: motivo || "",
-    fechaRevision: new Date().toISOString(),
-    revisadoPor: revisor
-  };
-
-  if (!D.usarApi) {
-    try {
-      D.guardarVerificacion(v.correo, Object.assign({}, v, cambios));
-    } catch (e) {
-      return Promise.reject(new Error("No se pudo guardar la decisión en este navegador."));
-    }
-    return Promise.resolve(cambios);
-  }
-
-  return D.llamarApi("/admin/verificaciones/" + encodeURIComponent(v.id || v.correo), {
-    method: "PATCH",
-    headers: Object.assign({ "Content-Type": "application/json" }, cabeceraToken()),
-    body: JSON.stringify({ estado: estado, motivo: motivo || null })
-  }).then(function (resultado) {
-    if (resultado.estado !== 200) {
-      throw new Error(resultado.datos.error || "No se pudo guardar la decisión.");
-    }
-    return cambios;
-  });
-}
-
-function etiquetaLectura(v) {
-  if (!v.lectura || !v.lectura.metodo) return etiqueta("Sin lectura", "estado-finalizado", "Lectura automática");
-  return v.lectura.coincide
-    ? etiqueta("Coincide", "agente-activo", "Lectura automática")
-    : etiqueta("No coincide", "estado-vivo", "Lectura automática");
-}
-
-function paginaVerificacionesAdmin() {
-  var admin = entrarComoAdmin();
-  if (!admin) return;
-
-  var solicitudes = [];
-  var aviso = document.getElementById("admin-aviso");
-  var buscar = document.getElementById("buscar-verificacion");
-  var filtroEstado = document.getElementById("filtro-estado-verificacion");
-  var filtroLectura = document.getElementById("filtro-lectura");
-  var orden = document.getElementById("orden-verificaciones");
-  var conteo = document.getElementById("conteo-verificaciones");
-  var cuerpo = document.getElementById("cuerpo-verificaciones");
-  var dialogo = document.getElementById("detalle-verificacion");
-  var contenido = document.getElementById("detalle-contenido");
-  var abierta = null;
-
-  function cuantas(prueba) {
-    return solicitudes.filter(prueba).length;
-  }
-
-  function pintarResumen() {
-    pintarTarjetas([
-      { titulo: "Pendientes de revisar", valor: cuantas(function (v) { return v.estado === "Pendiente"; }), formato: numero.format, alerta: true },
-      { titulo: "Aprobadas", valor: cuantas(function (v) { return v.estado === "Aprobada"; }), formato: numero.format },
-      { titulo: "Rechazadas", valor: cuantas(function (v) { return v.estado === "Rechazada"; }), formato: numero.format },
-      { titulo: "Lectura automática correcta", valor: cuantas(function (v) { return v.lectura && v.lectura.coincide; }), formato: numero.format }
-    ]);
-  }
-
-  function pintarTabla() {
-    var texto = normalizar(buscar.value.trim());
-
-    var lista = solicitudes.filter(function (v) {
-      var coincide = texto === "" ||
-        normalizar(v.nombre + " " + v.documento + " " + v.correo).indexOf(texto) !== -1;
-      var lectura = !v.lectura || !v.lectura.metodo ? "sin" : (v.lectura.coincide ? "si" : "no");
-      return coincide &&
-        (filtroEstado.value === "" || v.estado === filtroEstado.value) &&
-        (filtroLectura.value === "" || lectura === filtroLectura.value);
-    });
-
-    lista.sort(function (a, b) {
-      if (orden.value === "recientes") return b.fechaSolicitud.localeCompare(a.fechaSolicitud);
-      if (orden.value === "antiguas") return a.fechaSolicitud.localeCompare(b.fechaSolicitud);
-      var pa = a.estado === "Pendiente" ? 0 : 1;
-      var pb = b.estado === "Pendiente" ? 0 : 1;
-      return pa - pb || a.fechaSolicitud.localeCompare(b.fechaSolicitud);
-    });
-
-    conteo.textContent = lista.length === solicitudes.length
-      ? "Mostrando las " + solicitudes.length + " solicitudes."
-      : "Mostrando " + lista.length + " de " + solicitudes.length + " solicitudes.";
-
-    if (lista.length === 0) {
-      cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="6" class="tabla-vacia">' +
-        'No hay solicitudes que coincidan con la búsqueda. Prueba con otros filtros.</td></tr>';
-      return;
-    }
-
-    cuerpo.innerHTML = lista.map(function (v) {
-      var pendiente = v.estado === "Pendiente";
-      return '<tr role="row" class="' + (pendiente ? "fila-pendiente" : "") + '">' +
-        '<th scope="row" role="rowheader">' +
-          '<span class="agente-celda">' +
-            '<img class="verif-miniatura" src="' + escapar(v.selfie) + '" alt="" />' +
-            '<span><span class="agente-nombre">' + escapar(v.nombre) + '</span>' +
-            '<span class="agente-nit">' + escapar(v.correo) + '</span></span>' +
-          '</span>' +
-        '</th>' +
-        '<td role="cell" data-etiqueta="Documento">' + escapar(v.tipoDocumento) + ' ' + escapar(v.documento) + '</td>' +
-        '<td role="cell" data-etiqueta="Enviada">' + fechaHora(v.fechaSolicitud) + '</td>' +
-        '<td role="cell" data-etiqueta="Lectura automática">' + etiquetaLectura(v) + '</td>' +
-        '<td role="cell" data-etiqueta="Estado">' + etiqueta(v.estado, CLASE_VERIFICACION[v.estado], "Estado") + '</td>' +
-        '<td role="cell" class="celda-accion">' +
-          '<button type="button" class="admin-boton-sec" data-correo="' + escapar(v.correo) + '">' +
-            (pendiente ? "Revisar" : "Ver") + '<span class="oculto"> la solicitud de ' + escapar(v.nombre) + '</span>' +
-          '</button>' +
-        '</td>' +
-      '</tr>';
-    }).join("");
-  }
-
-  function filaLectura(nombre, cuenta, leido, ok) {
-    var resultado = leido === undefined
-      ? '<span class="texto-gris">Sin lectura</span>'
-      : (ok ? etiqueta("Coincide", "agente-activo", nombre) : etiqueta("No coincide", "estado-vivo", nombre));
-    return '<tr><th scope="row">' + nombre + '</th><td>' + escapar(cuenta) + '</td>' +
-      '<td>' + (leido ? escapar(leido) : '<span class="texto-gris">—</span>') + '</td><td>' + resultado + '</td></tr>';
-  }
-
-  function formularioDecision() {
-    return '<form class="form-revision" id="form-revision" novalidate>' +
-      '<fieldset class="revision-lista">' +
-        '<legend>Antes de aprobar, comprueba que:</legend>' +
-        '<label><input type="checkbox" name="chequeo" /> La selfie y la foto del documento son de la misma persona.</label>' +
-        '<label><input type="checkbox" name="chequeo" /> El documento se ve completo, legible y no parece alterado.</label>' +
-        '<label><input type="checkbox" name="chequeo" /> La selfie es una foto real, no una foto de una pantalla o de otra foto.</label>' +
-      '</fieldset>' +
-      '<p class="detalle-error" id="error-revision" role="alert"></p>' +
-      '<div class="detalle-botones" id="botones-revision">' +
-        '<button type="submit" class="admin-boton">Aprobar identidad</button>' +
-        '<button type="button" class="admin-boton admin-boton-peligro" data-accion="rechazar">Rechazar</button>' +
-      '</div>' +
-    '</form>';
-  }
-
-  function pintarDetalle(v, mensaje) {
-    var l = v.lectura || {};
-    var hayLectura = !!l.metodo;
-
-    contenido.innerHTML =
-      '<div class="detalle-cabecera">' +
-        '<img class="verif-miniatura verif-miniatura-grande" src="' + escapar(v.selfie) + '" alt="" />' +
-        '<div>' +
-          '<h2 id="detalle-nombre" tabindex="-1">' + escapar(v.nombre) + '</h2>' +
-          '<p>' + escapar(v.tipoDocumento) + ' ' + escapar(v.documento) + ' · ' + escapar(v.correo) + '</p>' +
-          '<span class="detalle-etiquetas">' +
-            etiqueta(v.estado, CLASE_VERIFICACION[v.estado], "Estado") + etiquetaLectura(v) +
-          '</span>' +
-        '</div>' +
-      '</div>' +
-      '<p class="detalle-aviso" id="detalle-aviso" role="status">' + (mensaje || "") + '</p>' +
-      (v.ejemplo ? '<p class="detalle-nota">Solicitud de ejemplo: las imágenes son dibujos de demostración.</p>' : '') +
-
-      '<h3>1. Lectura automática de la cédula</h3>' +
-      (hayLectura
-        ? '<p class="detalle-descripcion">Leída del código ' + (l.metodo === "QR" ? "QR de la cédula digital" : "de barras PDF417 de la cédula") +
-            (l.nombreLeido ? '. Nombre leído: <strong>' + escapar(l.nombreLeido) + '</strong>' : '') + '.</p>' +
-          '<div class="tabla-lectura-marco" role="region" aria-label="Comparación de datos" tabindex="0">' +
-          '<table class="tabla-lectura">' +
-            '<caption class="oculto">Datos de la cuenta comparados con los leídos en la cédula</caption>' +
-            '<thead><tr><th scope="col">Dato</th><th scope="col">En la cuenta</th><th scope="col">Leído en la cédula</th><th scope="col">Resultado</th></tr></thead>' +
-            '<tbody>' +
-              filaLectura("Número de documento", v.documento, l.numeroLeido, l.coincideNumero) +
-              filaLectura("Fecha de nacimiento", fechaLarga(v.nacimiento), l.nacimientoLeido ? fechaLarga(l.nacimientoLeido) : "", l.coincideNacimiento) +
-            '</tbody>' +
-          '</table>' +
-          '</div>'
-        : '<p class="detalle-nota">No hay lectura automática' +
-            (v.tipoDocumento === "CC" ? ": el cliente no escaneó el código de su cédula." : ": este tipo de documento no tiene código para leer.") +
-            ' Compara a mano el número (' + escapar(v.documento) + ') y la fecha de nacimiento (' + fechaLarga(v.nacimiento) + ') con la foto del documento.</p>') +
-
-      '<h3>2. Compara la cara</h3>' +
-      '<div class="revision-fotos">' +
-        '<figure><img src="' + escapar(v.fotoDocumento) + '" alt="Frente del documento de ' + escapar(v.nombre) + '" /><figcaption>Frente del documento</figcaption></figure>' +
-        '<figure><img src="' + escapar(v.selfie) + '" alt="Selfie de ' + escapar(v.nombre) + '" /><figcaption>Selfie</figcaption></figure>' +
-      '</div>' +
-
-      '<h3>3. Decisión</h3>' +
-      '<div class="detalle-acciones" id="detalle-acciones">' +
-        (v.estado === "Pendiente"
-          ? formularioDecision()
-          : '<p class="detalle-descripcion">' +
-              (v.estado === "Aprobada" ? "Identidad aprobada" : "Solicitud rechazada") +
-              (v.fechaRevision ? " el " + fechaHora(v.fechaRevision) : "") +
-              (v.revisadoPor ? " por " + escapar(v.revisadoPor) : "") + "." +
-              (v.motivo ? " Motivo: " + escapar(v.motivo) + "." : "") +
-              (v.estado === "Rechazada" ? " El cliente puede enviar una nueva solicitud desde su cuenta." : "") +
-            '</p>') +
-      '</div>';
-  }
-
-  function guardarDecision(v, estado, motivo) {
-    var botones = document.getElementById("botones-revision");
-    botones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
-
-    decidirVerificacion(v, estado, motivo, admin.nombre).then(function (cambios) {
-      Object.assign(v, cambios);
-      var mensaje = estado === "Aprobada"
-        ? "Identidad de " + v.nombre + " aprobada. Ya puede reservar entradas."
-        : "Solicitud de " + v.nombre + " rechazada. El cliente verá el motivo y podrá intentarlo de nuevo.";
-      aviso.textContent = mensaje;
-      pintarResumen();
-      pintarTabla();
-      pintarDetalle(v, mensaje);
-      document.getElementById("detalle-nombre").focus();
-    }).catch(function (error) {
-      document.getElementById("error-revision").innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
-      botones.querySelectorAll("button").forEach(function (b) { b.disabled = false; });
-    });
-  }
-
-  function mostrarRechazo() {
-    document.getElementById("botones-revision").innerHTML =
-      '<div class="detalle-confirmar revision-rechazo">' +
-        '<label for="motivo-rechazo">Motivo del rechazo</label>' +
-        '<select id="motivo-rechazo">' +
-          '<option value="">Elige un motivo</option>' +
-          MOTIVOS_RECHAZO.map(function (m) { return '<option>' + m + '</option>'; }).join("") +
-        '</select>' +
-        '<p class="texto-gris">El cliente verá este motivo al entrar en "Verificar mi identidad".</p>' +
-        '<div class="detalle-botones">' +
-          '<button type="button" class="admin-boton admin-boton-peligro" data-accion="si-rechazar">Rechazar la solicitud</button>' +
-          '<button type="button" class="admin-boton-sec" data-accion="volver">Volver</button>' +
-        '</div>' +
-      '</div>';
-    document.getElementById("motivo-rechazo").focus();
-  }
-
-  contenido.addEventListener("submit", function (evento) {
-    evento.preventDefault();
-    if (!abierta) return;
-
-    var chequeos = contenido.querySelectorAll('input[name="chequeo"]');
-    var faltan = Array.prototype.filter.call(chequeos, function (c) { return !c.checked; });
-    if (faltan.length) {
-      document.getElementById("error-revision").innerHTML =
-        "<strong>Error:</strong> Marca las tres comprobaciones antes de aprobar. Si alguna no se cumple, rechaza la solicitud.";
-      faltan[0].focus();
-      return;
-    }
-    guardarDecision(abierta, "Aprobada");
-  });
-
-  contenido.addEventListener("click", function (evento) {
-    var boton = evento.target.closest("button[data-accion]");
-    if (!boton || !abierta) return;
-
-    var accion = boton.getAttribute("data-accion");
-    if (accion === "rechazar") {
-      document.getElementById("error-revision").textContent = "";
-      mostrarRechazo();
-    } else if (accion === "volver") {
-      document.getElementById("botones-revision").innerHTML =
-        '<button type="submit" class="admin-boton">Aprobar identidad</button>' +
-        '<button type="button" class="admin-boton admin-boton-peligro" data-accion="rechazar">Rechazar</button>';
-      document.querySelector('#botones-revision [data-accion="rechazar"]').focus();
-    } else if (accion === "si-rechazar") {
-      var motivo = document.getElementById("motivo-rechazo");
-      if (!motivo.value) {
-        document.getElementById("error-revision").innerHTML = "<strong>Error:</strong> Elige el motivo del rechazo.";
-        motivo.setAttribute("aria-invalid", "true");
-        motivo.focus();
-        return;
-      }
-      guardarDecision(abierta, "Rechazada", motivo.value);
-    }
-  });
-
-  cuerpo.addEventListener("click", function (evento) {
-    var boton = evento.target.closest("button[data-correo]");
-    if (!boton) return;
-
-    abierta = solicitudes.filter(function (v) { return v.correo === boton.getAttribute("data-correo"); })[0];
-    pintarDetalle(abierta);
-    dialogo.showModal();
-    document.getElementById("detalle-nombre").focus();
-  });
-
-  document.getElementById("detalle-cerrar").onclick = function () {
-    dialogo.close();
-  };
-
-  dialogo.addEventListener("click", function (evento) {
-    if (evento.target === dialogo) dialogo.close();
-  });
-
-  dialogo.addEventListener("close", function () {
-    if (!abierta) return;
-    var correo = abierta.correo;
-    abierta = null;
-    setTimeout(function () {
-      var boton = cuerpo.querySelector('button[data-correo="' + correo + '"]');
-      if (boton) {
-        boton.focus();
-      } else {
-        document.getElementById("titulo-lista-verificaciones").focus();
-      }
-    }, 0);
-  });
-
-  document.getElementById("filtros-verificaciones").addEventListener("submit", function (evento) {
-    evento.preventDefault();
-  });
-  buscar.addEventListener("input", pintarTabla);
-  filtroEstado.onchange = pintarTabla;
-  filtroLectura.onchange = pintarTabla;
-  orden.onchange = pintarTabla;
-
-  obtenerVerificaciones().then(function (lista) {
-    solicitudes = lista;
-
-    if (!D.usarApi) {
-      aviso.textContent = "Modo local: la base de datos está desactivada. Se muestran solicitudes de ejemplo junto con las que envíen los clientes desde este navegador.";
-    }
-
-    pintarResumen();
     pintarTabla();
   }).catch(function (error) {
     aviso.innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
@@ -2566,9 +4896,10 @@ function leerIngresos() {
   }
 }
 
-function registrarIngreso(reserva, revisor) {
+function registrarIngreso(reserva, revisor, ruta) {
   var ingreso = {
     fecha: new Date().toISOString(),
+    eventoId: reserva.eventoId,
     evento: reserva.evento,
     cliente: reserva.cliente,
     entradas: reserva.entradas,
@@ -2582,7 +4913,7 @@ function registrarIngreso(reserva, revisor) {
     return Promise.resolve(ingreso);
   }
 
-  return D.llamarApi("/admin/entradas/" + encodeURIComponent(reserva.codigo) + "/ingreso", {
+  return D.llamarApi((ruta || "/admin/entradas/") + encodeURIComponent(reserva.codigo) + "/ingreso", {
     method: "POST",
     headers: cabeceraToken()
   }).then(function (resultado) {
@@ -2593,9 +4924,17 @@ function registrarIngreso(reserva, revisor) {
   });
 }
 
-function paginaValidar() {
-  var admin = entrarComoAdmin();
+/* El agente usa esta misma página (agente-validar.html) limitada a sus
+   eventos: config = { usuario, eventos: [ids], obtenerReservas, rutaIngreso } */
+function paginaValidar(config) {
+  config = config || {};
+  var admin = config.usuario || entrarComoAdmin();
   if (!admin) return;
+
+  var permitidos = config.eventos || null;
+  function esPermitido(idEvento) {
+    return !permitidos || permitidos.indexOf(idEvento) !== -1;
+  }
 
   var reservas = [];
   var aviso = document.getElementById("admin-aviso");
@@ -2609,7 +4948,9 @@ function paginaValidar() {
   var ultimoLeido = "";
   var ultimaVez = 0;
 
-  D.eventos.filter(function (e) { return e.estado !== "Finalizado" && e.estado !== "Cancelado"; })
+  D.eventos.filter(function (e) {
+    return e.estado !== "Finalizado" && e.estado !== "Cancelado" && esPermitido(e.id);
+  })
     .forEach(function (e) {
       var opcion = document.createElement("option");
       opcion.value = e.id;
@@ -2617,9 +4958,18 @@ function paginaValidar() {
       selectorEvento.appendChild(opcion);
     });
 
+  /* Id del evento de un ingreso (los antiguos solo guardaban el título) */
+  function eventoDeIngreso(g) {
+    if (g.eventoId !== undefined) return g.eventoId;
+    var evento = D.eventos.filter(function (e) { return e.titulo === g.evento; })[0];
+    return evento ? evento.id : null;
+  }
+
   function pintarIngresos() {
     var ingresos = leerIngresos();
-    var codigos = Object.keys(ingresos).sort(function (a, b) {
+    var codigos = Object.keys(ingresos).filter(function (c) {
+      return esPermitido(eventoDeIngreso(ingresos[c]));
+    }).sort(function (a, b) {
       return ingresos[b].fecha.localeCompare(ingresos[a].fecha);
     });
     var personas = codigos.reduce(function (s, c) { return s + (ingresos[c].entradas || 0); }, 0);
@@ -2676,6 +5026,13 @@ function paginaValidar() {
       return;
     }
 
+    /* Un agente no ve los datos de las entradas de otros organizadores */
+    if (!esPermitido(reserva.eventoId)) {
+      resultado("validar-no", "No es de tus eventos",
+        "Esta entrada es para un evento de otro organizador, así que no puedes validarla.");
+      return;
+    }
+
     var eventoPuerta = Number(selectorEvento.value);
     if (eventoPuerta && reserva.eventoId !== eventoPuerta) {
       resultado("validar-no", "Es de otro evento",
@@ -2692,6 +5049,12 @@ function paginaValidar() {
       resultado("validar-no", "Pago sin aprobar",
         "El pago de esta reserva está " + ESTADOS_WOMPI[reserva.pago.estado].toLowerCase() +
         " en Wompi. No puede entrar hasta que se apruebe.", reserva);
+      return;
+    }
+
+    if (!reserva.pago && reserva.valor > 0 && reserva.estado !== "Confirmada") {
+      resultado("validar-no", "Reserva sin pagar",
+        "Esta reserva todavía no está pagada. Puede entrar cuando un administrador la confirme.", reserva);
       return;
     }
 
@@ -2716,7 +5079,7 @@ function paginaValidar() {
     var reserva = reservas.filter(function (r) { return r.codigo === boton.getAttribute("data-codigo"); })[0];
     boton.disabled = true;
 
-    registrarIngreso(reserva, admin.nombre).then(function () {
+    registrarIngreso(reserva, admin.nombre, config.rutaIngreso).then(function () {
       resultado("validar-si", "Ingreso registrado",
         "Bienvenidos. La entrada quedó marcada como usada y no servirá otra vez.", reserva);
       pintarIngresos();
@@ -2784,10 +5147,12 @@ function paginaValidar() {
 
   window.addEventListener("pagehide", detener);
 
-  obtenerReservasAdmin().then(function (lista) {
+  (config.obtenerReservas || obtenerReservasAdmin)().then(function (lista) {
     reservas = lista;
     if (!D.usarApi) {
-      aviso.textContent = "Modo local: se validan las reservas de ejemplo y las hechas en este navegador. Los ingresos se guardan en este navegador.";
+      aviso.textContent = permitidos
+        ? "Modo local: se validan las reservas de ejemplo de tus eventos. Los ingresos se guardan en este navegador."
+        : "Modo local: se validan las reservas de ejemplo y las hechas en este navegador. Los ingresos se guardan en este navegador.";
     }
     pintarIngresos();
   }).catch(function (error) {
@@ -2795,323 +5160,358 @@ function paginaValidar() {
   });
 }
 
-/* ===== PÁGINA: SESIONES DE ADMINISTRADORES (SESION_ADMIN) ===== */
+/* ===== PÁGINA: REPORTES ===== */
 
-/* horario = jornada_t de la tabla ADMIN */
-var ADMINS_DEMO = [
-  { id: "1000000001", nombre: "Sebastián Jaramillo", horario: "Completa", ip: "190.24.10.5" },
-  { id: "1000000005", nombre: "Laura Peña Ríos", horario: "Mañana", ip: "181.49.72.18" },
-  { id: "1000000006", nombre: "Diego Torres Mejía", horario: "Noche", ip: "186.31.5.240" }
-];
+var ANIO_REPORTES = 2026;
+var NOMBRES_MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",
+  "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-/* Horas de cada jornada: [inicio, fin) */
-var JORNADAS = {
-  "Mañana": [6, 12],
-  "Tarde": [12, 18],
-  "Noche": [18, 24],
-  "Completa": [6, 22]
-};
-
-function sesionesDemo() {
-  var lista = [];
-  var hoy = new Date();
-
-  for (var dia = 34; dia >= 1; dia--) {
-    ADMINS_DEMO.forEach(function (a, n) {
-      var r = (dia * 7 + n * 13) % 10;
-      if (r < 3) return;
-
-      var jornada = JORNADAS[a.horario];
-      var hora = jornada[0] + (r % Math.max(jornada[1] - jornada[0] - 2, 1));
-      if ((dia + n) % 9 === 0) hora = n === 2 ? 4 : 23;
-
-      var inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - dia, hora, (dia * 11 + n * 17) % 60);
-      var fin = new Date(inicio.getTime() + (20 + (dia * 37 + n * 23) % 160) * 60000);
-
-      lista.push({
-        numero_identificacion: a.id,
-        fecha_hora_conexion: inicio.toISOString(),
-        fecha_hora_desconexion: fin.toISOString(),
-        direccion_ip: dia % 11 === 0 && n === 1 ? "201.245.3.77" : a.ip
-      });
-    });
-  }
-  return lista;
+/* Una reserva suma ingresos si no está cancelada y está pagada: en Wompi o, si la
+   registró un administrador, confirmada (las gratuitas suman 0) */
+function ingresoDeReserva(r) {
+  return entradaValida(r) ? r.valor : 0;
 }
 
-/* Une las de ejemplo con las sesiones reales cerradas en este navegador y
-   numera cada una por administrador, como hace el trigger de la base */
-function obtenerSesiones() {
-  if (D.usarApi) {
-    return D.llamarApi("/admin/sesiones", { headers: cabeceraToken() }).then(function (resultado) {
-      if (resultado.estado !== 200) {
-        throw new Error(resultado.datos.error || "No se pudo cargar el registro de sesiones.");
+/* Todos los reportes con la misma forma que GET /api/admin/reportes?anio=2026 */
+function reportesLocal() {
+  return Promise.all([obtenerClientes(), obtenerAgentes(), obtenerEventosAdmin(), obtenerReservasAdmin()])
+    .then(function (datos) {
+      var clientes = datos[0];
+      var agentes = datos[1];
+      var eventos = datos[2];
+      var reservas = datos[3];
+
+      function agenteDe(evento) {
+        var a = agentes.filter(function (x) {
+          return esEventoDe(evento, x);
+        })[0];
+        return a ? a.nombre : "Sin agente";
       }
-      return resultado.datos;
-    });
-  }
+      var eventoPorId = {};
+      eventos.forEach(function (e) { eventoPorId[e.id] = e; });
 
-  var locales = [];
-  try {
-    locales = JSON.parse(localStorage.getItem("sesionesAdmin")) || [];
-  } catch (e) {}
+      var delAnio = reservas.filter(function (r) { return Number(r.fecha.slice(0, 4)) === ANIO_REPORTES; });
+      var mesDe = function (r) { return Number(r.fecha.slice(5, 7)) - 1; };
 
-  var sesiones = sesionesDemo().concat(locales.map(function (s) {
-    return {
-      numero_identificacion: s.numero_identificacion,
-      fecha_hora_conexion: s.fecha_hora_conexion,
-      fecha_hora_desconexion: s.fecha_hora_desconexion,
-      direccion_ip: s.direccion_ip,
-      local: true
-    };
-  }));
-
-  sesiones.sort(function (x, y) { return x.fecha_hora_conexion.localeCompare(y.fecha_hora_conexion); });
-  var contador = {};
-  sesiones.forEach(function (s) {
-    contador[s.numero_identificacion] = (contador[s.numero_identificacion] || 0) + 1;
-    s.numero_sesion = contador[s.numero_identificacion];
-  });
-
-  return Promise.resolve({
-    administradores: ADMINS_DEMO.map(function (a) { return { id: a.id, nombre: a.nombre, horario: a.horario }; }),
-    sesiones: sesiones
-  });
-}
-
-function minutosEntre(desde, hasta) {
-  return Math.max(Math.round((new Date(hasta) - new Date(desde)) / 60000), 0);
-}
-
-function textoDuracion(minutos) {
-  var h = Math.floor(minutos / 60);
-  var m = minutos % 60;
-  if (h === 0) return m + " min";
-  return h + " h" + (m ? " " + m + " min" : "");
-}
-
-function enHorario(fecha, horario) {
-  var jornada = JORNADAS[horario];
-  if (!jornada) return true;
-  var hora = new Date(fecha).getHours();
-  return hora >= jornada[0] && hora < jornada[1];
-}
-
-function paginaSesiones() {
-  var admin = entrarComoAdmin();
-  if (!admin) return;
-
-  var datos = { administradores: [], sesiones: [] };
-  var aviso = document.getElementById("admin-aviso");
-  var buscar = document.getElementById("buscar-sesion");
-  var filtroAdmin = document.getElementById("filtro-admin");
-  var filtroPeriodo = document.getElementById("filtro-periodo");
-  var filtroHorario = document.getElementById("filtro-horario");
-  var conteo = document.getElementById("conteo-sesiones");
-  var cuerpo = document.getElementById("cuerpo-sesiones");
-
-  /* ----- Sesión actual ----- */
-  function pintarSesionActual() {
-    var texto = document.getElementById("sesion-actual-texto");
-    if (!admin.inicioSesion) {
-      texto.textContent = "No sabemos a qué hora entraste, porque iniciaste sesión antes de que existiera este registro. " +
-        "Cierra sesión y vuelve a entrar para que se mida.";
-      return;
-    }
-    texto.innerHTML = "Entraste el <strong>" + fechaHora(admin.inicioSesion) + "</strong> y llevas " +
-      "<strong>" + textoDuracion(minutosEntre(admin.inicioSesion, new Date().toISOString())) + "</strong> conectado.";
-  }
-  pintarSesionActual();
-  setInterval(pintarSesionActual, 30000);
-
-  function adminDe(id) {
-    return datos.administradores.filter(function (a) { return a.id === id; })[0] ||
-      { id: id, nombre: "Administrador " + id, horario: "" };
-  }
-
-  /* Sesiones del periodo con los datos calculados */
-  function delPeriodo() {
-    var dias = Number(filtroPeriodo.value);
-    var limite = dias ? Date.now() - dias * 86400000 : 0;
-
-    return datos.sesiones.filter(function (s) {
-      return new Date(s.fecha_hora_conexion).getTime() >= limite;
-    }).map(function (s) {
-      var a = adminDe(s.numero_identificacion);
-      return Object.assign({}, s, {
-        nombre: a.nombre,
-        horario: a.horario,
-        minutos: minutosEntre(s.fecha_hora_conexion, s.fecha_hora_desconexion),
-        dentro: enHorario(s.fecha_hora_conexion, a.horario)
+      /* Ingresos de cada agente (por las reservas de sus eventos) */
+      var porAgente = {};
+      agentes.forEach(function (a) { porAgente[a.nombre] = 0; });
+      reservas.forEach(function (r) {
+        var e = eventoPorId[r.eventoId];
+        var nombre = e ? agenteDe(e) : "Sin agente";
+        porAgente[nombre] = (porAgente[nombre] || 0) + ingresoDeReserva(r);
       });
-    });
-  }
 
-  function pintarResumen(lista) {
-    var total = lista.reduce(function (s, x) { return s + x.minutos; }, 0);
-    pintarTarjetas([
-      { titulo: "Sesiones", valor: lista.length, formato: numero.format },
-      { titulo: "Tiempo total en pantalla", valor: total, formato: textoDuracion },
-      { titulo: "Duración promedio", valor: lista.length ? Math.round(total / lista.length) : 0, formato: textoDuracion },
-      { titulo: "Fuera de horario", valor: lista.filter(function (x) { return !x.dentro; }).length, formato: numero.format, alerta: true }
-    ]);
-  }
+      /* Ingresos de cada cliente */
+      var porCliente = {};
+      clientes.forEach(function (c) { porCliente[c.nombre] = 0; });
+      reservas.forEach(function (r) {
+        porCliente[r.cliente] = (porCliente[r.cliente] || 0) + ingresoDeReserva(r);
+      });
 
-  function pintarGraficas(lista) {
-    var porAdmin = datos.administradores.map(function (a) {
-      var suyas = lista.filter(function (x) { return x.numero_identificacion === a.id; });
+      var total = reservas.reduce(function (s, r) { return s + ingresoDeReserva(r); }, 0);
+      var cantidadClientes = Object.keys(porCliente).length;
+
+      /* Reservas por evento y por mes del año */
+      var porEventoMes = {};
+      delAnio.forEach(function (r) {
+        var fila = porEventoMes[r.evento] = porEventoMes[r.evento] || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        fila[mesDe(r)]++;
+      });
+
+      /* Eventos de cada agente en cada ciudad */
+      var agenteCiudad = {};
+      eventos.forEach(function (e) {
+        var clave = agenteDe(e) + "|" + e.ciudad;
+        agenteCiudad[clave] = (agenteCiudad[clave] || 0) + 1;
+      });
+
+      /* Eventos por país, departamento y ciudad */
+      var ubicaciones = {};
+      eventos.forEach(function (e) {
+        var u = ubicacionDeCiudad(e.ciudad) || [e.departamento || "Sin departamento", "Colombia"];
+        var clave = u[1] + "|" + u[0] + "|" + e.ciudad;
+        (ubicaciones[clave] = ubicaciones[clave] || []).push(e.titulo);
+      });
+
       return {
-        nombre: a.nombre,
-        horario: a.horario,
-        sesiones: suyas.length,
-        minutos: suyas.reduce(function (s, x) { return s + x.minutos; }, 0)
+        anio: ANIO_REPORTES,
+        totales: {
+          clientes: clientes.length,
+          agentes: agentes.length,
+          administradores: administradoresLocales().length,
+          reservas: reservas.length,
+          eventos: eventos.length
+        },
+        promedios: {
+          porAgente: agentes.length ? Math.round(total / agentes.length) : 0,
+          porCliente: cantidadClientes ? Math.round(total / cantidadClientes) : 0
+        },
+        ingresosPorAgente: Object.keys(porAgente).map(function (n) { return { nombre: n, ingresos: porAgente[n] }; }),
+        ingresosPorCliente: Object.keys(porCliente).map(function (n) { return { nombre: n, ingresos: porCliente[n] }; }),
+        ingresosPorMes: NOMBRES_MESES.map(function (m, i) {
+          return delAnio.filter(function (r) { return mesDe(r) === i; })
+            .reduce(function (s, r) { return s + ingresoDeReserva(r); }, 0);
+        }),
+        reservasPorEventoMes: Object.keys(porEventoMes).map(function (n) { return { evento: n, meses: porEventoMes[n] }; }),
+        eventosPorAgenteCiudad: Object.keys(agenteCiudad).map(function (clave) {
+          var p = clave.split("|");
+          return { agente: p[0], ciudad: p[1], eventos: agenteCiudad[clave] };
+        }),
+        eventosPorUbicacion: Object.keys(ubicaciones).map(function (clave) {
+          var p = clave.split("|");
+          return { pais: p[0], departamento: p[1], ciudad: p[2], eventos: ubicaciones[clave] };
+        }),
+        reservas: reservas.map(function (r) {
+          return {
+            codigo: r.codigo, fecha: r.fecha, cliente: r.cliente, documento: r.documento, evento: r.evento,
+            entradas: r.entradas, valor: r.valor, estado: r.estado, observaciones: r.observaciones || ""
+          };
+        }),
+        eventosCancelados: eventos.filter(function (e) { return e.estado === "Cancelado"; }).map(function (e) {
+          return { evento: e.titulo, ciudad: e.ciudad, agente: agenteDe(e), observaciones: e.observaciones || "" };
+        })
       };
-    }).sort(function (x, y) { return y.minutos - x.minutos; });
-    var maximo = Math.max.apply(null, porAdmin.map(function (a) { return a.minutos; }).concat([1]));
-
-    var cajaAdmin = document.getElementById("grafica-tiempo-admin");
-    cajaAdmin.innerHTML =
-      '<figure class="admin-figura">' +
-        '<figcaption class="oculto">Tiempo total en pantalla de cada administrador en el periodo elegido.</figcaption>' +
-        '<ul class="barras">' + porAdmin.map(function (a, i) {
-          return '<li style="--orden:' + i + '">' +
-            '<div class="barra-texto"><span>' + escapar(a.nombre) + ' <span class="texto-gris">(' + escapar(a.horario) + ')</span></span>' +
-            '<strong>' + textoDuracion(a.minutos) + '</strong></div>' +
-            '<div class="barra-pista" aria-hidden="true"><span class="barra" style="--ancho:' + (a.minutos / maximo * 100).toFixed(1) + '%"></span></div>' +
-            '<p class="ranking-detalle">' + a.sesiones + (a.sesiones === 1 ? " sesión" : " sesiones") + '</p>' +
-          '</li>';
-        }).join("") + '</ul>' +
-      '</figure>';
-    animarAlVer(cajaAdmin.querySelector(".admin-figura"));
-
-    /* Columnas: conexiones por hora del día */
-    var horas = [];
-    for (var h = 0; h < 24; h++) horas.push(0);
-    lista.forEach(function (x) { horas[new Date(x.fecha_hora_conexion).getHours()]++; });
-
-    var ancho = 480;
-    var alto = 190;
-    var abajo = 26;
-    var arriba = 20;
-    var paso = ancho / 24;
-    var columna = paso * 0.62;
-    var tope = Math.max.apply(null, horas.concat([1]));
-
-    var barras = horas.map(function (v, i) {
-      var altoBarra = (alto - arriba - abajo) * v / tope;
-      var x = paso * i + (paso - columna) / 2;
-      return '<g style="--orden:' + Math.floor(i / 2) + '">' +
-        '<rect class="columna" x="' + x.toFixed(1) + '" y="' + (alto - abajo - altoBarra).toFixed(1) + '" width="' + columna.toFixed(1) +
-          '" height="' + altoBarra.toFixed(1) + '" rx="3"/>' +
-        (v ? '<text class="valor-columna" x="' + (x + columna / 2).toFixed(1) + '" y="' + (alto - abajo - altoBarra - 5).toFixed(1) +
-          '" text-anchor="middle">' + v + '</text>' : '') +
-        (i % 3 === 0 ? '<text class="eje" x="' + (x + columna / 2).toFixed(1) + '" y="' + (alto - 6) + '" text-anchor="middle">' + i + 'h</text>' : '') +
-      '</g>';
-    }).join("");
-
-    var cajaHoras = document.getElementById("grafica-horas");
-    cajaHoras.innerHTML =
-      '<figure class="admin-figura grafica-columnas">' +
-        '<svg viewBox="0 0 ' + ancho + ' ' + alto + '" aria-hidden="true" focusable="false">' +
-          '<line class="guia" x1="0" x2="' + ancho + '" y1="' + (alto - abajo) + '" y2="' + (alto - abajo) + '"/>' + barras +
-        '</svg>' +
-      '</figure>' +
-      tablaDatos("Conexiones por hora del día", ["Hora", "Conexiones"],
-        horas.map(function (v, i) { return [i + ":00", String(v)]; }).filter(function (f) { return f[1] !== "0"; }));
-    animarAlVer(cajaHoras.querySelector(".admin-figura"));
-  }
-
-  function filtrar(lista) {
-    var texto = normalizar(buscar.value.trim());
-    return lista.filter(function (x) {
-      var coincide = texto === "" ||
-        normalizar(x.nombre + " " + x.numero_identificacion + " " + x.direccion_ip).indexOf(texto) !== -1;
-      return coincide &&
-        (filtroAdmin.value === "" || x.numero_identificacion === filtroAdmin.value) &&
-        (filtroHorario.value === "" || (filtroHorario.value === "dentro") === x.dentro);
-    }).sort(function (a, b) { return b.fecha_hora_conexion.localeCompare(a.fecha_hora_conexion); });
-  }
-
-  function pintarTabla(lista) {
-    var visibles = filtrar(lista);
-
-    conteo.textContent = visibles.length === lista.length
-      ? "Mostrando las " + lista.length + " sesiones del periodo."
-      : "Mostrando " + visibles.length + " de " + lista.length + " sesiones del periodo.";
-
-    if (visibles.length === 0) {
-      cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="7" class="tabla-vacia">' +
-        'No hay sesiones que coincidan con la búsqueda. Prueba con otros filtros.</td></tr>';
-      return;
-    }
-
-    cuerpo.innerHTML = visibles.map(function (x) {
-      return '<tr role="row" class="' + (x.dentro ? "" : "fila-pendiente") + '">' +
-        '<th scope="row" role="rowheader">' +
-          '<span class="agente-nombre">' + escapar(x.nombre) + (x.local ? ' <span class="texto-gris">(este navegador)</span>' : '') + '</span>' +
-          '<span class="agente-nit">CC ' + escapar(x.numero_identificacion) + ' · Jornada ' + escapar(x.horario || "—") + '</span>' +
-        '</th>' +
-        '<td role="cell" data-etiqueta="N° de sesión" class="numero">' + x.numero_sesion + '</td>' +
-        '<td role="cell" data-etiqueta="Conexión">' + fechaHora(x.fecha_hora_conexion) + '</td>' +
-        '<td role="cell" data-etiqueta="Desconexión">' + fechaHora(x.fecha_hora_desconexion) + '</td>' +
-        '<td role="cell" data-etiqueta="Tiempo en pantalla" class="numero">' + textoDuracion(x.minutos) + '</td>' +
-        '<td role="cell" data-etiqueta="Dirección IP">' + escapar(x.direccion_ip) + '</td>' +
-        '<td role="cell" data-etiqueta="Horario">' +
-          (x.dentro ? etiqueta("En horario", "agente-activo", "Horario") : etiqueta("Fuera de horario", "agente-pendiente", "Horario")) +
-        '</td>' +
-      '</tr>';
-    }).join("");
-  }
-
-  function pintarTodo() {
-    var lista = delPeriodo();
-    pintarResumen(lista);
-    pintarGraficas(lista);
-    pintarTabla(lista);
-  }
-
-  /* CSV con punto y coma y BOM, para que Excel en español abra bien las tildes */
-  document.getElementById("descargar-sesiones").onclick = function () {
-    var filas = filtrar(delPeriodo());
-    var celda = function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; };
-    var lineas = [["Administrador", "Documento", "N° de sesión", "Conexión", "Desconexión", "Minutos en pantalla", "Dirección IP", "Jornada", "Horario"].map(celda).join(";")]
-      .concat(filas.map(function (x) {
-        return [x.nombre, x.numero_identificacion, x.numero_sesion, fechaHora(x.fecha_hora_conexion), fechaHora(x.fecha_hora_desconexion),
-          x.minutos, x.direccion_ip, x.horario, x.dentro ? "En horario" : "Fuera de horario"].map(celda).join(";");
-      }));
-    var archivo = new Blob(["﻿" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" });
-    var enlace = document.createElement("a");
-    enlace.href = URL.createObjectURL(archivo);
-    enlace.download = "sesiones-administradores.csv";
-    document.body.appendChild(enlace);
-    enlace.click();
-    enlace.remove();
-    setTimeout(function () { URL.revokeObjectURL(enlace.href); }, 1000);
-    aviso.textContent = "Se descargó el CSV con " + filas.length + (filas.length === 1 ? " sesión." : " sesiones.");
-  };
-
-  document.getElementById("filtros-sesiones").addEventListener("submit", function (evento) {
-    evento.preventDefault();
-  });
-  buscar.addEventListener("input", function () { pintarTabla(delPeriodo()); });
-  filtroAdmin.onchange = function () { pintarTabla(delPeriodo()); };
-  filtroHorario.onchange = function () { pintarTabla(delPeriodo()); };
-  filtroPeriodo.onchange = pintarTodo;
-
-  obtenerSesiones().then(function (respuesta) {
-    datos = respuesta;
-
-    datos.administradores.forEach(function (a) {
-      var opcion = document.createElement("option");
-      opcion.value = a.id;
-      opcion.textContent = a.nombre;
-      filtroAdmin.appendChild(opcion);
     });
+}
 
-    if (!D.usarApi) {
-      aviso.textContent = "Modo local: se muestran sesiones de ejemplo y las que cierres en este navegador (con IP 127.0.0.1, porque el navegador no puede ver la IP real).";
+function obtenerReportes() {
+  if (!D.usarApi) return reportesLocal();
+
+  return D.llamarApi("/admin/reportes?anio=" + ANIO_REPORTES, { headers: cabeceraToken() }).then(function (resultado) {
+    if (resultado.estado !== 200) {
+      throw new Error(resultado.datos.error || "No se pudieron cargar los reportes.");
     }
-    pintarTodo();
+    return resultado.datos;
+  });
+}
+
+/* Tabla de reporte. columnas: [{ titulo, numero? }]; filas: arreglos de celdas
+   ya escapadas. La primera celda de cada fila es su encabezado. */
+function tablaReporte(titulo, columnas, filas, pie) {
+  if (filas.length === 0) {
+    return '<p class="reporte-vacio">No hay datos para este reporte.</p>';
+  }
+  return '<div class="reporte-marco" role="region" aria-label="' + escapar(titulo) + '" tabindex="0">' +
+    '<table class="reporte-tabla">' +
+      '<caption class="oculto">' + escapar(titulo) + '</caption>' +
+      '<thead><tr>' + columnas.map(function (c) {
+        return '<th scope="col"' + (c.numero ? ' class="numero"' : '') + '>' + c.titulo + '</th>';
+      }).join("") + '</tr></thead>' +
+      '<tbody>' + filas.map(function (fila) {
+        return '<tr>' + fila.map(function (celda, i) {
+          if (i === 0) return '<th scope="row">' + celda + '</th>';
+          return '<td' + (columnas[i].numero ? ' class="numero"' : '') + '>' + celda + '</td>';
+        }).join("") + '</tr>';
+      }).join("") + '</tbody>' +
+      (pie ? '<tfoot><tr>' + pie.map(function (celda, i) {
+        return i === 0 ? '<th scope="row">' + celda + '</th>'
+          : '<td' + (columnas[i].numero ? ' class="numero"' : '') + '>' + celda + '</td>';
+      }).join("") + '</tr></tfoot>' : '') +
+    '</table>' +
+  '</div>';
+}
+
+/* Un cero se ve tenue para que resalten los meses con movimiento */
+function cifra(n, formato) {
+  return n === 0 ? '<span class="reporte-cero">0</span>' : (formato || numero.format)(n);
+}
+
+/* Barras horizontales con su valor: [{ nombre, valor }] */
+function barrasReporte(items, formato, descripcion) {
+  var maximo = Math.max.apply(null, items.map(function (i) { return i.valor; }).concat([1]));
+  return '<figure class="admin-figura">' +
+    '<figcaption class="oculto">' + escapar(descripcion) + '</figcaption>' +
+    '<ul class="barras">' + items.map(function (item, i) {
+      return '<li style="--orden:' + i + '">' +
+        '<div class="barra-texto"><span>' + escapar(item.nombre) + '</span><strong>' + formato(item.valor) + '</strong></div>' +
+        '<div class="barra-pista" aria-hidden="true"><span class="barra" style="--ancho:' + (item.valor / maximo * 100).toFixed(1) + '%"></span></div>' +
+      '</li>';
+    }).join("") + '</ul>' +
+  '</figure>';
+}
+
+function paginaReportes() {
+  if (!entrarComoAdmin()) return;
+
+  var aviso = document.getElementById("admin-aviso");
+  var datos = null;
+
+  function caja(id) { return document.getElementById(id); }
+
+  function pintarGenerales() {
+    var t = datos.totales;
+    pintarTarjetas([
+      { titulo: "Clientes registrados", valor: t.clientes, formato: numero.format },
+      { titulo: "Agentes registrados", valor: t.agentes, formato: numero.format },
+      { titulo: "Administradores registrados", valor: t.administradores, formato: numero.format },
+      { titulo: "Reservas registradas", valor: t.reservas, formato: numero.format },
+      { titulo: "Eventos registrados", valor: t.eventos, formato: numero.format }
+    ], "reporte-generales");
+
+    pintarTarjetas([
+      { titulo: "Promedio de ingresos por agente", valor: datos.promedios.porAgente, formato: pesosCompacto.format, completo: pesos.format },
+      { titulo: "Promedio de ingresos por cliente", valor: datos.promedios.porCliente, formato: pesosCompacto.format, completo: pesos.format }
+    ], "reporte-promedios");
+  }
+
+  function pintarComerciales() {
+    var porAgente = datos.ingresosPorAgente.slice().sort(function (a, b) { return b.ingresos - a.ingresos; });
+    caja("reporte-ingresos-agente").innerHTML = tablaReporte(
+      "Ingresos de cada agente comparados con el promedio",
+      [{ titulo: "Agente" }, { titulo: "Ingresos", numero: true }, { titulo: "Frente al promedio", numero: true }],
+      porAgente.map(function (a) {
+        var dif = a.ingresos - datos.promedios.porAgente;
+        return [escapar(a.nombre), cifra(a.ingresos, pesos.format),
+          (dif >= 0 ? "+" : "−") + pesos.format(Math.abs(dif))];
+      }));
+
+    var porCliente = datos.ingresosPorCliente.slice().sort(function (a, b) { return b.ingresos - a.ingresos; });
+    caja("reporte-ingresos-cliente").innerHTML = tablaReporte(
+      "Ingresos de cada cliente comparados con el promedio",
+      [{ titulo: "Cliente" }, { titulo: "Ingresos", numero: true }, { titulo: "Frente al promedio", numero: true }],
+      porCliente.map(function (c) {
+        var dif = c.ingresos - datos.promedios.porCliente;
+        return [escapar(c.nombre), cifra(c.ingresos, pesos.format),
+          (dif >= 0 ? "+" : "−") + pesos.format(Math.abs(dif))];
+      }));
+
+    var totalAnio = datos.ingresosPorMes.reduce(function (s, v) { return s + v; }, 0);
+    caja("reporte-ingresos-mes").innerHTML =
+      '<p class="reporte-total">Total del ' + datos.anio + ': <strong>' + pesos.format(totalAnio) + '</strong></p>' +
+      barrasReporte(NOMBRES_MESES.map(function (m, i) { return { nombre: m, valor: datos.ingresosPorMes[i] }; }),
+        pesos.format, "Ingresos de todos los eventos en cada mes del " + datos.anio + ".");
+    animarAlVer(caja("reporte-ingresos-mes").querySelector(".admin-figura"));
+
+    var filas = datos.reservasPorEventoMes.slice().sort(function (a, b) { return a.evento.localeCompare(b.evento, "es"); });
+    var totalesMes = NOMBRES_MESES.map(function (m, i) {
+      return filas.reduce(function (s, f) { return s + f.meses[i]; }, 0);
+    });
+    caja("reporte-reservas-evento-mes").innerHTML = tablaReporte(
+      "Número de reservas por evento y por mes en " + datos.anio,
+      [{ titulo: "Evento" }].concat(NOMBRES_MESES.map(function (m) {
+        return { titulo: '<span aria-hidden="true">' + m.slice(0, 3) + '</span><span class="oculto">' + m + '</span>', numero: true };
+      })).concat([{ titulo: "Total", numero: true }]),
+      filas.map(function (f) {
+        return [escapar(f.evento)].concat(f.meses.map(function (n) { return cifra(n); }))
+          .concat(['<strong>' + f.meses.reduce(function (s, n) { return s + n; }, 0) + '</strong>']);
+      }),
+      ["Total"].concat(totalesMes.map(function (n) { return cifra(n); }))
+        .concat(['<strong>' + totalesMes.reduce(function (s, n) { return s + n; }, 0) + '</strong>']));
+
+    var agentesLista = [];
+    var ciudades = [];
+    datos.eventosPorAgenteCiudad.forEach(function (x) {
+      if (agentesLista.indexOf(x.agente) === -1) agentesLista.push(x.agente);
+      if (ciudades.indexOf(x.ciudad) === -1) ciudades.push(x.ciudad);
+    });
+    agentesLista.sort(function (a, b) { return a.localeCompare(b, "es"); });
+    ciudades.sort(function (a, b) { return a.localeCompare(b, "es"); });
+    function cuantos(agente, ciudad) {
+      var x = datos.eventosPorAgenteCiudad.filter(function (y) { return y.agente === agente && y.ciudad === ciudad; })[0];
+      return x ? x.eventos : 0;
+    }
+    caja("reporte-agente-ciudad").innerHTML = tablaReporte(
+      "Número de eventos creados por cada agente y por ciudad",
+      [{ titulo: "Agente" }].concat(ciudades.map(function (c) { return { titulo: escapar(c), numero: true }; }))
+        .concat([{ titulo: "Total", numero: true }]),
+      agentesLista.map(function (a) {
+        var fila = ciudades.map(function (c) { return cuantos(a, c); });
+        return [escapar(a)].concat(fila.map(function (n) { return cifra(n); }))
+          .concat(['<strong>' + fila.reduce(function (s, n) { return s + n; }, 0) + '</strong>']);
+      }));
+  }
+
+  function pintarCobertura() {
+    var filas = datos.eventosPorUbicacion.slice().sort(function (a, b) {
+      return a.pais.localeCompare(b.pais, "es") || a.departamento.localeCompare(b.departamento, "es") ||
+        a.ciudad.localeCompare(b.ciudad, "es");
+    });
+    caja("reporte-ubicacion").innerHTML = tablaReporte(
+      "Listado de eventos por país, departamento y ciudad de realización",
+      [{ titulo: "Ciudad" }, { titulo: "Departamento" }, { titulo: "País" }, { titulo: "Eventos", numero: true }, { titulo: "Nombres" }],
+      filas.map(function (f) {
+        return [escapar(f.ciudad), escapar(f.departamento), escapar(f.pais), String(f.eventos.length),
+          '<ul class="reporte-nombres">' + f.eventos.map(function (n) { return '<li>' + escapar(n) + '</li>'; }).join("") + '</ul>'];
+      }));
+  }
+
+  function pintarHistorial() {
+    var elegido = caja("reporte-cliente").value;
+    var lista = datos.reservas.filter(function (r) { return r.cliente === elegido; })
+      .sort(function (a, b) { return b.fecha.localeCompare(a.fecha); });
+    caja("reporte-historial").innerHTML = tablaReporte(
+      "Historial de reservas de " + elegido,
+      [{ titulo: "Reserva" }, { titulo: "Fecha" }, { titulo: "Evento" }, { titulo: "Entradas", numero: true },
+        { titulo: "Valor", numero: true }, { titulo: "Estado" }],
+      lista.map(function (r) {
+        return [escapar(r.codigo), fechaHora(r.fecha), escapar(r.evento), String(r.entradas), textoPrecio(r.valor),
+          etiqueta(r.estado, CLASE_RESERVA[r.estado] || "", "Estado")];
+      }));
+  }
+
+  function pintarOperacion() {
+    var clientes = [];
+    datos.reservas.forEach(function (r) { if (clientes.indexOf(r.cliente) === -1) clientes.push(r.cliente); });
+    clientes.sort(function (a, b) { return a.localeCompare(b, "es"); });
+    caja("reporte-cliente").innerHTML = clientes.map(function (c) {
+      var n = datos.reservas.filter(function (r) { return r.cliente === c; }).length;
+      return '<option value="' + escapar(c) + '">' + escapar(c) + ' (' + n + (n === 1 ? ' reserva' : ' reservas') + ')</option>';
+    }).join("");
+    pintarHistorial();
+
+    /* Reservas canceladas: la causa sale de sus observaciones */
+    var canceladas = datos.reservas.filter(function (r) { return r.estado === "Cancelada"; })
+      .sort(function (a, b) { return b.fecha.localeCompare(a.fecha); });
+    var porCausa = {};
+    canceladas.forEach(function (r) {
+      var c = D.leerCancelacion(r.observaciones);
+      var causa = c ? c.causa : "Sin causa registrada";
+      porCausa[causa] = (porCausa[causa] || 0) + 1;
+    });
+    caja("reporte-causas-reservas").innerHTML = canceladas.length
+      ? barrasReporte(Object.keys(porCausa).sort(function (a, b) { return porCausa[b] - porCausa[a]; })
+          .map(function (c) { return { nombre: c, valor: porCausa[c] }; }),
+          numero.format, "Número de reservas canceladas por cada causa.")
+      : "";
+    var figura = caja("reporte-causas-reservas").querySelector(".admin-figura");
+    if (figura) animarAlVer(figura);
+
+    caja("reporte-reservas-canceladas").innerHTML = tablaReporte(
+      "Reservas canceladas y su causa",
+      [{ titulo: "Reserva" }, { titulo: "Cliente" }, { titulo: "Evento" }, { titulo: "Causa" }, { titulo: "La canceló" }],
+      canceladas.map(function (r) {
+        var c = D.leerCancelacion(r.observaciones);
+        return [escapar(r.codigo), escapar(r.cliente), escapar(r.evento),
+          c ? escapar(c.causa) + (c.detalle ? '<span class="reporte-detalle">' + escapar(c.detalle) + '</span>' : '')
+            : '<span class="texto-gris">Sin causa registrada</span>',
+          c ? escapar(c.quien) : "—"];
+      }));
+
+    caja("reporte-eventos-cancelados").innerHTML = tablaReporte(
+      "Eventos cancelados y su causa",
+      [{ titulo: "Evento" }, { titulo: "Ciudad" }, { titulo: "Agente" }, { titulo: "Causa" }, { titulo: "Lo canceló" }],
+      datos.eventosCancelados.map(function (e) {
+        var c = D.leerCancelacion(e.observaciones);
+        return [escapar(e.evento), escapar(e.ciudad), escapar(e.agente),
+          c ? escapar(c.causa) + (c.detalle ? '<span class="reporte-detalle">' + escapar(c.detalle) + '</span>' : '')
+            : '<span class="texto-gris">' + escapar(e.observaciones || "Sin causa registrada") + '</span>',
+          c ? escapar(c.quien) : "—"];
+      }));
+  }
+
+  caja("reporte-cliente").onchange = pintarHistorial;
+  caja("form-historial").addEventListener("submit", function (evento) { evento.preventDefault(); });
+
+  obtenerReportes().then(function (respuesta) {
+    datos = respuesta;
+    if (!D.usarApi) {
+      aviso.textContent = "Modo local: la base de datos está desactivada y los reportes se calculan con los datos de ejemplo.";
+    }
+    pintarGenerales();
+    pintarComerciales();
+    pintarCobertura();
+    pintarOperacion();
   }).catch(function (error) {
     aviso.innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
   });
@@ -3129,10 +5529,21 @@ if (paginaAdmin === "admin") {
   paginaClientes();
 } else if (paginaAdmin === "admin-reservas") {
   paginaReservasAdmin();
-} else if (paginaAdmin === "admin-verificaciones") {
-  paginaVerificacionesAdmin();
+} else if (paginaAdmin === "admin-ubicaciones") {
+  paginaUbicaciones();
+} else if (paginaAdmin === "admin-administradores") {
+  paginaAdministradores();
+} else if (paginaAdmin === "admin-reportes") {
+  paginaReportes();
 } else if (paginaAdmin === "admin-validar") {
   paginaValidar();
-} else if (paginaAdmin === "admin-sesiones") {
-  paginaSesiones();
 }
+
+/* El panel del agente (js/agente.js) reutiliza las gráficas y los datos de
+   ejemplo de este archivo */
+export {
+  pesos, numero, escapar, animarAlVer, pintarTarjetas, pintarMeses,
+  prepararSelectorSerie, pintarEstados, pintarActividad, completarEvento,
+  barraOcupacion, obtenerAgentes, obtenerReservasAdmin, ultimosMeses, COLOR_ESTADO,
+  paginaValidar, paginaReservasAdmin, cancelarReservaAdmin, crearMapaEvento, reducirImagen, esEventoDe
+};

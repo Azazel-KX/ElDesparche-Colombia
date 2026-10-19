@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sesiones de administradores - El Desparche</title>
-    <link rel="icon" href="img/14603.png" />
+    <title>Reservas - Panel de agente - El Desparche</title>
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,7 +26,7 @@
     </script>
   </head>
 
-  <body data-pagina="admin-sesiones">
+  <body data-pagina="agente-reservas">
     <a class="salto-contenido" href="#contenido-principal">Saltar al contenido principal</a>
 
     <!-- ===== CABECERA ===== -->
@@ -93,30 +93,27 @@
       </div>
     </header>
 
-    <main class="admin" id="contenido-principal" tabindex="-1">
-      <!-- Sin sesión de administrador -->
+    <main class="admin admin-agente" id="contenido-principal" tabindex="-1">
+      <!-- Sin sesión de agente -->
       <section class="admin-bloqueo" id="admin-bloqueo" aria-labelledby="titulo-bloqueo" hidden>
         <div class="recuadro-titulo">
-          <h1 id="titulo-bloqueo">Zona de administración</h1>
-          <p>Esta página es solo para administradores. Inicia sesión con una cuenta de administrador para continuar.</p>
+          <h1 id="titulo-bloqueo">Panel de agentes</h1>
+          <p>Esta página es para los organizadores de eventos. Inicia sesión con tu cuenta de agente para ver cómo van tus eventos.</p>
           <button type="button" class="admin-boton" id="bloqueo-entrar">Iniciar sesión</button>
         </div>
       </section>
 
-      <!-- Con sesión de administrador -->
+      <!-- Con sesión de agente -->
       <div class="admin-marco" id="admin-marco" hidden>
         <aside class="admin-lateral">
-          <p class="admin-lateral-titulo" id="titulo-lateral">Administración</p>
+          <p class="admin-lateral-titulo" id="titulo-lateral">Mi panel de agente</p>
           <nav aria-labelledby="titulo-lateral">
             <ul>
-              <li><a href="admin.html">Panel</a></li>
-              <li><a href="admin-agentes.html">Agentes</a></li>
-              <li><a href="admin-eventos.html">Eventos</a></li>
-              <li><a href="admin-clientes.html">Clientes</a></li>
-              <li><a href="admin-reservas.html">Reservas y pagos</a></li>
-              <li><a href="admin-validar.html">Validar entradas</a></li>
-              <li><a href="admin-verificaciones.html">Verificaciones</a></li>
-              <li><a class="activo" href="admin-sesiones.html" aria-current="page">Sesiones</a></li>
+              <li><a href="agente.html">Resumen</a></li>
+              <li><a href="agente-eventos.html">Mis eventos</a></li>
+              <li><a class="activo" href="agente-reservas.html" aria-current="page">Reservas</a></li>
+              <li><a href="agente-validar.html">Validar entradas</a></li>
+              <li><a href="agente-perfil.html">Perfil de la empresa</a></li>
             </ul>
           </nav>
         </aside>
@@ -124,94 +121,106 @@
         <div class="admin-contenido">
           <div class="recuadro-titulo admin-cabecera">
             <div>
-              <h1>Sesiones de administradores</h1>
-              <p>Registro de cuándo entra y sale cada administrador, desde qué dirección IP y cuánto tiempo estuvo conectado.</p>
+              <h1>Reservas</h1>
+              <p>Todas las reservas de tus eventos y el estado de su pago con Wompi. Desde el detalle puedes cancelar una reserva.</p>
             </div>
-            <button type="button" class="admin-boton-sec" id="descargar-sesiones">Descargar CSV</button>
           </div>
 
+          <p class="agente-cuenta" id="agente-cuenta" role="status" hidden></p>
           <p class="admin-aviso" id="admin-aviso" role="status"></p>
 
-          <section class="admin-tarjeta sesion-actual" aria-labelledby="titulo-sesion-actual">
-            <h2 id="titulo-sesion-actual">Tu sesión actual</h2>
-            <p id="sesion-actual-texto"></p>
-            <p class="texto-gris sesion-actual-nota">Se guardará en el registro cuando cierres sesión.</p>
-          </section>
-
-          <section aria-labelledby="titulo-resumen-sesiones">
-            <h2 class="oculto" id="titulo-resumen-sesiones">Resumen de sesiones</h2>
+          <section aria-labelledby="titulo-resumen-reservas">
+            <h2 class="oculto" id="titulo-resumen-reservas">Resumen de reservas y pagos</h2>
             <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
           </section>
 
           <div class="admin-graficas">
-            <section class="admin-tarjeta" aria-labelledby="titulo-tiempo-admin">
-              <h2 id="titulo-tiempo-admin">Tiempo en pantalla por administrador</h2>
-              <div id="grafica-tiempo-admin"></div>
+            <section class="admin-tarjeta" aria-labelledby="titulo-metodos">
+              <h2 id="titulo-metodos">Ingresos por medio de pago</h2>
+              <div id="grafica-metodos"></div>
             </section>
 
-            <section class="admin-tarjeta" aria-labelledby="titulo-horas">
-              <h2 id="titulo-horas">Conexiones por hora del día</h2>
-              <div id="grafica-horas"></div>
+            <section class="admin-tarjeta" aria-labelledby="titulo-estados-pago">
+              <h2 id="titulo-estados-pago">Estado de los pagos</h2>
+              <div id="grafica-estados-pago"></div>
             </section>
           </div>
 
-          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-sesiones">
-            <h2 id="titulo-lista-sesiones">Registro de sesiones</h2>
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-reservas">
+            <h2 id="titulo-lista-reservas" tabindex="-1">Reservas</h2>
 
-            <form class="admin-filtros" role="search" aria-label="Filtrar sesiones" id="filtros-sesiones">
+            <form class="admin-filtros" role="search" aria-label="Filtrar reservas" id="filtros-reservas">
               <div class="admin-filtro admin-filtro-buscar">
-                <label for="buscar-sesion">Buscar</label>
-                <input type="search" id="buscar-sesion" placeholder="Nombre, documento o IP" autocomplete="off" />
+                <label for="buscar-reserva">Buscar</label>
+                <input type="search" id="buscar-reserva" placeholder="Código, cliente o evento" autocomplete="off" />
               </div>
               <div class="admin-filtro">
-                <label for="filtro-admin">Administrador</label>
-                <select id="filtro-admin">
+                <label for="filtro-evento">Evento</label>
+                <select id="filtro-evento">
                   <option value="">Todos</option>
                 </select>
               </div>
               <div class="admin-filtro">
-                <label for="filtro-periodo">Periodo</label>
-                <select id="filtro-periodo">
-                  <option value="7">Últimos 7 días</option>
-                  <option value="30" selected>Últimos 30 días</option>
-                  <option value="0">Todo el registro</option>
+                <label for="filtro-pago">Estado del pago</label>
+                <select id="filtro-pago">
+                  <option value="">Todos</option>
+                  <option value="APPROVED">Aprobado</option>
+                  <option value="PENDING">Pendiente</option>
+                  <option value="DECLINED">Rechazado</option>
+                  <option value="VOIDED">Anulado</option>
+                  <option value="ERROR">Error</option>
                 </select>
               </div>
               <div class="admin-filtro">
-                <label for="filtro-horario">Horario</label>
-                <select id="filtro-horario">
-                  <option value="">Todas</option>
-                  <option value="dentro">En su horario</option>
-                  <option value="fuera">Fuera de su horario</option>
+                <label for="filtro-metodo">Medio de pago</label>
+                <select id="filtro-metodo">
+                  <option value="">Todos</option>
+                  <option value="CARD">Tarjeta</option>
+                  <option value="NEQUI">Nequi</option>
+                  <option value="PSE">PSE</option>
+                  <option value="BANCOLOMBIA_TRANSFER">Botón Bancolombia</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="orden-reservas">Ordenar por</label>
+                <select id="orden-reservas">
+                  <option value="fecha">Más reciente</option>
+                  <option value="valor">Mayor valor</option>
+                  <option value="entradas">Más entradas</option>
                 </select>
               </div>
             </form>
 
-            <p class="admin-conteo" id="conteo-sesiones" role="status"></p>
+            <p class="admin-conteo" id="conteo-reservas" role="status"></p>
 
             <table class="admin-tabla" role="table">
-              <caption class="oculto">Registro de sesiones de administradores</caption>
+              <caption class="oculto">Reservas de tus eventos</caption>
               <thead role="rowgroup">
                 <tr role="row">
-                  <th scope="col" role="columnheader">Administrador</th>
-                  <th scope="col" role="columnheader" class="numero">N° de sesión</th>
-                  <th scope="col" role="columnheader">Conexión</th>
-                  <th scope="col" role="columnheader">Desconexión</th>
-                  <th scope="col" role="columnheader" class="numero">Tiempo en pantalla</th>
-                  <th scope="col" role="columnheader">Dirección IP</th>
-                  <th scope="col" role="columnheader">Horario</th>
+                  <th scope="col" role="columnheader">Reserva</th>
+                  <th scope="col" role="columnheader">Cliente</th>
+                  <th scope="col" role="columnheader">Evento</th>
+                  <th scope="col" role="columnheader" class="numero">Entradas</th>
+                  <th scope="col" role="columnheader" class="numero">Valor</th>
+                  <th scope="col" role="columnheader">Pago</th>
+                  <th scope="col" role="columnheader">Acciones</th>
                 </tr>
               </thead>
-              <tbody role="rowgroup" id="cuerpo-sesiones"></tbody>
+              <tbody role="rowgroup" id="cuerpo-reservas"></tbody>
             </table>
-
-            <p class="texto-gris sesiones-leyenda">
-              Jornadas: Mañana de 6:00 a 12:00 · Tarde de 12:00 a 18:00 · Noche de 18:00 a 24:00 · Completa de 6:00 a 22:00.
-              Una sesión queda «Fuera de horario» si empieza fuera de la jornada del administrador.
-            </p>
           </section>
         </div>
       </div>
+
+      <!-- Detalle de una reserva -->
+      <dialog class="modal modal-detalle" id="detalle-reserva" aria-labelledby="detalle-nombre">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="detalle-cerrar" aria-label="Cerrar el detalle de la reserva">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div id="detalle-contenido"></div>
+        </div>
+      </dialog>
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
@@ -231,6 +240,6 @@
     </footer>
 
     <script type="module" src="js/script.js"></script>
-    <script type="module" src="js/admin.js"></script>
+    <script type="module" src="js/agente.js"></script>
   </body>
 </html>
