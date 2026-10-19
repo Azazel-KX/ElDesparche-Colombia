@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestión de clientes - El Desparche</title>
-    <link rel="icon" href="img/14603.png" />
+    <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -110,13 +110,14 @@
           <nav aria-labelledby="titulo-lateral">
             <ul>
               <li><a href="admin.html">Panel</a></li>
+              <li><a href="admin-reportes.html">Reportes</a></li>
               <li><a href="admin-agentes.html">Agentes</a></li>
               <li><a href="admin-eventos.html">Eventos</a></li>
               <li><a class="activo" href="admin-clientes.html" aria-current="page">Clientes</a></li>
+              <li><a href="admin-administradores.html">Administradores</a></li>
               <li><a href="admin-reservas.html">Reservas y pagos</a></li>
+              <li><a href="admin-ubicaciones.html">Ubicaciones</a></li>
               <li><a href="admin-validar.html">Validar entradas</a></li>
-              <li><a href="admin-verificaciones.html">Verificaciones</a></li>
-              <li><a href="admin-sesiones.html">Sesiones</a></li>
             </ul>
           </nav>
         </aside>
@@ -125,8 +126,9 @@
           <div class="recuadro-titulo admin-cabecera">
             <div>
               <h1>Gestión de clientes</h1>
-              <p>Consulta los datos, las reservas y la verificación de identidad de cada cliente.</p>
+              <p>Registra, consulta, modifica y elimina clientes, y revisa sus reservas y el estado de su cuenta.</p>
             </div>
+            <button type="button" class="admin-boton" id="nuevo-cliente">Registrar cliente</button>
           </div>
 
           <p class="admin-aviso" id="admin-aviso" role="status"></p>
@@ -143,16 +145,6 @@
               <div class="admin-filtro admin-filtro-buscar">
                 <label for="buscar-cliente">Buscar</label>
                 <input type="search" id="buscar-cliente" placeholder="Nombre, documento, correo o alias" autocomplete="off" />
-              </div>
-              <div class="admin-filtro">
-                <label for="filtro-verificacion">Verificación</label>
-                <select id="filtro-verificacion">
-                  <option value="">Todas</option>
-                  <option value="Aprobada">Aprobada</option>
-                  <option value="Pendiente">Pendiente</option>
-                  <option value="Rechazada">Rechazada</option>
-                  <option value="Sin solicitar">Sin solicitar</option>
-                </select>
               </div>
               <div class="admin-filtro">
                 <label for="filtro-cuenta">Cuenta</label>
@@ -184,7 +176,6 @@
                   <th scope="col" role="columnheader" class="numero">Edad</th>
                   <th scope="col" role="columnheader" class="numero">Reservas</th>
                   <th scope="col" role="columnheader" class="numero">Puntos</th>
-                  <th scope="col" role="columnheader">Verificación</th>
                   <th scope="col" role="columnheader">Acciones</th>
                 </tr>
               </thead>
