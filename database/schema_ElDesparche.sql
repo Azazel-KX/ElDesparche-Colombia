@@ -1,6 +1,7 @@
 -- ==================================================================================================================
 -- ElDesparche — Esquema PostgreSQL (generado desde documents/BD/Diagrama_v2.drawio)
--- Motor: PostgreSQL 13+   ·   Proyecto Integrador 2026-2   ·   18 tablas, 3FN
+-- Motor: PostgreSQL 13+   ·   Proyecto Integrador 2026-2   ·   13 tablas, 3FN
+-- Alineado con el avance del corte 2 (Avance_El_desparche_PI_2026-2_Corte_2.docx)
 -- Documento de apoyo: documents/BD/Modelo_Relacional_3FN_Diagrama_v2.docx
 --
 -- Ejecutar sobre una base vacía. Las tablas se crean en orden de dependencia.
@@ -15,14 +16,10 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_uuid(), crypt() para el
 CREATE TYPE tipo_identificacion_t  AS ENUM ('CC', 'CE', 'PAS', 'PPT', 'NIT');
 CREATE TYPE tipo_usuario_t         AS ENUM ('ADMIN', 'CLIENTE', 'AGENTE');
 CREATE TYPE jornada_t              AS ENUM ('Mañana', 'Tarde', 'Noche', 'Completa');
-CREATE TYPE tipo_verificacion_t    AS ENUM ('Contacto');
-CREATE TYPE estado_verificacion_t  AS ENUM ('Pendiente', 'Aprobada', 'Rechazada');
 CREATE TYPE estado_evento_t        AS ENUM ('Programado', 'En Boletería', 'En Vivo', 'Finalizado', 'Cancelado');
 CREATE TYPE estado_reserva_t       AS ENUM ('Reservada', 'Confirmada', 'Cancelada');
 CREATE TYPE tipo_metodo_pago_t     AS ENUM ('Tarjeta crédito', 'Tarjeta débito', 'Transferencia bancaria', 'Billetera digital');
 CREATE TYPE estado_pago_t          AS ENUM ('Pendiente', 'Aprobado', 'Rechazado');
-CREATE TYPE estado_conexion_t      AS ENUM ('Pendiente', 'Aceptada', 'Rechazada');
-CREATE TYPE aplica_a_t             AS ENUM ('EVENTO', 'RESERVA', 'AMBOS');
 
 -- ==================================================================================================================
 -- GEOGRAFÍA  (Enunciado: País → Departamento → Ciudad)
@@ -129,57 +126,10 @@ CREATE TABLE AGENTE (
         REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
--- Entidad débil de ADMIN (relación identificadora Inicia). tiempo_en_pantalla es derivado: no se guarda.
-CREATE TABLE SESION_ADMIN (
-    numero_identificacion  VARCHAR(20) NOT NULL REFERENCES ADMIN(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
-    numero_sesion          INTEGER NOT NULL,                -- lo asigna el trigger si llega NULL
-    fecha_hora_conexion    TIMESTAMP NOT NULL,
-    fecha_hora_desconexion TIMESTAMP NOT NULL,              -- la fila se inserta al cerrar sesión
-    direccion_ip           INET NOT NULL,
-    PRIMARY KEY (numero_identificacion, numero_sesion),
-    CHECK (fecha_hora_desconexion >= fecha_hora_conexion)
-);
-
--- ==================================================================================================================
--- VERIFICACIÓN  (relación Detalla 1:1: VERIFICACION → VERIF_CONTACTO)
--- ==================================================================================================================
-
-CREATE TABLE VERIFICACION (
-    id_verificacion       SERIAL PRIMARY KEY,
-    tipo                  tipo_verificacion_t NOT NULL DEFAULT 'Contacto',
-    estado                estado_verificacion_t NOT NULL DEFAULT 'Pendiente',
-    fecha_solicitud       TIMESTAMP NOT NULL DEFAULT NOW(),
-    fecha_actualizacion   TIMESTAMP NOT NULL DEFAULT NOW(),
-    numero_identificacion VARCHAR(20) NOT NULL REFERENCES USUARIO(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
-    UNIQUE (id_verificacion, tipo),
-    CHECK (fecha_actualizacion >= fecha_solicitud)
-);
-
--- Una sola verificación pendiente por usuario y tipo (los reintentos se permiten al resolverse la anterior)
-CREATE UNIQUE INDEX ux_verificacion_pendiente
-    ON VERIFICACION(numero_identificacion, tipo) WHERE estado = 'Pendiente';
-
-CREATE TABLE VERIF_CONTACTO (
-    id_verificacion  INTEGER PRIMARY KEY,
-    tipo             tipo_verificacion_t NOT NULL DEFAULT 'Contacto' CHECK (tipo = 'Contacto'),
-    codigo_hash      VARCHAR(255) NOT NULL,
-    fecha_expiracion TIMESTAMP NOT NULL,
-    intentos         SMALLINT NOT NULL DEFAULT 0 CHECK (intentos >= 0),
-    FOREIGN KEY (id_verificacion, tipo) REFERENCES VERIFICACION(id_verificacion, tipo) ON DELETE CASCADE
-);
-
--- ==================================================================================================================
--- CATÁLOGO DE CAUSAS DE CANCELACIÓN  (Enunciado: "reservas canceladas y su causa", "eventos cancelados y su causa")
--- ==================================================================================================================
-
-CREATE TABLE CAUSA_CANCELACION (
-    id_causa SERIAL PRIMARY KEY,
-    nombre   VARCHAR(100) NOT NULL UNIQUE,
-    aplica_a aplica_a_t NOT NULL
-);
-
 -- ==================================================================================================================
 -- EVENTOS  (Enunciado, punto 6; ciudad de realización = UBICACION → CIUDAD)
+-- La causa de una cancelación se guarda en observaciones, con el formato
+-- "Cancelado por <quién>. Causa: <causa>. Detalle: <detalle>" (lo escribe la web).
 -- ==================================================================================================================
 
 CREATE TABLE EVENTO (
@@ -189,6 +139,7 @@ CREATE TABLE EVENTO (
     categoria         VARCHAR(40) NOT NULL
                       CHECK (categoria IN ('musica', 'teatro', 'danza', 'circo', 'comedia')),
     url_imagen        VARCHAR(255),
+    teatro            VARCHAR(150) NOT NULL,                    -- teatro o sitio donde se hace el evento
     fecha_hora_inicio TIMESTAMP NOT NULL,
     fecha_hora_fin    TIMESTAMP NOT NULL,                       -- fecha y hora estimada de finalización
     capacidad_total   INTEGER NOT NULL CHECK (capacidad_total > 0),
@@ -199,9 +150,7 @@ CREATE TABLE EVENTO (
     precio            NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (precio >= 0),   -- precio base de la entrada
     id_ubicacion      INTEGER NOT NULL REFERENCES UBICACION(id_ubicacion) ON DELETE RESTRICT,
     id_agente         VARCHAR(20) NOT NULL REFERENCES AGENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE RESTRICT,
-    id_causa          INTEGER REFERENCES CAUSA_CANCELACION(id_causa) ON DELETE RESTRICT,
-    CHECK (fecha_hora_fin > fecha_hora_inicio),
-    CHECK ((estado = 'Cancelado') = (id_causa IS NOT NULL))     -- causa obligatoria solo si está cancelado
+    CHECK (fecha_hora_fin > fecha_hora_inicio)
 );
 
 CREATE INDEX idx_evento_estado    ON EVENTO(estado);
@@ -216,15 +165,13 @@ CREATE INDEX idx_evento_ubicacion ON EVENTO(id_ubicacion);
 CREATE TABLE RESERVA (
     id_reserva      SERIAL PRIMARY KEY,
     codigo_qr       UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
-    valor_total     NUMERIC(12,2) NOT NULL CHECK (valor_total >= 0),   -- lo calcula el trigger si llega NULL
+    valor_total     NUMERIC(12,2) NOT NULL CHECK (valor_total >= 0),   -- entradas × precio + tarifa de Wompi (el trigger la calcula si llega NULL)
     fecha_hora      TIMESTAMP NOT NULL DEFAULT NOW(),
     estado          estado_reserva_t NOT NULL DEFAULT 'Reservada',
     numero_entradas INTEGER NOT NULL CHECK (numero_entradas > 0),
     observaciones   TEXT,
     id_cliente      VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
-    codigo_evento   VARCHAR(20) NOT NULL REFERENCES EVENTO(codigo) ON DELETE CASCADE,
-    id_causa        INTEGER REFERENCES CAUSA_CANCELACION(id_causa) ON DELETE RESTRICT,
-    CHECK ((estado = 'Cancelada') = (id_causa IS NOT NULL))
+    codigo_evento   VARCHAR(20) NOT NULL REFERENCES EVENTO(codigo) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_reserva_cliente ON RESERVA(id_cliente);
@@ -256,23 +203,6 @@ CREATE TABLE PAGO (
 CREATE INDEX idx_pago_reserva ON PAGO(id_reserva);
 
 -- ==================================================================================================================
--- CONEXIÓN SOCIAL  (N:M reflexiva sobre CLIENTE)
--- ==================================================================================================================
-
-CREATE TABLE CONEXION_SOCIAL (
-    id_solicitante  VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
-    id_receptor     VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
-    fecha_solicitud TIMESTAMP NOT NULL DEFAULT NOW(),
-    estado          estado_conexion_t NOT NULL DEFAULT 'Pendiente',
-    PRIMARY KEY (id_solicitante, id_receptor),
-    CHECK (id_solicitante <> id_receptor)
-);
-
--- (A,B) y (B,A) no pueden coexistir
-CREATE UNIQUE INDEX ux_conexion_par
-    ON CONEXION_SOCIAL (LEAST(id_solicitante, id_receptor), GREATEST(id_solicitante, id_receptor));
-
--- ==================================================================================================================
 -- TRIGGERS: reglas del diagrama que no son DF ni CHECK de una sola fila
 -- ==================================================================================================================
 
@@ -298,85 +228,44 @@ CREATE CONSTRAINT TRIGGER trg_usuario_subtipo
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION fn_usuario_tiene_subtipo();
 
--- 2. Toda VERIFICACION de tipo Contacto debe tener su detalle en VERIF_CONTACTO (se valida al COMMIT)
-CREATE OR REPLACE FUNCTION fn_verificacion_tiene_detalle() RETURNS trigger AS $$
-BEGIN
-    IF NEW.tipo = 'Contacto'
-       AND NOT EXISTS (SELECT 1 FROM VERIF_CONTACTO WHERE id_verificacion = NEW.id_verificacion) THEN
-        RAISE EXCEPTION 'La verificación % es de contacto y no tiene detalle', NEW.id_verificacion;
-    END IF;
-    RETURN NULL;
-END $$ LANGUAGE plpgsql;
+-- 2. Tarifa de Wompi por pago en Colombia: 2,65 % + $700, más IVA (19 %). Se cobra una vez por
+--    pago (no por entrada) y vale 0 si el evento es gratis. Es la misma cuenta que tarifaWompi()
+--    en frontend/js/script.js, así que la web y la base de datos dan el mismo valor_total.
+CREATE OR REPLACE FUNCTION fn_tarifa_wompi(subtotal NUMERIC) RETURNS NUMERIC AS $$
+    SELECT CASE WHEN subtotal <= 0 THEN 0 ELSE ROUND((subtotal * 0.0265 + 700) * 1.19) END;
+$$ LANGUAGE sql IMMUTABLE;
 
-CREATE CONSTRAINT TRIGGER trg_verificacion_detalle
-    AFTER INSERT OR UPDATE OF tipo ON VERIFICACION
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW EXECUTE FUNCTION fn_verificacion_tiene_detalle();
-
--- 3. numero_sesion consecutivo por administrador
-CREATE OR REPLACE FUNCTION fn_sesion_numero() RETURNS trigger AS $$
-BEGIN
-    IF NEW.numero_sesion IS NULL THEN
-        SELECT COALESCE(MAX(numero_sesion), 0) + 1 INTO NEW.numero_sesion
-          FROM SESION_ADMIN WHERE numero_identificacion = NEW.numero_identificacion;
-    END IF;
-    RETURN NEW;
-END $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_sesion_numero BEFORE INSERT ON SESION_ADMIN
-    FOR EACH ROW EXECUTE FUNCTION fn_sesion_numero();
-
--- 4. La causa debe ser aplicable al tipo de cancelación (EVENTO o RESERVA)
-CREATE OR REPLACE FUNCTION fn_causa_aplica() RETURNS trigger AS $$
-DECLARE v_esperado aplica_a_t := TG_ARGV[0]::aplica_a_t; v_real aplica_a_t;
-BEGIN
-    IF NEW.id_causa IS NOT NULL THEN
-        SELECT aplica_a INTO v_real FROM CAUSA_CANCELACION WHERE id_causa = NEW.id_causa;
-        IF v_real NOT IN (v_esperado, 'AMBOS') THEN
-            RAISE EXCEPTION 'La causa % no aplica a %', NEW.id_causa, v_esperado;
-        END IF;
-    END IF;
-    RETURN NEW;
-END $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_evento_causa  BEFORE INSERT OR UPDATE OF id_causa ON EVENTO
-    FOR EACH ROW EXECUTE FUNCTION fn_causa_aplica('EVENTO');
-CREATE TRIGGER trg_reserva_causa BEFORE INSERT OR UPDATE OF id_causa ON RESERVA
-    FOR EACH ROW EXECUTE FUNCTION fn_causa_aplica('RESERVA');
-
--- 5. Reglas de la reserva: verificación aprobada, edad mínima, cupo y valor_total
+-- 3. Reglas de la reserva: edad mínima, cupo y valor_total = entradas × precio + tarifa de Wompi
 CREATE OR REPLACE FUNCTION fn_reserva_reglas() RETURNS trigger AS $$
 DECLARE
     ev EVENTO%ROWTYPE;
     nacimiento DATE;
     ocupadas INTEGER;
+    precio_unitario NUMERIC;
 BEGIN
     -- Bloquea el evento para que dos reservas simultáneas no superen la capacidad
     SELECT * INTO ev FROM EVENTO WHERE codigo = NEW.codigo_evento FOR UPDATE;
 
     IF TG_OP = 'INSERT' THEN
-        IF NOT EXISTS (SELECT 1 FROM VERIFICACION
-                        WHERE numero_identificacion = NEW.id_cliente
-                          AND tipo = 'Contacto' AND estado = 'Aprobada') THEN
-            RAISE EXCEPTION 'El cliente % no tiene verificación de contacto aprobada', NEW.id_cliente;
-        END IF;
-
         SELECT fecha_nacimiento INTO nacimiento FROM CLIENTE WHERE numero_identificacion = NEW.id_cliente;
         IF EXTRACT(YEAR FROM age(ev.fecha_hora_inicio::date, nacimiento)) < ev.edad_minima THEN
             RAISE EXCEPTION 'El cliente no cumple la edad mínima (%) del evento %', ev.edad_minima, ev.codigo;
         END IF;
 
-        IF NEW.valor_total IS NULL THEN
-            NEW.valor_total := NEW.numero_entradas * ev.precio;       -- precio vigente al reservar
-        ELSIF NEW.valor_total <> NEW.numero_entradas * ev.precio THEN
-            RAISE EXCEPTION 'valor_total debe ser numero_entradas × precio del evento';
+        IF NEW.valor_total IS NULL THEN                               -- precio vigente al reservar
+            NEW.valor_total := NEW.numero_entradas * ev.precio + fn_tarifa_wompi(NEW.numero_entradas * ev.precio);
+        ELSIF NEW.valor_total <> NEW.numero_entradas * ev.precio + fn_tarifa_wompi(NEW.numero_entradas * ev.precio) THEN
+            RAISE EXCEPTION 'valor_total debe ser numero_entradas × precio del evento + tarifa de Wompi';
         END IF;
     END IF;
 
-    -- Si cambia el número de entradas, se conserva el precio unitario con que se reservó
+    -- Si cambia el número de entradas, se conserva el precio unitario con que se reservó.
+    -- Se despeja del valor anterior: valor = s + (s × 0,0265 + 700) × 1,19, con s = entradas × precio.
     IF TG_OP = 'UPDATE' AND NEW.numero_entradas <> OLD.numero_entradas
        AND NEW.valor_total = OLD.valor_total THEN
-        NEW.valor_total := NEW.numero_entradas * (OLD.valor_total / OLD.numero_entradas);
+        precio_unitario := CASE WHEN OLD.valor_total = 0 THEN 0
+                                ELSE ROUND((OLD.valor_total - 700 * 1.19) / (1 + 0.0265 * 1.19)) / OLD.numero_entradas END;
+        NEW.valor_total := NEW.numero_entradas * precio_unitario + fn_tarifa_wompi(NEW.numero_entradas * precio_unitario);
     END IF;
 
     IF NEW.estado <> 'Cancelada' THEN
@@ -396,7 +285,7 @@ CREATE TRIGGER trg_reserva_reglas
     BEFORE INSERT OR UPDATE OF numero_entradas, estado, codigo_evento ON RESERVA
     FOR EACH ROW EXECUTE FUNCTION fn_reserva_reglas();
 
--- 6. El método de pago de un PAGO debe pertenecer al cliente que hizo la RESERVA
+-- 4. El método de pago de un PAGO debe pertenecer al cliente que hizo la RESERVA
 CREATE OR REPLACE FUNCTION fn_pago_coherente() RETURNS trigger AS $$
 BEGIN
     IF (SELECT id_cliente FROM RESERVA WHERE id_reserva = NEW.id_reserva)
@@ -410,7 +299,7 @@ END $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_pago_coherente BEFORE INSERT OR UPDATE OF id_reserva, id_metodo ON PAGO
     FOR EACH ROW EXECUTE FUNCTION fn_pago_coherente();
 
--- 7. No se puede dejar un USUARIO sin su fila de subtipo borrando solo el subtipo (se valida al COMMIT)
+-- 5. No se puede dejar un USUARIO sin su fila de subtipo borrando solo el subtipo (se valida al COMMIT)
 CREATE OR REPLACE FUNCTION fn_subtipo_huerfano() RETURNS trigger AS $$
 BEGIN
     IF EXISTS (SELECT 1 FROM USUARIO WHERE numero_identificacion = OLD.numero_identificacion) THEN
@@ -426,19 +315,7 @@ CREATE CONSTRAINT TRIGGER trg_cliente_huerfano AFTER DELETE ON CLIENTE
 CREATE CONSTRAINT TRIGGER trg_agente_huerfano  AFTER DELETE ON AGENTE
     DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_subtipo_huerfano();
 
--- 8. Lo mismo para el detalle de verificación
-CREATE OR REPLACE FUNCTION fn_detalle_huerfano() RETURNS trigger AS $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM VERIFICACION WHERE id_verificacion = OLD.id_verificacion AND tipo = 'Contacto') THEN
-        RAISE EXCEPTION 'No se puede borrar el detalle de la verificación %', OLD.id_verificacion;
-    END IF;
-    RETURN NULL;
-END $$ LANGUAGE plpgsql;
-
-CREATE CONSTRAINT TRIGGER trg_verif_contacto_huerfano AFTER DELETE ON VERIF_CONTACTO
-    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_detalle_huerfano();
-
--- 9. La capacidad del evento no puede quedar por debajo de las entradas ya reservadas
+-- 6. La capacidad del evento no puede quedar por debajo de las entradas ya reservadas
 CREATE OR REPLACE FUNCTION fn_evento_capacidad() RETURNS trigger AS $$
 DECLARE ocupadas INTEGER;
 BEGIN
@@ -453,7 +330,7 @@ END $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_evento_capacidad BEFORE UPDATE OF capacidad_total ON EVENTO
     FOR EACH ROW EXECUTE FUNCTION fn_evento_capacidad();
 
--- 10. El documento de identidad (PK) no se edita por accidente; la corrección de un dato mal digitado es explícita:
+-- 7. El documento de identidad (PK) no se edita por accidente; la corrección de un dato mal digitado es explícita:
 --       BEGIN; SET LOCAL app.corregir_documento = 'on'; UPDATE USUARIO SET numero_identificacion = '...' WHERE ...; COMMIT;
 --     Las FK tienen ON UPDATE CASCADE, así que el cambio se propaga a todas las tablas.
 CREATE OR REPLACE FUNCTION fn_usuario_documento_inmutable() RETURNS trigger AS $$
