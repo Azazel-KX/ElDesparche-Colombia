@@ -9,9 +9,18 @@ Están definidas en `CUENTAS_PRUEBA`, en `js/script.js`. No son cuentas reales: 
 | --- | --- |
 | admin@eldesparche.online | Desparche2026 |
 
-## Clientes con la identidad ya verificada
+## Agente (organizador de eventos)
 
-Pueden reservar y pagar (con la pasarela de prueba) desde el primer momento.
+Entra a su panel en `agente.html` (enlace «Mi panel» del menú). Es la cuenta de Tarima Producciones
+(NIT 901234567-1), dueña de Festival Estéreo Picnic y Jazz al Parque en los datos de ejemplo.
+
+| Nombre | Correo | Contraseña |
+| --- | --- | --- |
+| Camila Restrepo | tarima@eldesparche.online | Agente2026 |
+
+## Clientes
+
+Pueden reservar y pagar (con la pasarela de prueba).
 
 | Nombre | Correo | Contraseña | Documento | Nacimiento |
 | --- | --- | --- | --- | --- |
@@ -19,7 +28,6 @@ Pueden reservar y pagar (con la pasarela de prueba) desde el primer momento.
 | Juan David Ospina | juandavid@eldesparche.online | Cliente2026 | CC 1006478123 | 02/11/1998 |
 | Andrés Felipe Cardona | andres@eldesparche.online | Cliente2026 | CC 1088345612 | 08/03/1987 |
 
-## Clientes sin verificar
+## Clientes nuevos
 
-Cualquier otro correo entra como cliente nuevo sin verificar, con cualquier contraseña.
-Sirve para probar la página "Verificar mi identidad".
+Cualquier otro correo entra como cliente nuevo, con cualquier contraseña.
