@@ -37,14 +37,12 @@ En `backend/.env` comenta las variables `DB_*` y activa `DATABASE_URL`:
 DATABASE_URL=postgresql://usuario:clave@ep-xxxx.neon.tech/eldesparche_db?sslmode=require
 ```
 
-> El backend se está adaptando al esquema nuevo; hasta entonces sus consultas aún apuntan a tablas del esquema anterior.
-
 ## Problemas frecuentes
 
 | Síntoma | Causa y solución |
 |---|---|
 | `relation "pais" does not exist` al cargar el seed | El esquema no se cargó. Ejecuta primero `schema_ElDesparche.sql`. |
-| `type "tipo_usuario_t" already exists` | La base ya tiene el esquema. Usa una base vacía o recréala desde la consola de Neon. |
+| `type "tipo_identificacion_t" already exists` | La base ya tiene el esquema. Usa una base vacía o recréala desde la consola de Neon. |
 | `SSL connection required` | Falta `?sslmode=require` en la URL. |
 | `permission denied to create extension` | Usa el rol propietario del proyecto (el que crea Neon por defecto). |
 

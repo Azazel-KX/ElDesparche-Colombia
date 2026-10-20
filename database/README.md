@@ -1,15 +1,14 @@
 # Base de datos de ElDesparche
 
-PostgreSQL 13+ · 13 tablas · 3FN. Alineada con el avance del corte 2 (`Avance_El_desparche_PI_2026-2_Corte_2.docx`).
+PostgreSQL 13+ · 13 tablas · 3FN. Alineada con el diagrama corregido y con el avance del corte 2 (`Avance_El_desparche_PI_2026-2_Corte_2.docx`).
 
 | Archivo | Contenido |
 |---|---|
 | `schema_ElDesparche.sql` | Tipos ENUM, 13 tablas, índices y triggers de reglas de negocio |
 | `seed.sql` | Datos de prueba (una sola transacción) |
-| `../documents/BD/Diagrama_v2.drawio` | Diagrama entidad-relación (fuente de verdad) |
-| `../documents/BD/Modelo_Relacional_3FN_Diagrama_v2.docx` | Modelo relacional y normalización 1FN/2FN/3FN |
+| `../documents/BD/Diagrama_corregido.drawio` | Diagrama entidad-relación (fuente de verdad) |
+| `../documents/BD/Avance_El_desparche_PI_2026-2_Corte_2.docx` | Análisis del enunciado, entidades, relaciones, cardinalidades y esquema relacional |
 | `../documents/BD/Diccionario_Datos_ElDesparche.txt` | Diccionario de datos, campo por campo |
-| `../documents/BD/modelo_ER_v2.md` | Diagrama ER en Mermaid |
 
 ## Cargar la base (local con Docker)
 
@@ -28,26 +27,47 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 | Grupo | Tablas |
 |---|---|
 | Geografía | `PAIS`, `DEPARTAMENTO`, `CIUDAD`, `UBICACION` |
-| Usuarios | `USUARIO` (supertipo) → `ADMIN`, `CLIENTE`, `AGENTE`; `TELEFONO_USUARIO` |
+| Usuarios | `USUARIO` (superclase) → `ADMIN`, `CLIENTE`, `AGENTE`; `USUARIO_TELEFONO` |
 | Eventos y ventas | `EVENTO`, `RESERVA`, `METODO_PAGO`, `PAGO` |
+
+## Relaciones
+
+| Relación | Entidades | Cardinalidad | Llave foránea (siempre NOT NULL) |
+|---|---|---|---|
+| Contiene | `PAIS` – `DEPARTAMENTO` | 1:N | `DEPARTAMENTO.id_pais` |
+| Pertenece | `CIUDAD` – `DEPARTAMENTO` | N:1 | `CIUDAD.id_departamento` |
+| Pertenece | `UBICACION` – `CIUDAD` | N:1 | `UBICACION.id_ciudad` |
+| UbiPer | `USUARIO` – `CIUDAD` | N:1 | `USUARIO.id_ciudad` |
+| UbiEve | `EVENTO` – `UBICACION` | N:1 | `EVENTO.id_ubicacion` |
+| Registra | `AGENTE` – `EVENTO` | 1:N | `EVENTO.numero_identificacion` |
+| Inscribe | `CLIENTE` – `RESERVA` | 1:N | `RESERVA.numero_identificacion` |
+| Ofrece | `EVENTO` – `RESERVA` | 1:N | `RESERVA.codigo_evento` |
+| Registra | `CLIENTE` – `METODO_PAGO` | 1:N | `METODO_PAGO.numero_identificacion` |
+| Genera | `RESERVA` – `PAGO` | 1:N | `PAGO.id_reserva` |
+| Utiliza | `METODO_PAGO` – `PAGO` | 1:N | `PAGO.id_metodo` |
+| IS-A (total, disjunta) | `USUARIO` → `ADMIN`, `CLIENTE`, `AGENTE` | 1:1 | PK de la subclase = PK de `USUARIO` (PK y FK) |
 
 ## Decisiones del diseño
 
 - **PK de `USUARIO`:** `numero_identificacion`, blindada: número normalizado (mayúsculas y dígitos), formato válido según el tipo de documento, no editable salvo corrección explícita y `ON UPDATE CASCADE` en las FK. Un mismo número no puede registrarse dos veces aunque cambie el tipo.
-- **Herencia total y disjunta:** cada subtipo lleva `tipo_usuario` fijo por CHECK y una FK compuesta hacia `USUARIO`; un trigger diferido exige que todo usuario tenga su fila de subtipo.
+- **Sin `tipo_usuario`:** el perfil lo define la generalización. Cada subtipo (`ADMIN`, `CLIENTE`, `AGENTE`) usa como PK y FK el `numero_identificacion` de `USUARIO`; para saber el perfil se busca en qué subtipo está la fila.
+- **Herencia total y disjunta:** un trigger diferido exige que todo usuario esté en exactamente un subtipo (ni ninguno ni dos).
+- **Nombre:** `USUARIO.nombre_completo` guarda nombres y apellidos en una sola columna.
+- **Llaves foráneas hacia el usuario:** se llaman `numero_identificacion`, igual que la PK a la que apuntan (`EVENTO` → agente, `RESERVA` y `METODO_PAGO` → cliente).
 - **Cancelaciones:** la causa se guarda en `observaciones` de `EVENTO` o `RESERVA`, con el formato que escribe la web: `Cancelada por el cliente. Causa: No puede asistir. Detalle: ...`.
 - **Teatro:** `EVENTO.teatro` es el teatro o sitio del evento; la dirección exacta está en `UBICACION`.
 - **Derivado no almacenado:** `edad` (de `fecha_nacimiento`).
+- **Multivalorado:** `telefono` vive en `USUARIO_TELEFONO` (PK compuesta).
 - **Ciudad del evento:** no se guarda en `EVENTO`; se obtiene por `UBICACION → CIUDAD → DEPARTAMENTO → PAIS`.
 
 ## Reglas que hace cumplir la base (triggers)
 
-- Todo `USUARIO` tiene su fila en `ADMIN`, `CLIENTE` o `AGENTE` (se valida al COMMIT).
+- Todo `USUARIO` está en exactamente una de `ADMIN`, `CLIENTE` o `AGENTE` (se valida al COMMIT). Cambiar de perfil es válido si el borrado y el nuevo insert van en la misma transacción.
+- Solo los agentes registran eventos y solo los clientes reservan o tienen métodos de pago (lo garantizan las FK hacia `AGENTE` y `CLIENTE`).
 - Para reservar: el cliente debe cumplir la edad mínima del evento y tiene que haber cupo.
 - `RESERVA.valor_total` = `numero_entradas` × precio del evento vigente al reservar + tarifa de Wompi (`fn_tarifa_wompi`: 2,65 % + $700, más IVA; una vez por pago y 0 si el evento es gratis). Es la misma cuenta que `tarifaWompi()` de la web.
 - El método de pago de un `PAGO` pertenece al cliente de la reserva.
 - `capacidad_total` no puede bajar de las entradas ya reservadas.
-- No se borra el subtipo dejando la fila de `USUARIO`.
 - El documento de identidad no se edita; para corregirlo: `BEGIN; SET LOCAL app.corregir_documento = 'on'; UPDATE USUARIO SET numero_identificacion = '...' WHERE ...; COMMIT;`
 
 ## Cuentas del seed
@@ -67,11 +87,17 @@ Algunos ejemplos que la base debe rechazar:
 ```sql
 -- cliente menor de la edad mínima (cliente2 nació en 1998, pero se prueba con un evento para mayores de 30)
 UPDATE EVENTO SET edad_minima = 30 WHERE codigo = 'EVT-2026-0004';
-INSERT INTO RESERVA (numero_entradas, id_cliente, codigo_evento) VALUES (1, '1000000003', 'EVT-2026-0004');
+INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1, '1000000003', 'EVT-2026-0004');
 -- valor_total que no es entradas × precio + tarifa de Wompi
-INSERT INTO RESERVA (numero_entradas, valor_total, id_cliente, codigo_evento) VALUES (1, 20000, '1000000002', 'EVT-2026-0004');
+INSERT INTO RESERVA (numero_entradas, valor_total, numero_identificacion, codigo_evento) VALUES (1, 20000, '1000000002', 'EVT-2026-0004');
 -- reserva que supera la capacidad
-INSERT INTO RESERVA (numero_entradas, id_cliente, codigo_evento) VALUES (1000, '1000000002', 'EVT-2026-0004');
+INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1000, '1000000002', 'EVT-2026-0004');
 -- pago con el método de pago de otro cliente
 INSERT INTO PAGO (monto, referencia_transaccion, id_reserva, id_metodo) VALUES (10000, 'TX-PRUEBA', 1, 2);
+-- usuario sin subtipo (se rechaza al COMMIT)
+INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, nombre_completo, correo, contrasena_hash, direccion, id_ciudad)
+VALUES ('2000000001', 'CC', 'Sin Subtipo', 'sin.subtipo@eldesparche.test', 'x', 'Calle 1', 1);
+-- un cliente no puede registrar eventos (solo los agentes)
+INSERT INTO EVENTO (codigo, nombre, categoria, teatro, fecha_hora_inicio, fecha_hora_fin, capacidad_total, id_ubicacion, numero_identificacion)
+VALUES ('EVT-PRUEBA', 'Prueba', 'musica', 'Teatro', '2027-01-01 19:00', '2027-01-01 21:00', 10, 1, '1000000002');
 ```
