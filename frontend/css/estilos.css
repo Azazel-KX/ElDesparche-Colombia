@@ -467,7 +467,6 @@ main:focus-visible {
   width: 130px;
   height: auto;
 }
-
 /* Menú de navegación */
 .menu ul {
   list-style: none;
@@ -1841,6 +1840,17 @@ main:focus-visible {
   border-color: var(--blanco);
 }
 
+/* Estados de los eventos que crea un agente antes de publicarse */
+.estado-revision {
+  background: var(--morado); /* 6.45:1 */
+  border-style: dotted;
+  border-color: var(--blanco);
+}
+
+.estado-rechazado {
+  background: var(--error); /* 5.85:1 */
+}
+
 /* ==========================================================================
    PÁGINA DE EVENTOS (listado)
    ========================================================================== */
@@ -2159,7 +2169,63 @@ iframe {
   margin: 0;
 }
 
-.aviso-verificacion {
+/* Las observaciones pueden traer varias líneas (por ejemplo, la causa de una cancelación) */
+.texto-con-saltos,
+#evento-ficha dd {
+  white-space: pre-line;
+}
+
+/* Causa de cancelación (Mis reservas y paneles) */
+.campo-cancelacion select,
+.campo-cancelacion textarea {
+  border: 1px solid var(--borde-negro);
+}
+
+.campo-cancelacion {
+  margin-bottom: 16px;
+}
+
+.reserva-causa {
+  display: block;
+  margin-top: 6px;
+  color: var(--gris-texto);
+  font-size: calc(13px * var(--escala-texto));
+}
+
+.modal-cancelar .modal-caja {
+  max-width: 480px;
+}
+
+.cancelar-titulo {
+  margin: 0 40px 8px 0;
+  font-size: calc(20px * var(--escala-texto));
+}
+
+.cancelar-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.boton-peligro {
+  background: var(--rojo-texto);
+  color: var(--blanco);
+}
+
+.aviso-lista:empty {
+  display: none;
+}
+
+.aviso-lista {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-left: 4px solid var(--verde-texto, var(--morado));
+  border-radius: 0 10px 10px 0;
+  background: var(--blanco);
+  font-weight: 600;
+}
+
+.aviso-reserva {
   margin: 0 0 14px;
   padding: 14px 16px;
   border-left: 4px solid var(--naranja-texto);
@@ -2168,13 +2234,6 @@ iframe {
   color: var(--texto);
   font-size: calc(14px * var(--escala-texto));
   line-height: 1.5;
-}
-
-.aviso-verificacion a {
-  display: inline-block;
-  margin-top: 6px;
-  color: var(--morado);
-  font-weight: 600;
 }
 
 .boton:disabled {

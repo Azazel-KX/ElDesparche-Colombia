@@ -60,6 +60,7 @@
         "departamentos": {
           "Colombia": [
             "Antioquia",
+            "Atlántico",
             "Cundinamarca",
             "Valle del Cauca",
             "Santander"
@@ -76,11 +77,16 @@
           "Antioquia": [
             "Medellín"
           ],
+          "Atlántico": [
+            "Barranquilla"
+          ],
           "Cundinamarca": [
-            "Bogotá"
+            "Bogotá",
+            "Guatavita"
           ],
           "Valle del Cauca": [
-            "Cali"
+            "Cali",
+            "Tuluá"
           ],
           "Santander": [
             "Bucaramanga"
@@ -214,7 +220,7 @@
       "lugar": {
         "nombre": "Parque La Florida",
         "ciudad": "Bogotá",
-        "departamento": "Bogotá D.C.",
+        "departamento": "Cundinamarca",
         "pais": "Colombia",
         "lat": 4.711,
         "lon": -74.0721
@@ -294,7 +300,7 @@
       "lugar": {
         "nombre": "Parque El Country",
         "ciudad": "Bogotá",
-        "departamento": "Bogotá D.C.",
+        "departamento": "Cundinamarca",
         "pais": "Colombia",
         "lat": 4.6604,
         "lon": -74.0579
@@ -470,7 +476,7 @@
         "imagen": "img/67c1c.png",
         "alt": "Imagen promocional del evento Lokillo - Eso era antes en Bucaramanga"
       },
-      "observaciones": "Evento cancelado. Se realizarán devoluciones en los próximos 10 días hábiles."
+      "observaciones": "Evento cancelado. Se realizarán devoluciones en los próximos 10 días hábiles.\nCancelado por el agente. Causa: Fuerza mayor o clima. Detalle: el artista se enfermó y no puede viajar."
     },
     {
       "id": 8,
@@ -550,7 +556,7 @@
         "imagen": "img/33202.png",
         "alt": "Imagen promocional del evento Zona Estéreo Urbano 2026 en Medellín"
       },
-      "observaciones": "Evento con consumo mínimo en zonas VIP."
+      "observaciones": "Solo para mayores de 18 años. Evento con consumo mínimo en zonas VIP."
     },
     {
       "id": 10,
@@ -574,7 +580,7 @@
       "lugar": {
         "nombre": "Teatro Jorge Eliécer Gaitán",
         "ciudad": "Bogotá",
-        "departamento": "Bogotá D.C.",
+        "departamento": "Cundinamarca",
         "pais": "Colombia",
         "lat": 4.6122,
         "lon": -74.0739
@@ -653,7 +659,7 @@
       },
       "lugar": {
         "nombre": "Hacienda La Fragua",
-        "ciudad": "Guatavita Reservoirs",
+        "ciudad": "Guatavita",
         "departamento": "Cundinamarca",
         "pais": "Colombia",
         "lat": 4.934,
@@ -668,7 +674,7 @@
       },
       "medios": {
         "imagen": "img/1cbb3.png",
-        "alt": "Imagen promocional del evento Concierto Acústico Campestre en Guatavita Reservoirs"
+        "alt": "Imagen promocional del evento Concierto Acústico Campestre en Guatavita"
       },
       "observaciones": "Evento al aire libre. Se recomienda ropa cómoda y protector solar."
     }

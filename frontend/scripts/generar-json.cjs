@@ -11,23 +11,30 @@ const EVENTOS = eval(src.slice(i + 'var EVENTOS = '.length, j).trim().replace(/;
 
 const kd = src.indexOf('var DEPARTAMENTOS');
 const kc = src.indexOf('var CIUDADES');
-const ke = src.indexOf('/* ===', kc);
+const ke = src.indexOf('};', kc) + 2;   /* donde termina el objeto CIUDADES */
 /* Los paréntesis son necesarios: sin ellos eval lee «{...}» como un
    bloque de código en vez de como un objeto. */
 const DEPARTAMENTOS = eval('(' + src.slice(kd + 'var DEPARTAMENTOS = '.length, kc).trim().replace(/;\s*$/, '') + ')');
 const CIUDADES = eval('(' + src.slice(kc + 'var CIUDADES = '.length, ke).trim().replace(/;\s*$/, '') + ')');
 
-/* Categoría y departamento: propuestos a partir del contenido de cada
-   evento. Revísalos y ajústalos si alguno no encaja. */
+/* Categoría: propuesta a partir del contenido de cada evento. Revísala y
+   ajústala si alguna no encaja. */
 const CATEGORIA = {
   1: 'musica', 2: 'musica', 3: 'musica', 4: 'circo', 5: 'danza', 6: 'teatro',
   7: 'comedia', 8: 'musica', 9: 'musica', 10: 'musica', 11: 'danza', 12: 'musica'
 };
-const DEPARTAMENTO_DE_CIUDAD = {
-  'Bogotá': 'Bogotá D.C.', 'Medellín': 'Antioquia', 'Cali': 'Valle del Cauca',
-  'Barranquilla': 'Atlántico', 'Bucaramanga': 'Santander',
-  'Guatavita Reservoirs': 'Cundinamarca'
-};
+/* Departamento y país salen de las mismas ubicaciones de js/script.js,
+   como en la base de datos: toda ciudad está en un departamento y todo
+   departamento en un país. Si un evento usa una ciudad que no está ahí,
+   se detiene en vez de escribir un null. */
+function ubicacionDe(ciudad) {
+  const departamento = Object.keys(CIUDADES).find(d => CIUDADES[d].includes(ciudad));
+  const pais = departamento && Object.keys(DEPARTAMENTOS).find(p => DEPARTAMENTOS[p].includes(departamento));
+  if (!departamento || !pais) {
+    throw new Error('La ciudad «' + ciudad + '» no está en DEPARTAMENTOS/CIUDADES de js/script.js');
+  }
+  return { departamento, pais };
+}
 /* Los del carrusel de portada: se leen de js/script.js para no tener la
    lista en dos sitios. */
 const kda = src.indexOf('var DESTACADOS = [');
@@ -65,10 +72,10 @@ const eventos = EVENTOS.map(e => ({
     fin: e.fechaFin
   },
   lugar: {
-    nombre: e.lugar,
+    nombre: e.teatro,
     ciudad: e.ciudad,
-    departamento: DEPARTAMENTO_DE_CIUDAD[e.ciudad] || null,
-    pais: 'Colombia',
+    departamento: ubicacionDe(e.ciudad).departamento,
+    pais: ubicacionDe(e.ciudad).pais,
     lat: e.lat,
     lon: e.lon
   },

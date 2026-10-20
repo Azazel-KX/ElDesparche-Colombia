@@ -14,9 +14,12 @@
 var EVENTOS = [
   {
     id: 1,
+    categoria: "musica",
     titulo: "Festival Estéreo Picnic",
     ciudad: "Bogotá",
-    lugar: "Parque La Florida",
+    teatro: "Parque La Florida",
+    direccion: "Calle 80 # 119-90",
+    edad: 14,
     fechaCorta: "20-23 mar 2027",
     fechaInicio: "20 de marzo de 2027 - 4:00 p. m.",
     fechaFin: "23 de marzo de 2027 - 2:00 a. m.",
@@ -32,9 +35,12 @@ var EVENTOS = [
   },
   {
     id: 2,
+    categoria: "musica",
     titulo: "Morat - Antes de que amanezca",
     ciudad: "Medellín",
-    lugar: "Movistar Arena Medellín",
+    teatro: "Movistar Arena Medellín",
+    direccion: "Carrera 70 # 48-30",
+    edad: 0,
     fechaCorta: "18 oct 2026",
     fechaInicio: "18 de octubre de 2026 - 8:00 p. m.",
     fechaFin: "19 de octubre de 2026 - 12:00 a. m.",
@@ -50,9 +56,12 @@ var EVENTOS = [
   },
   {
     id: 3,
+    categoria: "musica",
     titulo: "Jazz al Parque",
     ciudad: "Bogotá",
-    lugar: "Parque El Country",
+    teatro: "Parque El Country",
+    direccion: "Carrera 15 # 127-10",
+    edad: 0,
     fechaCorta: "7-8 nov 2026",
     fechaInicio: "7 de noviembre de 2026 - 2:00 p. m.",
     fechaFin: "8 de noviembre de 2026 - 10:00 p. m.",
@@ -68,9 +77,12 @@ var EVENTOS = [
   },
   {
     id: 4,
+    categoria: "circo",
     titulo: "Circo del Sol - KOOZA",
     ciudad: "Cali",
-    lugar: "Centro de Eventos Valle Pacífico",
+    teatro: "Centro de Eventos Valle Pacífico",
+    direccion: "Calle 36 Norte # 6A-65",
+    edad: 0,
     fechaCorta: "14 dic 2026",
     fechaInicio: "14 de diciembre de 2026 - 7:00 p. m.",
     fechaFin: "14 de diciembre de 2026 - 10:00 p. m.",
@@ -86,9 +98,12 @@ var EVENTOS = [
   },
   {
     id: 5,
+    categoria: "danza",
     titulo: "Festival Mundial de Salsa",
     ciudad: "Cali",
-    lugar: "Cali Exposhow",
+    teatro: "Cali Exposhow",
+    direccion: "Carrera 100 # 5-169",
+    edad: 0,
     fechaCorta: "25-28 sep 2026",
     fechaInicio: "25 de septiembre de 2026 - 4:00 p. m.",
     fechaFin: "28 de septiembre de 2026 - 4:00 a. m.",
@@ -104,9 +119,12 @@ var EVENTOS = [
   },
   {
     id: 6,
+    categoria: "teatro",
     titulo: "Macondo, la obra",
     ciudad: "Barranquilla",
-    lugar: "Teatro Amira de la Rosa",
+    teatro: "Teatro Amira de la Rosa",
+    direccion: "Carrera 54 # 52-258",
+    edad: 0,
     fechaCorta: "2 oct 2026",
     fechaInicio: "2 de octubre de 2026 - 7:30 p. m.",
     fechaFin: "2 de octubre de 2026 - 10:00 p. m.",
@@ -122,16 +140,20 @@ var EVENTOS = [
   },
   {
     id: 7,
+    categoria: "comedia",
     titulo: "Lokillo - Eso era antes",
     ciudad: "Bucaramanga",
-    lugar: "Coliseo El Campin Norte",
+    teatro: "Coliseo El Campin Norte",
+    direccion: "Carrera 30 # 57-60",
+    edad: 0,
     fechaCorta: "16 nov 2026",
     fechaInicio: "16 de noviembre de 2026 - 8:00 p. m.",
     fechaFin: "16 de noviembre de 2026 - 11:00 p. m.",
     precio: 68000,
     capacidad: "8.000 personas",
     disponibles: 0,
-    observaciones: "Evento cancelado. Se realizarán devoluciones en los próximos 10 días hábiles.",
+    observaciones: "Evento cancelado. Se realizarán devoluciones en los próximos 10 días hábiles.\n" +
+      "Cancelado por el agente. Causa: Fuerza mayor o clima. Detalle: el artista se enfermó y no puede viajar.",
     estado: "Cancelado",
     descripcion: "La gira Eso era antes de Lokillo fue cancelada por causas de fuerza mayor. Contacta al punto de venta para tu reembolso.",
     imagen: "img/67c1c.png",
@@ -140,9 +162,12 @@ var EVENTOS = [
   },
   {
     id: 8,
+    categoria: "musica",
     titulo: "Ritvales 2026",
     ciudad: "Medellín",
-    lugar: "Parque Norte",
+    teatro: "Parque Norte",
+    direccion: "Carrera 53 # 76-115",
+    edad: 0,
     fechaCorta: "1-2 nov 2026",
     fechaInicio: "1 de noviembre de 2026 - 5:00 p. m.",
     fechaFin: "2 de noviembre de 2026 - 3:00 a. m.",
@@ -158,16 +183,19 @@ var EVENTOS = [
   },
   {
     id: 9,
+    categoria: "musica",
     titulo: "Zona Estéreo Urbano 2026",
     ciudad: "Medellín",
-    lugar: "Estadio Atanasio Girardot",
+    teatro: "Estadio Atanasio Girardot",
+    direccion: "Carrera 74 # 48-10",
+    edad: 18,
     fechaCorta: "8 oct 2026",
     fechaInicio: "8 de octubre de 2026 - 6:00 p. m.",
     fechaFin: "9 de octubre de 2026 - 1:00 a. m.",
     precio: 120000,
     capacidad: "45.000 personas",
     disponibles: 12000,
-    observaciones: "Evento con consumo mínimo en zonas VIP.",
+    observaciones: "Solo para mayores de 18 años. Evento con consumo mínimo en zonas VIP.",
     estado: "En Boletería",
     descripcion: "Una noche de electrónica, rap y pop urbano en el corazón de Medellín. El festival que unifica todos los géneros urbanos en una sola tarima.",
     imagen: "img/33202.png",
@@ -176,9 +204,12 @@ var EVENTOS = [
   },
   {
     id: 10,
+    categoria: "musica",
     titulo: "Batallas Épicas de Rap",
     ciudad: "Bogotá",
-    lugar: "Teatro Jorge Eliécer Gaitán",
+    teatro: "Teatro Jorge Eliécer Gaitán",
+    direccion: "Carrera 7 # 22-47",
+    edad: 0,
     fechaCorta: "12 oct 2026",
     fechaInicio: "12 de octubre de 2026 - 5:00 p. m.",
     fechaFin: "12 de octubre de 2026 - 11:00 p. m.",
@@ -194,9 +225,12 @@ var EVENTOS = [
   },
   {
     id: 11,
+    categoria: "danza",
     titulo: "Cali Salsa Festival",
     ciudad: "Cali",
-    lugar: "Parque de la Música",
+    teatro: "Parque de la Música",
+    direccion: "Calle 1 Oeste # 4-50",
+    edad: 0,
     fechaCorta: "19 oct 2026",
     fechaInicio: "19 de octubre de 2026 - 3:00 p. m.",
     fechaFin: "20 de octubre de 2026 - 2:00 a. m.",
@@ -212,9 +246,12 @@ var EVENTOS = [
   },
   {
     id: 12,
+    categoria: "musica",
     titulo: "Concierto Acústico Campestre",
-    ciudad: "Guatavita Reservoirs",
-    lugar: "Hacienda La Fragua",
+    ciudad: "Guatavita",
+    teatro: "Hacienda La Fragua",
+    direccion: "Vía Guatavita - Sesquilé km 3",
+    edad: 0,
     fechaCorta: "2 nov 2026",
     fechaInicio: "2 de noviembre de 2026 - 11:00 a. m.",
     fechaFin: "2 de noviembre de 2026 - 7:00 p. m.",
@@ -243,6 +280,11 @@ var TIPOS_PARCHE = {
   parchesito: { nombre: "Parchesitos", texto: "Familiares, gastronómicos y gratis" }
 };
 
+/* El tipo de plan guardado en el evento manda; los de ejemplo usan esta lista */
+function parcheDe(evento) {
+  return evento.parche || PARCHE_DE_EVENTO[evento.id] || "";
+}
+
 var PARCHE_DE_EVENTO = {
   1: "parchesote", 2: "parchesote", 3: "parchesito", 4: "parchesito",
   5: "parchesote", 6: "parche", 7: "parche", 8: "parchesote",
@@ -250,15 +292,16 @@ var PARCHE_DE_EVENTO = {
 };
 
 var DEPARTAMENTOS = {
-  "Colombia": ["Antioquia", "Cundinamarca", "Valle del Cauca", "Santander"],
+  "Colombia": ["Antioquia", "Atlántico", "Cundinamarca", "Valle del Cauca", "Santander"],
   "México": ["CDMX", "Jalisco"],
   "Argentina": ["Buenos Aires"]
 };
 
 var CIUDADES = {
   "Antioquia": ["Medellín"],
-  "Cundinamarca": ["Bogotá"],
-  "Valle del Cauca": ["Cali"],
+  "Atlántico": ["Barranquilla"],
+  "Cundinamarca": ["Bogotá", "Guatavita"],
+  "Valle del Cauca": ["Cali", "Tuluá"],
   "Santander": ["Bucaramanga"],
   "CDMX": ["Ciudad de México"],
   "Jalisco": ["Guadalajara"],
@@ -266,9 +309,114 @@ var CIUDADES = {
 };
 
 
+/* Países, departamentos y ciudades con su id, como PAIS, DEPARTAMENTO y CIUDAD.
+   Salen de DEPARTAMENTOS y CIUDADES; si el administrador los cambió en la página
+   Ubicaciones, se guardan en este navegador y toda la web usa esa versión. */
+function leerUbicaciones() {
+  try {
+    var guardadas = JSON.parse(localStorage.getItem("ubicaciones"));
+    if (guardadas && guardadas.paises) return guardadas;
+  } catch (e) {}
+
+  var datos = { paises: [], departamentos: [], ciudades: [] };
+  Object.keys(DEPARTAMENTOS).forEach(function (pais) {
+    var idPais = datos.paises.length + 1;
+    datos.paises.push({ id: idPais, nombre: pais });
+    DEPARTAMENTOS[pais].forEach(function (departamento) {
+      var idDepartamento = datos.departamentos.length + 1;
+      datos.departamentos.push({ id: idDepartamento, nombre: departamento, idPais: idPais });
+      (CIUDADES[departamento] || []).forEach(function (ciudad) {
+        datos.ciudades.push({ id: datos.ciudades.length + 1, nombre: ciudad, idDepartamento: idDepartamento });
+      });
+    });
+  });
+  return datos;
+}
+
+function guardarUbicaciones(datos) {
+  localStorage.setItem("ubicaciones", JSON.stringify(datos));
+  usarUbicaciones(datos);
+}
+
+/* Rehace DEPARTAMENTOS y CIUDADES (los que usan los filtros de la portada) */
+function usarUbicaciones(datos) {
+  Object.keys(DEPARTAMENTOS).forEach(function (k) { delete DEPARTAMENTOS[k]; });
+  Object.keys(CIUDADES).forEach(function (k) { delete CIUDADES[k]; });
+  datos.paises.forEach(function (pais) {
+    DEPARTAMENTOS[pais.nombre] = datos.departamentos
+      .filter(function (d) { return d.idPais === pais.id; })
+      .map(function (d) {
+        CIUDADES[d.nombre] = datos.ciudades
+          .filter(function (c) { return c.idDepartamento === d.id; })
+          .map(function (c) { return c.nombre; });
+        return d.nombre;
+      });
+  });
+}
+
+try {
+  if (localStorage.getItem("ubicaciones")) usarUbicaciones(leerUbicaciones());
+} catch (e) {}
+
+
 /* ==========================================================================
    2. FUNCIONES DE APOYO
    ========================================================================== */
+
+/* Tarifa de Wompi por cada pago en Colombia: 2,65 % + $700, más IVA (19 %).
+   Se cobra una vez por pago (no por entrada) y los eventos gratis no la pagan.
+   valor_total de la reserva = entradas × precio + esta tarifa. */
+function tarifaWompi(subtotal) {
+  if (subtotal <= 0) return 0;
+  /* En enteros (diezmilésimas de peso) para redondear igual que fn_tarifa_wompi de la base de datos */
+  return Math.floor(((subtotal * 265 + 7000000) * 119 + 500000) / 1000000);
+}
+
+/* Cupos que le quedan a un evento: los disponibles menos lo reservado en este
+   navegador (sin contar las canceladas). Con el API, el backend da el número real. */
+function cuposLibres(evento) {
+  var reservadas = obtenerReservas()
+    .filter(function (r) { return r.idEvento === evento.id && r.estado !== "Cancelada"; })
+    .reduce(function (suma, r) { return suma + Number(r.tickets || 0); }, 0);
+
+  /* Más las que registró un administrador desde su panel (sin las canceladas) */
+  try {
+    var canceladas = JSON.parse(localStorage.getItem("estadoReservas")) || {};
+    ((JSON.parse(localStorage.getItem("datosReservas")) || {}).nuevos || [])
+      .filter(function (r) {
+        var cambio = canceladas[r.codigo];
+        var estado = cambio ? (typeof cambio === "string" ? cambio : cambio.estado) : r.estado;
+        return r.eventoId === evento.id && estado !== "Cancelada";
+      })
+      .forEach(function (r) { reservadas += Number(r.entradas || 0); });
+  } catch (e) {}
+
+  return Math.max(evento.disponibles - reservadas, 0);
+}
+
+/* "20 de marzo de 2027 - 4:00 p. m." -> "2027-03-20T16:00" (fechas de los eventos de ejemplo) */
+var MESES_TEXTO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+  "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+function fechaTextoAIso(texto) {
+  var limpio = String(texto || "").replace(/[\u00a0\u202f]/g, " ").toLowerCase();
+  var m = /(\d{1,2}) de ([a-záéíóú]+) de (\d{4})\s*-\s*(\d{1,2}):(\d{2})\s*([ap])\.?\s*m/.exec(limpio);
+  if (!m) return "";
+  var mes = MESES_TEXTO.indexOf(m[2]) + 1;
+  if (!mes) return "";
+  var dos = function (n) { return (n < 10 ? "0" : "") + n; };
+  var hora = Number(m[4]) % 12 + (m[6] === "p" ? 12 : 0);
+  return m[3] + "-" + dos(mes) + "-" + dos(Number(m[1])) + "T" + dos(hora) + ":" + m[5];
+}
+
+/* Años cumplidos en una fecha (la del evento), como age() en la base de datos */
+function edadEn(nacimiento, fecha) {
+  var n = String(nacimiento).split("-").map(Number);
+  var f = fecha instanceof Date ? fecha : new Date(fecha);
+  var anios = f.getFullYear() - n[0];
+  if (f.getMonth() + 1 < n[1] || (f.getMonth() + 1 === n[1] && f.getDate() < n[2])) anios--;
+  return anios;
+}
 
 /* Convierte un número a pesos: 165000 -> "$165.000 COP" */
 function pesos(numero) {
@@ -294,6 +442,8 @@ function claseEstado(estado) {
   if (estado === "En Boletería") return "estado-boleteria";
   if (estado === "En Vivo") return "estado-vivo";
   if (estado === "Finalizado") return "estado-finalizado";
+  if (estado === "En revisión") return "estado-revision";
+  if (estado === "Rechazado") return "estado-rechazado";
   return "estado-cancelado";
 }
 
@@ -403,41 +553,92 @@ function guardarReservas(reservas) {
   localStorage.setItem("reservas", JSON.stringify(reservas));
 }
 
-/* Solicitudes de verificación de identidad, una por correo (modo local) */
-function leerVerificaciones() {
-  try {
-    return JSON.parse(localStorage.getItem("verificaciones")) || {};
-  } catch (e) {
-    return {};
+/* ===== CAUSAS DE CANCELACIÓN =====
+   La causa se guarda como texto en "observaciones" de la reserva o del
+   evento (las dos tablas ya tienen ese campo), siempre con este formato
+   para que los reportes la puedan leer:
+   "Cancelada por el cliente. Causa: No puede asistir. Detalle: ..." */
+var CAUSAS_CANCELACION = {
+  reserva: ["No puede asistir", "Error en el evento o en la cantidad", "Pago no realizado a tiempo",
+            "Cambio de fecha del evento", "Otra causa"],
+  evento: ["Baja venta de entradas", "Fuerza mayor o clima", "Problemas técnicos o logísticos",
+           "Cambio de fecha del evento", "Otra causa"]
+};
+
+/* Lo que ve el cliente al cancelar: frases en primera persona que se guardan
+   con la misma causa de los paneles, para que el reporte las agrupe juntas.
+   "Pago no realizado a tiempo" no está porque esa la pone el agente o el admin. */
+var CAUSAS_CLIENTE = [
+  ["Ya no puedo asistir", "No puede asistir"],
+  ["Me equivoqué de evento o de cantidad", "Error en el evento o en la cantidad"],
+  ["Cambió la fecha del evento", "Cambio de fecha del evento"],
+  ["Otro motivo", "Otra causa"]
+];
+
+/* La frase del cliente para una causa guardada (o la causa tal cual) */
+function causaParaCliente(causa) {
+  var par = CAUSAS_CLIENTE.filter(function (c) { return c[1] === causa; })[0];
+  return par ? par[0] : causa;
+}
+
+function notaCancelacion(tipo, quien, causa, detalle) {
+  var nota = (tipo === "evento" ? "Cancelado" : "Cancelada") + " por " + quien + ". Causa: " + causa + ".";
+  return detalle ? nota + " Detalle: " + detalle : nota;
+}
+
+/* La nota va en una línea nueva, después de lo que ya tuviera */
+function agregarNota(observaciones, nota) {
+  return observaciones ? observaciones + "\n" + nota : nota;
+}
+
+/* { quien, causa, detalle } de unas observaciones, o null si no hay nota */
+function leerCancelacion(observaciones) {
+  var m = /Cancelad[oa] por ([^.\n]+)\. Causa: ([^.\n]+)\.(?: Detalle: ([^\n]*))?/.exec(observaciones || "");
+  return m ? { quien: m[1], causa: m[2], detalle: m[3] || "" } : null;
+}
+
+/* Campos de causa y detalle; "id" distingue los de cada formulario.
+   tipo: "reserva", "evento" o "cliente" (la reserva vista por el cliente) */
+function camposCancelacion(tipo, id) {
+  var opciones = tipo === "cliente"
+    ? CAUSAS_CLIENTE
+    : CAUSAS_CANCELACION[tipo].map(function (c) { return [c, c]; });
+  var otra = tipo === "cliente" ? "Otro motivo" : "Otra causa";
+
+  return '<div class="campo campo-cancelacion">' +
+      '<label for="' + id + '-causa">Causa de la cancelación</label>' +
+      '<select id="' + id + '-causa">' +
+        '<option value="">Elige una causa</option>' +
+        opciones.map(function (o) { return '<option value="' + o[1] + '">' + o[0] + '</option>'; }).join("") +
+      '</select>' +
+    '</div>' +
+    '<div class="campo campo-cancelacion">' +
+      '<label for="' + id + '-detalle">Detalle <span class="opcional">(obligatorio si eliges «' + otra + '»)</span></label>' +
+      '<textarea id="' + id + '-detalle" rows="2" maxlength="300"></textarea>' +
+    '</div>';
+}
+
+/* Valida los campos: { causa, detalle } o { error } con el foco en el campo */
+function datosCancelacion(id) {
+  var causa = document.getElementById(id + "-causa");
+  var detalle = document.getElementById(id + "-detalle");
+  causa.removeAttribute("aria-invalid");
+  detalle.removeAttribute("aria-invalid");
+
+  if (!causa.value) {
+    causa.setAttribute("aria-invalid", "true");
+    causa.focus();
+    return { error: "Elige la causa de la cancelación." };
   }
+
+  var texto = detalle.value.replace(/\s+/g, " ").trim();
+  if (causa.value === "Otra causa" && !texto) {
+    detalle.setAttribute("aria-invalid", "true");
+    detalle.focus();
+    return { error: "Escribe el detalle de la causa." };
+  }
+  return { causa: causa.value, detalle: texto };
 }
-
-function guardarVerificacion(correo, solicitud) {
-  var todas = leerVerificaciones();
-  todas[correo] = solicitud;
-  localStorage.setItem("verificaciones", JSON.stringify(todas));
-}
-
-/* Las cuentas de prueba marcadas como "verificada" ya vienen aprobadas */
-function verificacionDe(correo) {
-  var guardada = leerVerificaciones()[correo];
-  if (guardada) return guardada;
-
-  var cuenta = CUENTAS_PRUEBA.filter(function (c) { return c.correo === correo && c.verificada; })[0];
-  if (!cuenta) return null;
-
-  return {
-    estado: "Aprobada",
-    tipo: "Biométrica",
-    fechaSolicitud: "2026-09-01T10:00:00",
-    nombre: cuenta.usuario.nombre + " " + cuenta.usuario.apellidos,
-    correo: correo,
-    tipoDocumento: cuenta.usuario.tipo_identificacion,
-    documento: cuenta.usuario.numero_identificacion,
-    nacimiento: cuenta.usuario.fecha_nacimiento
-  };
-}
-
 
 /* ==========================================================================
    3.b CONTROL DE TAMAÑO DEL TEXTO
@@ -618,9 +819,10 @@ function pintarSesion() {
     var marca = "";
     if (usuario.tipo === "agente") {
       marca = '<span class="marca-agente">Agente</span>';
+      agregarEnlacePanel("agente.html", "Mi panel", "agente");
     } else if (usuario.tipo === "admin") {
       marca = '<span class="marca-agente">Administrador</span>';
-      agregarEnlaceAdmin();
+      agregarEnlacePanel("admin.html", "Administración", "admin");
     }
 
     /* La inicial del círculo es decorativa: el nombre completo ya va al
@@ -641,10 +843,8 @@ function pintarSesion() {
       '</div>';
 
     document.getElementById("salir").onclick = function () {
-      registrarSesionAdmin(usuario).then(function () {
-        borrarUsuario();
-        window.location.href = "index.html";
-      });
+      borrarUsuario();
+      window.location.href = "index.html";
     };
   } else {
     /* Sin sesión: los dos botones abren la ventana emergente */
@@ -663,15 +863,17 @@ function pintarSesion() {
 }
 
 
-/* Con sesión de administrador, el menú principal gana el enlace al panel */
-function agregarEnlaceAdmin() {
+/* Con sesión de administrador o de agente, el menú principal gana el
+   enlace a su panel. "prefijo" es el comienzo del data-pagina de esas
+   páginas, para marcar el enlace como actual dentro del panel. */
+function agregarEnlacePanel(href, texto, prefijo) {
   var lista = document.querySelector("#menu-principal ul");
-  if (!lista || lista.querySelector('a[href="admin.html"]')) return;
+  if (!lista || lista.querySelector('a[href="' + href + '"]')) return;
 
-  var enPanel = (document.body.getAttribute("data-pagina") || "").indexOf("admin") === 0;
+  var enPanel = (document.body.getAttribute("data-pagina") || "").indexOf(prefijo) === 0;
   var elemento = document.createElement("li");
-  elemento.innerHTML = '<a href="admin.html"' +
-    (enPanel ? ' class="activo" aria-current="page"' : '') + '>Administración</a>';
+  elemento.innerHTML = '<a href="' + href + '" data-panel="' + prefijo + '"' +
+    (enPanel ? ' class="activo" aria-current="page"' : '') + '>' + texto + '</a>';
   lista.appendChild(elemento);
 }
 
@@ -787,7 +989,7 @@ function cartelPrincipal(evento) {
           '</h3>' +
           '<p class="cartel-lugar">' +
             '<span class="oculto">Lugar: </span>' +
-            esc(evento.lugar) + ' · ' + esc(evento.ciudad) +
+            esc(evento.teatro) + ' · ' + esc(evento.ciudad) +
           '</p>' +
         '</div>' +
       '</article>' +
@@ -955,7 +1157,7 @@ function paginaInicio() {
         evento.titulo.toLowerCase().indexOf(texto) !== -1 ||
         evento.ciudad.toLowerCase().indexOf(texto) !== -1;
       var coincideCiudad = ciudadElegida === "" || evento.ciudad === ciudadElegida;
-      var coincideParche = parcheElegido === "" || PARCHE_DE_EVENTO[evento.id] === parcheElegido;
+      var coincideParche = parcheElegido === "" || parcheDe(evento) === parcheElegido;
 
       if (coincideTexto && coincideCiudad && coincideParche) {
         encontrados.push(evento);
@@ -1112,7 +1314,7 @@ function paginaEvento() {
   document.getElementById("evento-titulo").textContent = evento.titulo;
   document.getElementById("evento-descripcion").textContent = evento.descripcion;
   document.getElementById("evento-precio").textContent = textoPrecio(evento);
-  document.getElementById("evento-lugar").textContent = evento.lugar + " · " + evento.ciudad;
+  document.getElementById("evento-lugar").textContent = evento.teatro + " · " + evento.ciudad;
 
   var imagen = document.getElementById("evento-imagen");
   imagen.src = evento.imagen;
@@ -1127,13 +1329,15 @@ function paginaEvento() {
 
   /* Ficha con los datos del evento */
   var datos = [
-    ["Teatro / lugar", evento.lugar],
+    ["Teatro", evento.teatro],
+    ["Dirección", evento.direccion || "Sin dirección"],
     ["Ciudad", evento.ciudad],
     ["Fecha y hora de inicio", evento.fechaInicio],
     ["Fin estimado", evento.fechaFin],
     ["Capacidad total", evento.capacidad],
     ["Cupo disponible", evento.disponibles.toLocaleString("es-CO") + " entradas"],
     ["Precio base", textoPrecio(evento)],
+    ["Edad mínima", evento.edad > 0 ? evento.edad + " años" : "Para todo público"],
     ["Observaciones", evento.observaciones]
   ];
 
@@ -1192,7 +1396,11 @@ function paginaReservar() {
   }
 
   var tickets = 1;
-  var cargo = Math.round(evento.precio * 0.1);  /* 10% de cargo por servicio */
+  var cupos = cuposLibres(evento);
+  var maximo = Math.min(10, cupos);   /* hasta 10 por reserva, sin pasar los cupos que quedan */
+
+  function subtotal() { return evento.precio * tickets; }
+  function totalAPagar() { return subtotal() + tarifaWompi(subtotal()); }
 
   /* Datos del evento */
   document.getElementById("miga-evento").textContent = evento.titulo;
@@ -1200,7 +1408,7 @@ function paginaReservar() {
   document.getElementById("mini-imagen").src = evento.imagen;
   document.getElementById("mini-imagen").alt = evento.titulo;
   document.getElementById("mini-titulo").textContent = evento.titulo;
-  document.getElementById("mini-lugar").textContent = evento.ciudad + " · " + evento.lugar;
+  document.getElementById("mini-lugar").textContent = evento.ciudad + " · " + evento.teatro;
   document.getElementById("mini-fecha").textContent = evento.fechaInicio;
   document.getElementById("resumen-imagen").src = evento.imagen;
   document.getElementById("resumen-imagen").alt = evento.titulo;
@@ -1221,8 +1429,8 @@ function paginaReservar() {
       document.getElementById("resumen-total").textContent = "Gratis";
     } else {
       document.getElementById("resumen-precio").textContent = pesos(evento.precio);
-      document.getElementById("resumen-cargo").textContent = pesos(cargo * tickets);
-      document.getElementById("resumen-total").textContent = pesos((evento.precio + cargo) * tickets);
+      document.getElementById("resumen-cargo").textContent = pesos(tarifaWompi(subtotal()));
+      document.getElementById("resumen-total").textContent = pesos(totalAPagar());
     }
 
     if (tickets === 1) {
@@ -1241,7 +1449,7 @@ function paginaReservar() {
   };
 
   document.getElementById("mas").onclick = function () {
-    if (tickets < 10) {
+    if (tickets < maximo) {
       tickets = tickets + 1;
       actualizarResumen();
     }
@@ -1249,32 +1457,33 @@ function paginaReservar() {
 
   actualizarResumen();
 
-  /* Solo reservan los clientes con la identidad verificada (regla de negocio) */
+  /* Reglas de negocio: solo reservan los clientes, con la edad mínima del
+     evento y mientras queden cupos (las mismas que revisa la base de datos) */
   var botonConfirmar = document.getElementById("confirmar");
-  var verificacion = verificacionDe(usuario.correo);
+  var inicioEvento = evento.inicio || fechaTextoAIso(evento.fechaInicio);
   var bloqueo = "";
 
   if (usuario.tipo !== "usuario") {
     bloqueo = "Solo las cuentas de cliente pueden reservar entradas.";
-  } else if (!verificacion || verificacion.estado === "Rechazada") {
-    bloqueo = (verificacion
-      ? "Tu verificación de identidad fue rechazada" +
-        (verificacion.motivo ? ": " + esc(verificacion.motivo) : "") + ". Vuelve a intentarlo para poder reservar."
-      : "Para reservar entradas necesitas verificar tu identidad. Es un paso único: escaneas tu cédula y te tomas una selfie.") +
-      ' <a href="verificar.html">Verificar mi identidad</a>';
-  } else if (verificacion.estado === "Pendiente") {
-    bloqueo = "Tu verificación de identidad está en revisión. Podrás reservar en cuanto un administrador la apruebe. " +
-      '<a href="verificar.html">Ver el estado de mi verificación</a>';
+  } else if (cupos === 0) {
+    bloqueo = "Este evento ya no tiene cupos disponibles.";
+  } else if (evento.edad > 0 && !usuario.nacimiento) {
+    bloqueo = "Este evento es solo para mayores de " + evento.edad + " años y en tu cuenta no está tu fecha de nacimiento. " +
+      "Escríbenos a soporte@eldesparche.online para agregarla.";
+  } else if (evento.edad > 0 && edadEn(usuario.nacimiento, inicioEvento ? new Date(inicioEvento) : new Date()) < evento.edad) {
+    bloqueo = "Este evento es solo para mayores de " + evento.edad + " años, así que no puedes reservar entradas.";
   }
 
   if (bloqueo) {
     var avisoBloqueo = document.createElement("p");
-    avisoBloqueo.className = "aviso-verificacion";
-    avisoBloqueo.id = "aviso-verificacion";
-    avisoBloqueo.innerHTML = bloqueo;
+    avisoBloqueo.className = "aviso-reserva";
+    avisoBloqueo.id = "aviso-reserva";
+    avisoBloqueo.textContent = bloqueo;
     botonConfirmar.parentNode.insertBefore(avisoBloqueo, botonConfirmar);
     botonConfirmar.disabled = true;
-    botonConfirmar.setAttribute("aria-describedby", "aviso-verificacion");
+    botonConfirmar.setAttribute("aria-describedby", "aviso-reserva");
+    document.getElementById("mas").disabled = true;
+    document.getElementById("menos").disabled = true;
     return;
   }
 
@@ -1292,7 +1501,7 @@ function paginaReservar() {
       codigo: codigo,
       idEvento: evento.id,
       titulo: evento.titulo,
-      lugar: evento.lugar,
+      teatro: evento.teatro,
       ciudad: evento.ciudad,
       fechaEvento: evento.fechaInicio,
       titular: usuario.nombre,
@@ -1324,7 +1533,7 @@ function paginaReservar() {
       return;
     }
 
-    var total = (evento.precio + cargo) * tickets;
+    var total = totalAPagar();   /* entradas × precio + tarifa de Wompi */
     var datos = {
       evento: evento,
       tickets: tickets,
@@ -1653,7 +1862,7 @@ function paginaConfirmacion() {
     ["Código de reserva", reserva.codigo],
     ["Evento", reserva.titulo],
     ["Fecha del evento", reserva.fechaEvento],
-    ["Lugar", reserva.lugar + " - " + reserva.ciudad],
+    ["Teatro", (reserva.teatro || reserva.lugar) + " - " + reserva.ciudad],
     ["Titular", reserva.titular],
     ["Tickets", reserva.tickets],
     ["Total", reserva.total === 0 ? "Gratis" : pesos(reserva.total)],
@@ -1728,7 +1937,7 @@ function paginaMisReservas() {
       '<table class="tabla-reservas">' +
         '<thead>' +
           '<tr>' +
-            '<th>Evento</th><th>Fecha</th><th>Lugar</th><th>Tickets</th>' +
+            '<th>Evento</th><th>Fecha</th><th>Teatro</th><th>Tickets</th>' +
             '<th>Total</th><th>Estado</th><th>Acciones</th>' +
           '</tr>' +
         '</thead>' +
@@ -1743,7 +1952,7 @@ function paginaMisReservas() {
       } else if (r.pago && r.pago.estado === "PENDING") {
         acciones =
           '<span class="sin-qr">Pago pendiente: el QR aparece al aprobarse</span>' +
-          '<button class="boton-mini boton-cancelar" data-cancelar="' + r.codigo + '">Cancelar</button>';
+          '<button class="boton-mini boton-cancelar" data-cancelar="' + esc(r.codigo) + '">Cancelar</button>';
       } else {
         acciones =
           '<button class="boton-mini boton-qr" data-qr="' + esc(r.codigo) + '">Ver QR</button>' +
@@ -1757,10 +1966,14 @@ function paginaMisReservas() {
         '<tr>' +
           '<td data-titulo="Evento"><a href="evento.html?id=' + encodeURIComponent(r.idEvento) + '">' + esc(r.titulo) + '</a></td>' +
           '<td data-titulo="Fecha">' + esc(r.fechaEvento) + '</td>' +
-          '<td data-titulo="Lugar">' + esc(r.lugar) + '</td>' +
+          '<td data-titulo="Teatro">' + esc(r.teatro || r.lugar) + '</td>' +
           '<td data-titulo="Tickets">' + esc(r.tickets) + '</td>' +
           '<td data-titulo="Total">' + (r.total === 0 ? "Gratis" : pesos(r.total)) + '</td>' +
-          '<td data-titulo="Estado"><span class="etiqueta-reserva ' + claseReserva + '">' + esc(r.estado) + '</span></td>' +
+          '<td data-titulo="Estado"><span class="etiqueta-reserva ' + claseReserva + '">' + esc(r.estado) + '</span>' +
+            (leerCancelacion(r.observaciones)
+              ? '<span class="reserva-causa">Causa: ' + esc(causaParaCliente(leerCancelacion(r.observaciones).causa)) + '</span>'
+              : '') +
+          '</td>' +
           '<td data-titulo="Acciones">' + acciones + '</td>' +
         '</tr>';
     }
@@ -1777,28 +1990,81 @@ function paginaMisReservas() {
       };
     }
 
-    /* Botón "Cancelar": marca la reserva como cancelada */
+    /* Botón "Cancelar": abre la ventana que pide la causa */
     var botonesCancelar = document.querySelectorAll("[data-cancelar]");
     for (var m = 0; m < botonesCancelar.length; m++) {
       botonesCancelar[m].onclick = function () {
-        var codigo = this.getAttribute("data-cancelar");
-
-        if (!confirm("¿Seguro que quieres cancelar la reserva " + codigo + "?")) {
-          return;
-        }
-
-        var lista = obtenerReservas();
-        for (var n = 0; n < lista.length; n++) {
-          if (lista[n].codigo === codigo) {
-            lista[n].estado = "Cancelada";
-          }
-        }
-
-        guardarReservas(lista);
-        pintar();
+        abrirCancelacion(this.getAttribute("data-cancelar"));
       };
     }
   }
+
+  /* Ventana para cancelar una reserva con su causa */
+  var ventana = document.createElement("dialog");
+  ventana.className = "modal modal-cancelar";
+  ventana.id = "modal-cancelar";
+  ventana.setAttribute("aria-labelledby", "cancelar-titulo");
+  document.body.appendChild(ventana);
+  var codigoAbierto = "";
+  var avisoLista = document.getElementById("aviso-reservas");
+
+  function abrirCancelacion(codigo) {
+    codigoAbierto = codigo;
+    ventana.innerHTML =
+      '<div class="modal-caja">' +
+        '<button type="button" class="modal-cerrar" data-cerrar aria-label="Cerrar sin cancelar la reserva">' +
+          '<span aria-hidden="true">×</span>' +
+        '</button>' +
+        '<h2 class="cancelar-titulo" id="cancelar-titulo">¿Cancelar la reserva ' + esc(codigo) + '?</h2>' +
+        '<p class="texto-gris" id="cancelar-texto">Las entradas volverán a quedar disponibles. Cuéntanos por qué la cancelas.</p>' +
+        '<form id="form-cancelar" novalidate>' +
+          camposCancelacion("cliente", "cancelar") +
+          '<p class="mensaje error" id="error-cancelar" role="alert"></p>' +
+          '<div class="cancelar-botones">' +
+            '<button type="submit" class="boton boton-peligro" aria-describedby="cancelar-texto">Sí, cancelar la reserva</button>' +
+            '<button type="button" class="boton boton-borde" data-cerrar>Volver</button>' +
+          '</div>' +
+        '</form>' +
+      '</div>';
+    ventana.showModal();
+    document.getElementById("cancelar-causa").focus();
+  }
+
+  ventana.addEventListener("click", function (evento) {
+    if (evento.target === ventana || evento.target.closest("[data-cerrar]")) ventana.close();
+  });
+
+  ventana.addEventListener("close", function () {
+    var boton = contenedor.querySelector('[data-cancelar="' + codigoAbierto + '"]');
+    if (boton) boton.focus();
+  });
+
+  ventana.addEventListener("submit", function (evento) {
+    evento.preventDefault();
+    var error = document.getElementById("error-cancelar");
+    var datos = datosCancelacion("cancelar");
+    if (datos.error) {
+      error.innerHTML = "<strong>Error:</strong> " + datos.error;
+      return;
+    }
+
+    var lista = obtenerReservas();
+    for (var n = 0; n < lista.length; n++) {
+      if (lista[n].codigo === codigoAbierto) {
+        lista[n].estado = "Cancelada";
+        lista[n].observaciones = agregarNota(lista[n].observaciones,
+          notaCancelacion("reserva", "el cliente", datos.causa, datos.detalle));
+      }
+    }
+    guardarReservas(lista);
+
+    var codigo = codigoAbierto;
+    codigoAbierto = "";
+    ventana.close();
+    pintar();
+    avisoLista.textContent = "La reserva " + codigo + " quedó cancelada.";
+    avisoLista.focus();
+  });
 
   pintar();
 }
@@ -2162,7 +2428,6 @@ var CUENTAS_PRUEBA = [
   {
     correo: "valentina@eldesparche.online",
     contrasena: "Cliente2026",
-    verificada: true,
     usuario: {
       numero_identificacion: "1116254789",
       tipo_identificacion: "CC",
@@ -2176,7 +2441,6 @@ var CUENTAS_PRUEBA = [
   {
     correo: "juandavid@eldesparche.online",
     contrasena: "Cliente2026",
-    verificada: true,
     usuario: {
       numero_identificacion: "1006478123",
       tipo_identificacion: "CC",
@@ -2190,7 +2454,6 @@ var CUENTAS_PRUEBA = [
   {
     correo: "andres@eldesparche.online",
     contrasena: "Cliente2026",
-    verificada: true,
     usuario: {
       numero_identificacion: "1088345612",
       tipo_identificacion: "CC",
@@ -2200,6 +2463,19 @@ var CUENTAS_PRUEBA = [
       fecha_nacimiento: "1987-03-08",
       tipo_usuario: "CLIENTE"
     }
+  },
+  {
+    correo: "tarima@eldesparche.online",
+    contrasena: "Agente2026",
+    usuario: {
+      numero_identificacion: "52874136",
+      tipo_identificacion: "CC",
+      nombre: "Camila",
+      apellidos: "Restrepo",
+      correo: "tarima@eldesparche.online",
+      nit: "901234567-1",
+      tipo_usuario: "AGENTE"
+    }
   }
 ];
 
@@ -2208,11 +2484,10 @@ function respuestaLocal(ruta, opciones) {
   var cuerpo = opciones && opciones.body ? JSON.parse(opciones.body) : {};
 
   if (ruta === "/ciudades") {
-    var ciudades = [];
-    Object.keys(CIUDADES).forEach(function (departamento) {
-      CIUDADES[departamento].forEach(function (nombre) {
-        ciudades.push({ id_ciudad: ciudades.length + 1, nombre: nombre, departamento: departamento });
-      });
+    var ubicaciones = leerUbicaciones();
+    var ciudades = ubicaciones.ciudades.map(function (c) {
+      var departamento = ubicaciones.departamentos.filter(function (d) { return d.id === c.idDepartamento; })[0];
+      return { id_ciudad: c.id, nombre: c.nombre, departamento: departamento ? departamento.nombre : "" };
     });
     return { estado: 200, datos: { ciudades: ciudades } };
   }
@@ -2393,37 +2668,11 @@ function iniciarSesionLocal(respuesta) {
     id: u.numero_identificacion,
     tipoDocumento: u.tipo_identificacion || "",
     nacimiento: u.fecha_nacimiento || "",
-    token: respuesta.token,
-    inicioSesion: new Date().toISOString()
+    nit: u.nit || "",
+    token: respuesta.token
   });
 
   window.location.reload();
-}
-
-/* SESION_ADMIN se guarda al cerrar la sesión de un administrador.
-   Con el API, el backend la registra en POST /api/auth/logout (con la IP real). */
-function registrarSesionAdmin(usuario) {
-  if (usuario.tipo !== "admin") return Promise.resolve();
-
-  if (USAR_API) {
-    return llamarApi("/auth/logout", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + usuario.token }
-    }).catch(function () {});
-  }
-
-  try {
-    var sesiones = JSON.parse(localStorage.getItem("sesionesAdmin")) || [];
-    sesiones.push({
-      numero_identificacion: usuario.id,
-      nombre: usuario.nombre,
-      fecha_hora_conexion: usuario.inicioSesion || new Date().toISOString(),
-      fecha_hora_desconexion: new Date().toISOString(),
-      direccion_ip: "127.0.0.1"
-    });
-    localStorage.setItem("sesionesAdmin", JSON.stringify(sesiones));
-  } catch (e) {}
-  return Promise.resolve();
 }
 
 /* Envía el formulario al API. Mientras espera, el botón queda desactivado
@@ -2643,14 +2892,20 @@ function prepararMenuMovil() {
       { href: "mis-reservas.html", texto: "Mis reservas", icono: "reservas" },
       { href: "nosotros.html", texto: "Nosotros", icono: "nosotros" }
     ];
-    if (document.querySelector('#menu-principal a[href="admin.html"]')) {
-      paginas.push({ href: "admin.html", texto: "Administración", icono: "admin" });
+    var enlacePanel = document.querySelector("#menu-principal a[data-panel]");
+    if (enlacePanel) {
+      paginas.push({
+        href: enlacePanel.getAttribute("href"),
+        texto: enlacePanel.textContent,
+        icono: "admin",
+        prefijo: enlacePanel.getAttribute("data-panel")
+      });
     }
 
     var html = "";
     for (var i = 0; i < paginas.length; i++) {
       var esActual = paginas[i].href === actual ||
-        (paginas[i].href === "admin.html" && actual.indexOf("admin") === 0);
+        (paginas[i].prefijo && actual.indexOf(paginas[i].prefijo) === 0);
       html += '<li><a href="' + paginas[i].href + '"' +
         (esActual ? ' aria-current="page"' : '') + '>' +
         iconoMenu(paginas[i].icono) + paginas[i].texto + '</a></li>';
@@ -2707,13 +2962,170 @@ prepararMenuMovil();
 prepararPanelAccesibilidad();
 prepararTamanoTexto();
 
-/* En modo local, los cambios de estado hechos desde la administración
-   se aplican a toda la web */
+/* Convierte un evento que creó un agente (agente.html, sección Mis eventos) al formato
+   de EVENTOS, para publicarlo cuando un administrador lo aprueba */
+function eventoDeSolicitud(s) {
+  var inicio = new Date(s.inicio);
+  var fin = new Date(s.fin);
+  var vecino = EVENTOS.filter(function (e) { return e.ciudad === s.ciudad; })[0];
+
+  function fechaLarga(f) {
+    return f.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" }) + " - " +
+      f.toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+  }
+
+  return {
+    id: s.idEvento,
+    titulo: s.nombre,
+    ciudad: s.ciudad,
+    teatro: s.teatro || s.lugar,
+    direccion: s.direccion || "",
+    fechaCorta: inicio.toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }).replace(".", ""),
+    fechaInicio: fechaLarga(inicio),
+    fechaFin: fechaLarga(fin),
+    precio: Number(s.precio),
+    capacidad: Number(s.capacidad).toLocaleString("es-CO") + " personas",
+    disponibles: Number(s.capacidad),
+    observaciones: s.observaciones ||
+      (Number(s.edad) > 0 ? "Ingreso para mayores de " + s.edad + " años." : "Sin observaciones."),
+    estado: "Programado",
+    descripcion: s.descripcion,
+    imagen: s.imagen || "img/evento-sin-foto.svg",
+    /* El punto que marcó el agente; si no hay, la ciudad de otro evento o el centro del país */
+    lat: s.lat !== undefined && s.lat !== "" ? Number(s.lat) : (vecino ? vecino.lat : 4.5709),
+    lon: s.lon !== undefined && s.lon !== "" ? Number(s.lon) : (vecino ? vecino.lon : -74.2973),
+    edad: Number(s.edad) || 0,
+    parche: s.plan,
+    categoria: s.categoria || "",
+    agente: s.agente || "",
+    nitAgente: s.nit,
+    departamento: s.departamento || ""
+  };
+}
+
+/* Eventos de ejemplo que los agentes enviaron a revisión (modo local).
+   Se cargan solo si el navegador todavía no tiene la lista: después
+   cuenta lo que se apruebe, rechace o retire. Los NIT son los de
+   AGENTES_DEMO en admin.js; el primero es de la cuenta de prueba
+   tarima@eldesparche.online. */
+var SOLICITUDES_DEMO = [
+  {
+    id: "SOL-DEMO-1", nit: "901234567-1", nombre: "Bogotá Indie Fest",
+    categoria: "musica", plan: "parchesote",
+    descripcion: "Doce bandas independientes de todo el país en dos tarimas, con zona de comidas y feria de vinilos. Un día entero para descubrir la música nueva de Colombia.",
+    inicio: "2027-03-06T14:00", fin: "2027-03-07T00:00",
+    ciudad: "Bogotá", departamento: "Cundinamarca",
+    teatro: "Parque Simón Bolívar", direccion: "Calle 63 # 59A-06",
+    lat: 4.658400, lon: -74.093700,
+    capacidad: 25000, precio: 220000, edad: 16,
+    observaciones: "Apertura de puertas a la 1:00 p. m. No se permite el ingreso de alimentos.",
+    imagen: "", estado: "En revisión", motivo: "", enviado: "2026-10-15T09:24:00"
+  },
+  {
+    id: "SOL-DEMO-2", nit: "900876543-2", nombre: "Noche de Trova Antioqueña",
+    categoria: "musica", plan: "parche",
+    descripcion: "Los mejores trovadores de Antioquia se enfrentan en un duelo de coplas improvisadas, acompañados por un trío de cuerdas en vivo.",
+    inicio: "2027-01-22T20:00", fin: "2027-01-22T23:30",
+    ciudad: "Medellín", departamento: "Antioquia",
+    teatro: "Teatro Pablo Tobón Uribe", direccion: "Carrera 40 # 51-24",
+    lat: 6.246800, lon: -75.560300,
+    capacidad: 850, precio: 60000, edad: 0,
+    observaciones: "",
+    imagen: "", estado: "En revisión", motivo: "", enviado: "2026-10-16T17:02:00"
+  },
+  {
+    id: "SOL-DEMO-3", nit: "901112233-4", nombre: "Circo Familiar Bajo la Carpa",
+    categoria: "circo", plan: "parchesito",
+    descripcion: "Acróbatas, payasos y malabaristas en una función pensada para ir con niños. Al final, taller abierto de malabares para toda la familia.",
+    inicio: "2026-12-19T16:00", fin: "2026-12-19T18:00",
+    ciudad: "Cali", departamento: "Valle del Cauca",
+    teatro: "Carpa del Parque de la Caña", direccion: "Carrera 8 # 34-00",
+    lat: 3.456300, lon: -76.507500,
+    capacidad: 1200, precio: 35000, edad: 0,
+    observaciones: "Los menores de 2 años no pagan entrada.",
+    imagen: "", estado: "En revisión", motivo: "", enviado: "2026-10-17T11:45:00"
+  },
+  {
+    id: "SOL-DEMO-4", nit: "901556677-8", nombre: "Stand Up en el Barrio",
+    categoria: "comedia", plan: "parche",
+    descripcion: "Cinco comediantes nuevos de la escena bogotana prueban su material más reciente. Una noche corta, cercana y para reírse de la vida en la ciudad.",
+    inicio: "2026-11-28T20:00", fin: "2026-11-28T22:00",
+    ciudad: "Bogotá", departamento: "Cundinamarca",
+    teatro: "Teatro Libre de Chapinero", direccion: "Calle 62 # 10-65",
+    lat: 4.648000, lon: -74.064000,
+    capacidad: 400, precio: 40000, edad: 18,
+    observaciones: "Contenido para adultos.",
+    imagen: "", estado: "En revisión", motivo: "", enviado: "2026-10-18T08:10:00"
+  }
+];
+
+/* En modo local, los eventos aprobados y los cambios de estado hechos
+   desde la administración se aplican a toda la web */
 if (!USAR_API) {
+  try {
+    if (localStorage.getItem("eventosAgente") === null) {
+      localStorage.setItem("eventosAgente", JSON.stringify(SOLICITUDES_DEMO));
+    } else {
+      /* Los ejemplos guardados antes de que existiera el mapa reciben su punto */
+      var guardadas = JSON.parse(localStorage.getItem("eventosAgente")) || [];
+      var cambio = false;
+      guardadas.forEach(function (s) {
+        /* "lugar" ahora se llama "teatro", como en la base de datos */
+        if (s.lugar !== undefined && s.teatro === undefined) {
+          s.teatro = s.lugar;
+          delete s.lugar;
+          cambio = true;
+        }
+        var demo = SOLICITUDES_DEMO.filter(function (d) { return d.id === s.id; })[0];
+        if (demo && (s.lat === undefined || s.lat === "")) {
+          s.lat = demo.lat;
+          s.lon = demo.lon;
+          cambio = true;
+        }
+      });
+      if (cambio) localStorage.setItem("eventosAgente", JSON.stringify(guardadas));
+    }
+  } catch (e) {}
+
+  try {
+    (JSON.parse(localStorage.getItem("eventosAgente")) || [])
+      .filter(function (s) { return s.estado === "Aprobado" && s.idEvento; })
+      .forEach(function (s) { EVENTOS.push(eventoDeSolicitud(s)); });
+  } catch (e) {}
+
+  /* Eventos que el administrador registró, modificó o eliminó en este navegador */
+  try {
+    var datosEventos = JSON.parse(localStorage.getItem("datosEventos")) || {};
+    var eliminados = (datosEventos.eliminados || []).map(String);
+    for (var k = EVENTOS.length - 1; k >= 0; k--) {
+      if (eliminados.indexOf(String(EVENTOS[k].id)) !== -1) EVENTOS.splice(k, 1);
+    }
+    EVENTOS.forEach(function (evento) {
+      var cambio = (datosEventos.cambios || {})[evento.id];
+      if (cambio) Object.assign(evento, cambio);
+    });
+    (datosEventos.nuevos || []).forEach(function (evento) { EVENTOS.push(evento); });
+  } catch (e) {}
+
+  /* Eventos guardados antes de que "lugar" se llamara "teatro" */
+  EVENTOS.forEach(function (evento) {
+    if (evento.teatro === undefined && evento.lugar !== undefined) {
+      evento.teatro = evento.lugar;
+      delete evento.lugar;
+    }
+  });
+
   try {
     var estadosGuardados = JSON.parse(localStorage.getItem("estadoEventos")) || {};
     EVENTOS.forEach(function (evento) {
-      if (estadosGuardados[evento.id]) evento.estado = estadosGuardados[evento.id];
+      var guardado = estadosGuardados[evento.id];
+      if (!guardado) return;
+      if (typeof guardado === "string") {
+        evento.estado = guardado;
+      } else {
+        evento.estado = guardado.estado;
+        evento.observaciones = guardado.observaciones;
+      }
     });
   } catch (e) {}
 }
@@ -2727,13 +3139,23 @@ window.Desparche = {
   obtenerReservas: obtenerReservas,
   tokenEntrada: tokenEntrada,
   leerContenidoQr: leerContenidoQr,
-  registrarSesionAdmin: registrarSesionAdmin,
   pintarQrReal: pintarQrReal,
-  leerVerificaciones: leerVerificaciones,
-  guardarVerificacion: guardarVerificacion,
-  verificacionDe: verificacionDe,
+  CAUSAS_CANCELACION: CAUSAS_CANCELACION,
+  parcheDe: parcheDe,
+  tarifaWompi: tarifaWompi,
+  leerUbicaciones: leerUbicaciones,
+  guardarUbicaciones: guardarUbicaciones,
+  cuposLibres: cuposLibres,
+  edadEn: edadEn,
+  fechaTextoAIso: fechaTextoAIso,
+  notaCancelacion: notaCancelacion,
+  agregarNota: agregarNota,
+  leerCancelacion: leerCancelacion,
+  camposCancelacion: camposCancelacion,
+  datosCancelacion: datosCancelacion,
   abrirAcceso: abrirAcceso,
   etiquetaEstado: etiquetaEstado,
+  eventoDeSolicitud: eventoDeSolicitud,
   eventos: EVENTOS
 };
 
