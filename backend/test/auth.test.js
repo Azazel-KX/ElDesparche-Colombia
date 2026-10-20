@@ -76,7 +76,7 @@ before(async () => {
 });
 
 after(async () => {
-  // Borrar el USUARIO elimina en cascada su subtipo, teléfonos y verificaciones
+  // Borrar el USUARIO elimina en cascada su subtipo, teléfonos, reservas y métodos de pago
   for (const id of creados) {
     await pool.query("DELETE FROM USUARIO WHERE numero_identificacion = $1", [id]);
   }
@@ -118,7 +118,7 @@ test("registro de cliente devuelve token y /me muestra su perfil", async () => {
   assert.equal(reg.estado, 201, JSON.stringify(reg.json));
   assert.ok(reg.json.token);
   assert.equal(reg.json.usuario.tipo_usuario, "CLIENTE");
-  assert.equal(reg.json.usuario.nombre, "Prueba");
+  assert.equal(reg.json.usuario.nombre_completo, "Prueba Automática", "nombre y apellidos se guardan como nombre_completo");
   assert.equal(reg.json.usuario.contrasena_hash, undefined);
 
   const me = await llamar("/api/auth/me", { token: reg.json.token });
@@ -243,17 +243,51 @@ test("registro con una ciudad que no existe responde 400", async () => {
   assert.equal(await existe(clienteBase(14).numero_identificacion), false);
 });
 
-test("un cliente recién registrado no puede reservar hasta verificar su contacto", async () => {
+test("un cliente recién registrado ya puede reservar (no hay verificación de contacto)", async () => {
   const datos = clienteBase(15);
   assert.equal((await registrar(datos)).estado, 201);
+  const { rows } = await pool.query(
+    `INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento)
+     VALUES (1, $1, 'EVT-2026-0001') RETURNING valor_total::float8 AS valor_total`,
+    [datos.numero_identificacion]
+  );
+  // 1 entrada de $50.000 + tarifa de Wompi (2,65 % + $700, más IVA) = $52.410
+  assert.equal(rows[0].valor_total, 52410);
+});
+
+test("la base exige que todo usuario esté en exactamente un subtipo", async () => {
+  const sin = unico(16);
+  creados.push(sin);
+  // Solo el USUARIO, sin fila en ADMIN, CLIENTE ni AGENTE: el trigger diferido lo rechaza al COMMIT
   await assert.rejects(
     pool.query(
-      `INSERT INTO RESERVA (numero_entradas, id_cliente, codigo_evento)
-       VALUES (1, $1, 'EVT-2026-0001')`,
-      [datos.numero_identificacion]
+      `INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, nombre_completo, correo, contrasena_hash, direccion, id_ciudad)
+       VALUES ($1, 'CC', 'Sin Subtipo', $2, 'x', 'Calle 1', $3)`,
+      [sin, `sin${sufijo}@eldesparche.test`, idCali]
     ),
-    /verificación de contacto/
+    /subtipo/
   );
+  assert.equal(await existe(sin), false);
+
+  // Un usuario en dos subtipos a la vez (la herencia es disjunta) tampoco pasa
+  const doble = unico(17);
+  creados.push(doble);
+  const cliente = await pool.connect();
+  try {
+    await cliente.query("BEGIN");
+    await cliente.query(
+      `INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, nombre_completo, correo, contrasena_hash, direccion, id_ciudad)
+       VALUES ($1, 'CC', 'Doble Subtipo', $2, 'x', 'Calle 1', $3)`,
+      [doble, `doble${sufijo}@eldesparche.test`, idCali]
+    );
+    await cliente.query("INSERT INTO CLIENTE (numero_identificacion, fecha_nacimiento) VALUES ($1, '1990-01-01')", [doble]);
+    await cliente.query("INSERT INTO ADMIN (numero_identificacion, salario, horario) VALUES ($1, 1000000, 'Tarde')", [doble]);
+    await assert.rejects(cliente.query("COMMIT"), /más de un subtipo/);
+  } finally {
+    await cliente.query("ROLLBACK").catch(() => {});
+    cliente.release();
+  }
+  assert.equal(await existe(doble), false);
 });
 
 // ---------------------------------------------------------------------------------------------

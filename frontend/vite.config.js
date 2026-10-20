@@ -38,10 +38,7 @@ export default defineConfig({
         misReservas: resolve(import.meta.dirname, 'mis-reservas.html'),
         admin: resolve(import.meta.dirname, 'admin.html'),
         agente: resolve(import.meta.dirname, 'agente.html'),
-        nosotros: resolve(import.meta.dirname, 'nosotros.html'),
-        preguntas: resolve(import.meta.dirname, 'preguntas-frecuentes.html'),
-        terminos: resolve(import.meta.dirname, 'terminos.html'),
-        prensa: resolve(import.meta.dirname, 'prensa.html')
+        nosotros: resolve(import.meta.dirname, 'nosotros.html')
       }
     }
   }

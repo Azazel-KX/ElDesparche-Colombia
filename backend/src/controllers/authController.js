@@ -41,13 +41,12 @@ function firmarToken(usuario) {
 //
 // ¿Por qué?
 // - Nunca devolvemos TODOS los datos del usuario (seguridad)
-// - Solo devolvemos: ID, nombre, apellidos, correo, tipo
+// - Solo devolvemos: ID, nombre completo, correo, tipo
 // - NO devolvemos: contrasena_hash, tokens, datos sensibles
 function usuarioPublico(u) {
   return {
     numero_identificacion: u.numero_identificacion,
-    nombre: u.nombre,
-    apellidos: u.apellidos,
+    nombre_completo: u.nombre_completo,
     correo: u.correo,
     tipo_usuario: u.tipo_usuario,
   };

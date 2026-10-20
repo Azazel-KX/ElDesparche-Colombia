@@ -35,17 +35,18 @@ INSERT INTO UBICACION (direccion, latitud, longitud, id_ciudad) VALUES
 ('Carrera 25 #26-30, Centro',          4.084700, -76.195400, 2);   -- 5 Tuluá
 
 -- ==================================================================================================================
--- USUARIOS (supertipo) y subtipos
+-- USUARIOS (supertipo), teléfonos y subtipos
 -- ==================================================================================================================
 
-INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, tipo_usuario, nombre, apellidos, correo, contrasena_hash, direccion, id_ciudad) VALUES
-('1000000001', 'CC',  'ADMIN',   'Ana María', 'Administradora Prueba', 'admin@eldesparche.test',    crypt('Desparche2026!', gen_salt('bf', 10)), 'Centro Administrativo, Carrera 7 #32-16', 4),
-('1000000002', 'CC',  'CLIENTE', 'Camilo',    'Rojas Prueba',          'cliente1@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 'Calle 5 #10-20',                         1),
-('1000000003', 'CC',  'CLIENTE', 'Laura',     'Gómez Prueba',          'cliente2@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 'Carrera 10 #5-15',                       2),
-('900111222',  'NIT', 'AGENTE',  'Pacífico',  'Producciones',          'agente1@eldesparche.test',  crypt('Desparche2026!', gen_salt('bf', 10)), 'Avenida Principal #100',                 1),
-('900333444',  'NIT', 'AGENTE',  'Capital',   'Eventos',               'agente2@eldesparche.test',  crypt('Desparche2026!', gen_salt('bf', 10)), 'Calle Comercial #50',                    4);
+-- El perfil (ADMIN, CLIENTE o AGENTE) lo define la tabla de subtipo en la que se inserta cada usuario.
+INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, nombre_completo, correo, contrasena_hash, direccion, id_ciudad) VALUES
+('1000000001', 'CC',  'Ana María Administradora Prueba', 'admin@eldesparche.test',    crypt('Desparche2026!', gen_salt('bf', 10)), 'Centro Administrativo, Carrera 7 #32-16', 4),   -- ADMIN
+('1000000002', 'CC',  'Camilo Rojas Prueba',             'cliente1@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 'Calle 5 #10-20',                         1),   -- CLIENTE
+('1000000003', 'CC',  'Laura Gómez Prueba',              'cliente2@eldesparche.test', crypt('Desparche2026!', gen_salt('bf', 10)), 'Carrera 10 #5-15',                       2),   -- CLIENTE
+('900111222',  'NIT', 'Pacífico Producciones',           'agente1@eldesparche.test',  crypt('Desparche2026!', gen_salt('bf', 10)), 'Avenida Principal #100',                 1),   -- AGENTE
+('900333444',  'NIT', 'Capital Eventos',                 'agente2@eldesparche.test',  crypt('Desparche2026!', gen_salt('bf', 10)), 'Calle Comercial #50',                    4);   -- AGENTE
 
-INSERT INTO TELEFONO_USUARIO (numero_identificacion, telefono) VALUES
+INSERT INTO USUARIO_TELEFONO (numero_identificacion, telefono) VALUES
 ('1000000001', '3001112233'),
 ('1000000002', '3105556677'),
 ('1000000002', '6022345678'),
@@ -68,7 +69,7 @@ INSERT INTO AGENTE (numero_identificacion, nit, razon_social, nombre_comercial, 
 -- EVENTOS
 -- ==================================================================================================================
 
-INSERT INTO EVENTO (codigo, nombre, descripcion, categoria, teatro, fecha_hora_inicio, fecha_hora_fin, capacidad_total, edad_minima, observaciones, estado, precio, id_ubicacion, id_agente) VALUES
+INSERT INTO EVENTO (codigo, nombre, descripcion, categoria, teatro, fecha_hora_inicio, fecha_hora_fin, capacidad_total, edad_minima, observaciones, estado, precio, id_ubicacion, numero_identificacion) VALUES
 ('EVT-2026-0001', 'Concierto Música Colombiana',    'Gran concierto de artistas nacionales',   'musica',  'Teatro Municipal Enrique Buenaventura', '2026-11-15 19:00', '2026-11-15 23:00', 500,  0, 'Evento importante',   'Programado',   50000, 1, '900111222'),
 ('EVT-2026-0002', 'Festival de Teatro Alternativo', 'Presentación de obras experimentales',   'teatro',  'Teatro La Candelaria',                   '2026-12-01 18:30', '2026-12-01 22:30', 300, 18, 'Para público adulto', 'Programado',   30000, 2, '900333444'),
 ('EVT-2026-0003', 'Obra de Teatro Infantil',        'Función especial para niños y familias', 'teatro',  'Teatro Jorge Isaacs',                    '2026-11-22 10:00', '2026-11-22 12:00', 200,  0, 'Apto para menores',   'En Boletería', 15000, 3, '900111222'),
@@ -81,7 +82,7 @@ INSERT INTO EVENTO (codigo, nombre, descripcion, categoria, teatro, fecha_hora_i
 -- La causa de las canceladas va en observaciones, con el mismo formato que escribe la web.
 -- ==================================================================================================================
 
-INSERT INTO RESERVA (numero_entradas, observaciones, estado, id_cliente, codigo_evento) VALUES
+INSERT INTO RESERVA (numero_entradas, observaciones, estado, numero_identificacion, codigo_evento) VALUES
 (2, 'Asientos preferidos',  'Confirmada', '1000000002', 'EVT-2026-0001'),   -- 1: 100.000 + 3.987 de tarifa = 103.987
 (3, 'Entrada para familia', 'Reservada',  '1000000002', 'EVT-2026-0003'),   -- 2:  45.000 + 2.252 = 47.252
 (1, 'Entrada estándar',     'Confirmada', '1000000003', 'EVT-2026-0002'),   -- 3:  30.000 + 1.779 = 31.779
@@ -94,7 +95,7 @@ INSERT INTO RESERVA (numero_entradas, observaciones, estado, id_cliente, codigo_
 -- MÉTODOS DE PAGO Y PAGOS
 -- ==================================================================================================================
 
-INSERT INTO METODO_PAGO (tipo, proveedor, referencia_visible, token_pasarela, activo, id_cliente) VALUES
+INSERT INTO METODO_PAGO (tipo, proveedor, referencia_visible, token_pasarela, activo, numero_identificacion) VALUES
 ('Tarjeta crédito', 'Visa',  '4242', 'tok_test_visa_4242',  TRUE, '1000000002'),   -- 1
 ('Billetera digital', 'Nequi', NULL, 'tok_test_nequi_0001', TRUE, '1000000003');   -- 2
 

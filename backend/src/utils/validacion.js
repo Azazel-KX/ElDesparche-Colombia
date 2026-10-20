@@ -12,7 +12,7 @@
 // - Mensajes claros en español
 // - Seguridad: rechazamos valores imposibles temprano
 //
-// Las reglas espejan los CHECK de database/schema_ElDesparche.sql (USUARIO, TELEFONO_USUARIO...).
+// Las reglas espejan los CHECK de database/schema_ElDesparche.sql (USUARIO, USUARIO_TELEFONO...).
 // La base de datos sigue siendo la última barrera: si algo se cuela, ella lo rechaza.
 
 // Tipos de identificación válidos en Colombia
@@ -184,4 +184,4 @@ function validarLogin(body) {
   return Object.keys(errores).length ? { errores } : { datos: { correo, contrasena: b.contrasena } };
 }
 
-module.exports = { validarRegistro, validarLogin, normalizarDocumento, LONGITUD_MIN_CONTRASENA };
+module.exports = { validarRegistro, validarLogin, normalizarDocumento, texto, LONGITUD_MIN_CONTRASENA };

@@ -1,8 +1,8 @@
 -- ==================================================================================================================
--- ElDesparche — Esquema PostgreSQL (generado desde documents/BD/Diagrama_v2.drawio)
+-- ElDesparche — Esquema PostgreSQL (generado desde documents/BD/Diagrama_corregido.drawio)
 -- Motor: PostgreSQL 13+   ·   Proyecto Integrador 2026-2   ·   13 tablas, 3FN
--- Alineado con el avance del corte 2 (Avance_El_desparche_PI_2026-2_Corte_2.docx)
--- Documento de apoyo: documents/BD/Modelo_Relacional_3FN_Diagrama_v2.docx
+-- Alineado con el avance del corte 2 (documents/BD/Avance_El_desparche_PI_2026-2_Corte_2.docx)
+-- Diccionario de datos: documents/BD/Diccionario_Datos_ElDesparche.txt
 --
 -- Ejecutar sobre una base vacía. Las tablas se crean en orden de dependencia.
 -- ==================================================================================================================
@@ -14,7 +14,6 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_uuid(), crypt() para el
 -- ==================================================================================================================
 
 CREATE TYPE tipo_identificacion_t  AS ENUM ('CC', 'CE', 'PAS', 'PPT', 'NIT');
-CREATE TYPE tipo_usuario_t         AS ENUM ('ADMIN', 'CLIENTE', 'AGENTE');
 CREATE TYPE jornada_t              AS ENUM ('Mañana', 'Tarde', 'Noche', 'Completa');
 CREATE TYPE estado_evento_t        AS ENUM ('Programado', 'En Boletería', 'En Vivo', 'Finalizado', 'Cancelado');
 CREATE TYPE estado_reserva_t       AS ENUM ('Reservada', 'Confirmada', 'Cancelada');
@@ -54,21 +53,20 @@ CREATE TABLE UBICACION (
 
 -- ==================================================================================================================
 -- USUARIOS  (supertipo) y subtipos ADMIN / CLIENTE / AGENTE  (IS-A total y disjunta)
+-- No hay columna tipo_usuario: el perfil lo define en qué subtipo está la fila (ver triggers 1 y 5).
 -- ==================================================================================================================
 
 CREATE TABLE USUARIO (
     numero_identificacion VARCHAR(20) PRIMARY KEY
                           CONSTRAINT ck_usuario_documento_normalizado CHECK (numero_identificacion ~ '^[A-Z0-9]+$'),   -- normalizado: sin puntos, guiones, espacios ni minúsculas
     tipo_identificacion   tipo_identificacion_t NOT NULL,
-    tipo_usuario          tipo_usuario_t NOT NULL,
-    nombre                VARCHAR(80)  NOT NULL,
-    apellidos             VARCHAR(80)  NOT NULL,
+    nombre_completo       VARCHAR(200) NOT NULL CHECK (length(btrim(nombre_completo)) > 0),
     correo                VARCHAR(100) NOT NULL UNIQUE
                           CHECK (correo ~* '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'),
     contrasena_hash       VARCHAR(255) NOT NULL,
     direccion             VARCHAR(200) NOT NULL,
     fecha_registro        TIMESTAMP NOT NULL DEFAULT NOW(),
-    id_ciudad             INTEGER NOT NULL REFERENCES CIUDAD(id_ciudad) ON DELETE RESTRICT,
+    id_ciudad             INTEGER NOT NULL REFERENCES CIUDAD(id_ciudad) ON DELETE RESTRICT,   -- ciudad de residencia (UbiPer)
     -- Formato según el tipo de documento (la PK no incluye el tipo, así que el número debe ser válido para su tipo)
     CONSTRAINT ck_usuario_documento_formato CHECK (CASE tipo_identificacion
                WHEN 'CC'  THEN numero_identificacion ~ '^[0-9]{6,10}$'
@@ -76,54 +74,46 @@ CREATE TABLE USUARIO (
                WHEN 'PPT' THEN numero_identificacion ~ '^[0-9]{5,10}$'
                WHEN 'NIT' THEN numero_identificacion ~ '^[0-9]{9,10}$'      -- sin dígito de verificación
                WHEN 'PAS' THEN numero_identificacion ~ '^[A-Z0-9]{5,15}$'
-           END),
-    -- Clave que usan los subtipos para fijar su tipo_usuario (disjunción)
-    UNIQUE (numero_identificacion, tipo_usuario)
+           END)
 );
 
-CREATE INDEX idx_usuario_tipo   ON USUARIO(tipo_usuario);
 CREATE INDEX idx_usuario_ciudad ON USUARIO(id_ciudad);
 
--- Atributo multivalorado telefono
-CREATE TABLE TELEFONO_USUARIO (
+-- Atributo multivalorado telefono: un usuario puede tener varios teléfonos
+CREATE TABLE USUARIO_TELEFONO (
     numero_identificacion VARCHAR(20) NOT NULL REFERENCES USUARIO(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
     telefono              VARCHAR(10) NOT NULL CHECK (telefono ~ '^(3[0-9]{9}|60[0-9]{8})$'),
     PRIMARY KEY (numero_identificacion, telefono)
 );
 
+-- Subtipos: la PK es la misma de USUARIO y además es FK (generalización IS-A)
 CREATE TABLE ADMIN (
-    numero_identificacion VARCHAR(20) PRIMARY KEY,
-    tipo_usuario          tipo_usuario_t NOT NULL DEFAULT 'ADMIN' CHECK (tipo_usuario = 'ADMIN'),
+    numero_identificacion VARCHAR(20) PRIMARY KEY
+                          REFERENCES USUARIO(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
     salario               NUMERIC(12,2) NOT NULL CHECK (salario >= 0),
-    horario               jornada_t NOT NULL,
-    FOREIGN KEY (numero_identificacion, tipo_usuario)
-        REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON UPDATE CASCADE ON DELETE CASCADE
+    horario               jornada_t NOT NULL
 );
 
 CREATE TABLE CLIENTE (
-    numero_identificacion VARCHAR(20) PRIMARY KEY,
-    tipo_usuario          tipo_usuario_t NOT NULL DEFAULT 'CLIENTE' CHECK (tipo_usuario = 'CLIENTE'),
+    numero_identificacion VARCHAR(20) PRIMARY KEY
+                          REFERENCES USUARIO(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
     fecha_nacimiento      DATE NOT NULL CHECK (fecha_nacimiento <= CURRENT_DATE),   -- edad se deriva, no se guarda
     foto_perfil           VARCHAR(255),
     alias                 VARCHAR(40) UNIQUE,
     puntos                INTEGER NOT NULL DEFAULT 0 CHECK (puntos >= 0),
-    publicidad            BOOLEAN NOT NULL DEFAULT TRUE,                            -- visualización de publicidad
-    FOREIGN KEY (numero_identificacion, tipo_usuario)
-        REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON UPDATE CASCADE ON DELETE CASCADE
+    publicidad            BOOLEAN NOT NULL DEFAULT TRUE                             -- visualización de publicidad
 );
 
 CREATE TABLE AGENTE (
-    numero_identificacion VARCHAR(20) PRIMARY KEY,
-    tipo_usuario          tipo_usuario_t NOT NULL DEFAULT 'AGENTE' CHECK (tipo_usuario = 'AGENTE'),
+    numero_identificacion VARCHAR(20) PRIMARY KEY
+                          REFERENCES USUARIO(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
     nit                   VARCHAR(20)  NOT NULL UNIQUE,    -- clave candidata: razon_social y demás dependen de la PK
     razon_social          VARCHAR(150) NOT NULL,
     nombre_comercial      VARCHAR(150),
     descripcion           TEXT,
     logo_url              VARCHAR(255),
     comision              NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (comision BETWEEN 0 AND 100),
-    experiencia           SMALLINT NOT NULL DEFAULT 0 CHECK (experiencia >= 0),    -- años
-    FOREIGN KEY (numero_identificacion, tipo_usuario)
-        REFERENCES USUARIO(numero_identificacion, tipo_usuario) ON UPDATE CASCADE ON DELETE CASCADE
+    experiencia           SMALLINT NOT NULL DEFAULT 0 CHECK (experiencia >= 0)     -- años
 );
 
 -- ==================================================================================================================
@@ -133,29 +123,29 @@ CREATE TABLE AGENTE (
 -- ==================================================================================================================
 
 CREATE TABLE EVENTO (
-    codigo            VARCHAR(20) PRIMARY KEY,
-    nombre            VARCHAR(150) NOT NULL,
-    descripcion       TEXT,
-    categoria         VARCHAR(40) NOT NULL
-                      CHECK (categoria IN ('musica', 'teatro', 'danza', 'circo', 'comedia')),
-    url_imagen        VARCHAR(255),
-    teatro            VARCHAR(150) NOT NULL,                    -- teatro o sitio donde se hace el evento
-    fecha_hora_inicio TIMESTAMP NOT NULL,
-    fecha_hora_fin    TIMESTAMP NOT NULL,                       -- fecha y hora estimada de finalización
-    capacidad_total   INTEGER NOT NULL CHECK (capacidad_total > 0),
-    edad_minima       SMALLINT NOT NULL DEFAULT 0 CHECK (edad_minima >= 0),
-    observaciones     TEXT,
-    estado            estado_evento_t NOT NULL DEFAULT 'Programado',
-    fecha_creacion    TIMESTAMP NOT NULL DEFAULT NOW(),
-    precio            NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (precio >= 0),   -- precio base de la entrada
-    id_ubicacion      INTEGER NOT NULL REFERENCES UBICACION(id_ubicacion) ON DELETE RESTRICT,
-    id_agente         VARCHAR(20) NOT NULL REFERENCES AGENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE RESTRICT,
+    codigo                VARCHAR(20) PRIMARY KEY,
+    nombre                VARCHAR(150) NOT NULL,
+    descripcion           TEXT,
+    categoria             VARCHAR(40) NOT NULL
+                          CHECK (categoria IN ('musica', 'teatro', 'danza', 'circo', 'comedia')),
+    url_imagen            VARCHAR(255),
+    teatro                VARCHAR(150) NOT NULL,                    -- teatro o sitio donde se hace el evento
+    fecha_hora_inicio     TIMESTAMP NOT NULL,
+    fecha_hora_fin        TIMESTAMP NOT NULL,                       -- fecha y hora estimada de finalización
+    capacidad_total       INTEGER NOT NULL CHECK (capacidad_total > 0),
+    edad_minima           SMALLINT NOT NULL DEFAULT 0 CHECK (edad_minima >= 0),
+    observaciones         TEXT,
+    estado                estado_evento_t NOT NULL DEFAULT 'Programado',
+    fecha_creacion        TIMESTAMP NOT NULL DEFAULT NOW(),
+    precio                NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (precio >= 0),   -- precio base de la entrada
+    id_ubicacion          INTEGER NOT NULL REFERENCES UBICACION(id_ubicacion) ON DELETE RESTRICT,                               -- UbiEve
+    numero_identificacion VARCHAR(20) NOT NULL REFERENCES AGENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE RESTRICT,   -- Registra: agente que registra el evento
     CHECK (fecha_hora_fin > fecha_hora_inicio)
 );
 
 CREATE INDEX idx_evento_estado    ON EVENTO(estado);
 CREATE INDEX idx_evento_inicio    ON EVENTO(fecha_hora_inicio);
-CREATE INDEX idx_evento_agente    ON EVENTO(id_agente);
+CREATE INDEX idx_evento_agente    ON EVENTO(numero_identificacion);
 CREATE INDEX idx_evento_ubicacion ON EVENTO(id_ubicacion);
 
 -- ==================================================================================================================
@@ -163,31 +153,31 @@ CREATE INDEX idx_evento_ubicacion ON EVENTO(id_ubicacion);
 -- ==================================================================================================================
 
 CREATE TABLE RESERVA (
-    id_reserva      SERIAL PRIMARY KEY,
-    codigo_qr       UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
-    valor_total     NUMERIC(12,2) NOT NULL CHECK (valor_total >= 0),   -- entradas × precio + tarifa de Wompi (el trigger la calcula si llega NULL)
-    fecha_hora      TIMESTAMP NOT NULL DEFAULT NOW(),
-    estado          estado_reserva_t NOT NULL DEFAULT 'Reservada',
-    numero_entradas INTEGER NOT NULL CHECK (numero_entradas > 0),
-    observaciones   TEXT,
-    id_cliente      VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,
-    codigo_evento   VARCHAR(20) NOT NULL REFERENCES EVENTO(codigo) ON DELETE CASCADE
+    id_reserva            SERIAL PRIMARY KEY,
+    codigo_qr             UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+    valor_total           NUMERIC(12,2) NOT NULL CHECK (valor_total >= 0),   -- entradas × precio + tarifa de Wompi (el trigger la calcula si llega NULL)
+    fecha_hora            TIMESTAMP NOT NULL DEFAULT NOW(),
+    estado                estado_reserva_t NOT NULL DEFAULT 'Reservada',
+    numero_entradas       INTEGER NOT NULL CHECK (numero_entradas > 0),
+    observaciones         TEXT,
+    numero_identificacion VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE,   -- Inscribe: cliente que reserva
+    codigo_evento         VARCHAR(20) NOT NULL REFERENCES EVENTO(codigo) ON DELETE CASCADE                                      -- Ofrece
 );
 
-CREATE INDEX idx_reserva_cliente ON RESERVA(id_cliente);
+CREATE INDEX idx_reserva_cliente ON RESERVA(numero_identificacion);
 CREATE INDEX idx_reserva_evento  ON RESERVA(codigo_evento);
 CREATE INDEX idx_reserva_estado  ON RESERVA(estado);
 CREATE INDEX idx_reserva_fecha   ON RESERVA(fecha_hora);
 
 CREATE TABLE METODO_PAGO (
-    id_metodo          SERIAL PRIMARY KEY,
-    tipo               tipo_metodo_pago_t NOT NULL,
-    proveedor          VARCHAR(60) NOT NULL,
-    referencia_visible VARCHAR(4) CHECK (referencia_visible ~ '^[0-9]{4}$'),   -- últimos 4 dígitos
-    token_pasarela     VARCHAR(255) NOT NULL,
-    activo             BOOLEAN NOT NULL DEFAULT TRUE,
-    fecha_registro     TIMESTAMP NOT NULL DEFAULT NOW(),
-    id_cliente         VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE
+    id_metodo             SERIAL PRIMARY KEY,
+    tipo                  tipo_metodo_pago_t NOT NULL,
+    proveedor             VARCHAR(60) NOT NULL,
+    referencia_visible    VARCHAR(4) CHECK (referencia_visible ~ '^[0-9]{4}$'),   -- últimos 4 dígitos
+    token_pasarela        VARCHAR(255) NOT NULL,
+    activo                BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_registro        TIMESTAMP NOT NULL DEFAULT NOW(),
+    numero_identificacion VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE   -- Registra: cliente dueño
 );
 
 CREATE TABLE PAGO (
@@ -196,8 +186,8 @@ CREATE TABLE PAGO (
     fecha_hora             TIMESTAMP NOT NULL DEFAULT NOW(),
     referencia_transaccion VARCHAR(80) NOT NULL UNIQUE,
     estado                 estado_pago_t NOT NULL DEFAULT 'Pendiente',
-    id_reserva             INTEGER NOT NULL REFERENCES RESERVA(id_reserva) ON DELETE RESTRICT,
-    id_metodo              INTEGER NOT NULL REFERENCES METODO_PAGO(id_metodo) ON DELETE RESTRICT
+    id_reserva             INTEGER NOT NULL REFERENCES RESERVA(id_reserva) ON DELETE RESTRICT,       -- Genera
+    id_metodo              INTEGER NOT NULL REFERENCES METODO_PAGO(id_metodo) ON DELETE RESTRICT     -- Utiliza
 );
 
 CREATE INDEX idx_pago_reserva ON PAGO(id_reserva);
@@ -206,27 +196,46 @@ CREATE INDEX idx_pago_reserva ON PAGO(id_reserva);
 -- TRIGGERS: reglas del diagrama que no son DF ni CHECK de una sola fila
 -- ==================================================================================================================
 
--- 1. Herencia total: todo USUARIO debe tener su fila en ADMIN, CLIENTE o AGENTE (se valida al COMMIT)
-CREATE OR REPLACE FUNCTION fn_usuario_tiene_subtipo() RETURNS trigger AS $$
-DECLARE ok BOOLEAN;
+-- 1. Herencia total y disjunta: todo USUARIO está en exactamente una de ADMIN, CLIENTE o AGENTE.
+--    Se valida al COMMIT: el usuario y su fila de subtipo se insertan en la misma transacción
+--    (primero USUARIO, porque el subtipo lo referencia por FK).
+--    Cubre tres casos: usuario sin subtipo, usuario en dos subtipos y subtipo borrado dejando al usuario.
+--    Si el USUARIO ya no existe (borrado en cascada) no hay nada que comprobar.
+CREATE OR REPLACE FUNCTION fn_usuario_un_subtipo() RETURNS trigger AS $$
+DECLARE
+    doc VARCHAR(20) := CASE WHEN TG_OP = 'DELETE' THEN OLD.numero_identificacion ELSE NEW.numero_identificacion END;
+    n   INTEGER;
 BEGIN
-    IF NEW.tipo_usuario = 'ADMIN' THEN
-        SELECT EXISTS (SELECT 1 FROM ADMIN   WHERE numero_identificacion = NEW.numero_identificacion) INTO ok;
-    ELSIF NEW.tipo_usuario = 'CLIENTE' THEN
-        SELECT EXISTS (SELECT 1 FROM CLIENTE WHERE numero_identificacion = NEW.numero_identificacion) INTO ok;
-    ELSE
-        SELECT EXISTS (SELECT 1 FROM AGENTE  WHERE numero_identificacion = NEW.numero_identificacion) INTO ok;
+    IF NOT EXISTS (SELECT 1 FROM USUARIO WHERE numero_identificacion = doc) THEN
+        RETURN NULL;
     END IF;
-    IF NOT ok THEN
-        RAISE EXCEPTION 'El usuario % (%) no tiene su fila de subtipo', NEW.numero_identificacion, NEW.tipo_usuario;
+    SELECT (SELECT COUNT(*) FROM ADMIN   WHERE numero_identificacion = doc)
+         + (SELECT COUNT(*) FROM CLIENTE WHERE numero_identificacion = doc)
+         + (SELECT COUNT(*) FROM AGENTE  WHERE numero_identificacion = doc) INTO n;
+    IF n = 0 THEN
+        RAISE EXCEPTION 'El usuario % no tiene su fila de subtipo (ADMIN, CLIENTE o AGENTE)', doc;
+    ELSIF n > 1 THEN
+        RAISE EXCEPTION 'El usuario % está en más de un subtipo (la herencia es disjunta)', doc;
     END IF;
     RETURN NULL;
 END $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER trg_usuario_subtipo
-    AFTER INSERT OR UPDATE OF tipo_usuario ON USUARIO
+    AFTER INSERT ON USUARIO
     DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW EXECUTE FUNCTION fn_usuario_tiene_subtipo();
+    FOR EACH ROW EXECUTE FUNCTION fn_usuario_un_subtipo();
+CREATE CONSTRAINT TRIGGER trg_admin_subtipo
+    AFTER INSERT OR DELETE ON ADMIN
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION fn_usuario_un_subtipo();
+CREATE CONSTRAINT TRIGGER trg_cliente_subtipo
+    AFTER INSERT OR DELETE ON CLIENTE
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION fn_usuario_un_subtipo();
+CREATE CONSTRAINT TRIGGER trg_agente_subtipo
+    AFTER INSERT OR DELETE ON AGENTE
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION fn_usuario_un_subtipo();
 
 -- 2. Tarifa de Wompi por pago en Colombia: 2,65 % + $700, más IVA (19 %). Se cobra una vez por
 --    pago (no por entrada) y vale 0 si el evento es gratis. Es la misma cuenta que tarifaWompi()
@@ -247,7 +256,7 @@ BEGIN
     SELECT * INTO ev FROM EVENTO WHERE codigo = NEW.codigo_evento FOR UPDATE;
 
     IF TG_OP = 'INSERT' THEN
-        SELECT fecha_nacimiento INTO nacimiento FROM CLIENTE WHERE numero_identificacion = NEW.id_cliente;
+        SELECT fecha_nacimiento INTO nacimiento FROM CLIENTE WHERE numero_identificacion = NEW.numero_identificacion;
         IF EXTRACT(YEAR FROM age(ev.fecha_hora_inicio::date, nacimiento)) < ev.edad_minima THEN
             RAISE EXCEPTION 'El cliente no cumple la edad mínima (%) del evento %', ev.edad_minima, ev.codigo;
         END IF;
@@ -288,9 +297,9 @@ CREATE TRIGGER trg_reserva_reglas
 -- 4. El método de pago de un PAGO debe pertenecer al cliente que hizo la RESERVA
 CREATE OR REPLACE FUNCTION fn_pago_coherente() RETURNS trigger AS $$
 BEGIN
-    IF (SELECT id_cliente FROM RESERVA WHERE id_reserva = NEW.id_reserva)
+    IF (SELECT numero_identificacion FROM RESERVA WHERE id_reserva = NEW.id_reserva)
        IS DISTINCT FROM
-       (SELECT id_cliente FROM METODO_PAGO WHERE id_metodo = NEW.id_metodo) THEN
+       (SELECT numero_identificacion FROM METODO_PAGO WHERE id_metodo = NEW.id_metodo) THEN
         RAISE EXCEPTION 'El método de pago % no pertenece al cliente de la reserva %', NEW.id_metodo, NEW.id_reserva;
     END IF;
     RETURN NEW;
@@ -299,23 +308,7 @@ END $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_pago_coherente BEFORE INSERT OR UPDATE OF id_reserva, id_metodo ON PAGO
     FOR EACH ROW EXECUTE FUNCTION fn_pago_coherente();
 
--- 5. No se puede dejar un USUARIO sin su fila de subtipo borrando solo el subtipo (se valida al COMMIT)
-CREATE OR REPLACE FUNCTION fn_subtipo_huerfano() RETURNS trigger AS $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM USUARIO WHERE numero_identificacion = OLD.numero_identificacion) THEN
-        RAISE EXCEPTION 'No se puede borrar el subtipo de %: el usuario seguiría existiendo', OLD.numero_identificacion;
-    END IF;
-    RETURN NULL;
-END $$ LANGUAGE plpgsql;
-
-CREATE CONSTRAINT TRIGGER trg_admin_huerfano   AFTER DELETE ON ADMIN
-    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_subtipo_huerfano();
-CREATE CONSTRAINT TRIGGER trg_cliente_huerfano AFTER DELETE ON CLIENTE
-    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_subtipo_huerfano();
-CREATE CONSTRAINT TRIGGER trg_agente_huerfano  AFTER DELETE ON AGENTE
-    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fn_subtipo_huerfano();
-
--- 6. La capacidad del evento no puede quedar por debajo de las entradas ya reservadas
+-- 5. La capacidad del evento no puede quedar por debajo de las entradas ya reservadas
 CREATE OR REPLACE FUNCTION fn_evento_capacidad() RETURNS trigger AS $$
 DECLARE ocupadas INTEGER;
 BEGIN
@@ -330,7 +323,7 @@ END $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_evento_capacidad BEFORE UPDATE OF capacidad_total ON EVENTO
     FOR EACH ROW EXECUTE FUNCTION fn_evento_capacidad();
 
--- 7. El documento de identidad (PK) no se edita por accidente; la corrección de un dato mal digitado es explícita:
+-- 6. El documento de identidad (PK) no se edita por accidente; la corrección de un dato mal digitado es explícita:
 --       BEGIN; SET LOCAL app.corregir_documento = 'on'; UPDATE USUARIO SET numero_identificacion = '...' WHERE ...; COMMIT;
 --     Las FK tienen ON UPDATE CASCADE, así que el cambio se propaga a todas las tablas.
 CREATE OR REPLACE FUNCTION fn_usuario_documento_inmutable() RETURNS trigger AS $$

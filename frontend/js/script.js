@@ -2419,8 +2419,7 @@ var CUENTAS_PRUEBA = [
     contrasena: "Desparche2026",
     usuario: {
       numero_identificacion: "1000000001",
-      nombre: "Sebastián",
-      apellidos: "Jaramillo",
+      nombre_completo: "Sebastián Jaramillo",
       correo: "admin@eldesparche.online",
       tipo_usuario: "ADMIN"
     }
@@ -2431,8 +2430,7 @@ var CUENTAS_PRUEBA = [
     usuario: {
       numero_identificacion: "1116254789",
       tipo_identificacion: "CC",
-      nombre: "Valentina",
-      apellidos: "Ríos Castaño",
+      nombre_completo: "Valentina Ríos Castaño",
       correo: "valentina@eldesparche.online",
       fecha_nacimiento: "2001-04-17",
       tipo_usuario: "CLIENTE"
@@ -2444,8 +2442,7 @@ var CUENTAS_PRUEBA = [
     usuario: {
       numero_identificacion: "1006478123",
       tipo_identificacion: "CC",
-      nombre: "Juan David",
-      apellidos: "Ospina",
+      nombre_completo: "Juan David Ospina",
       correo: "juandavid@eldesparche.online",
       fecha_nacimiento: "1998-11-02",
       tipo_usuario: "CLIENTE"
@@ -2457,8 +2454,7 @@ var CUENTAS_PRUEBA = [
     usuario: {
       numero_identificacion: "1088345612",
       tipo_identificacion: "CC",
-      nombre: "Andrés Felipe",
-      apellidos: "Cardona",
+      nombre_completo: "Andrés Felipe Cardona",
       correo: "andres@eldesparche.online",
       fecha_nacimiento: "1987-03-08",
       tipo_usuario: "CLIENTE"
@@ -2470,8 +2466,7 @@ var CUENTAS_PRUEBA = [
     usuario: {
       numero_identificacion: "52874136",
       tipo_identificacion: "CC",
-      nombre: "Camila",
-      apellidos: "Restrepo",
+      nombre_completo: "Camila Restrepo",
       correo: "tarima@eldesparche.online",
       nit: "901234567-1",
       tipo_usuario: "AGENTE"
@@ -2507,8 +2502,7 @@ function respuestaLocal(ruta, opciones) {
       datos: {
         usuario: {
           numero_identificacion: "local",
-          nombre: cuerpo.correo.split("@")[0],
-          apellidos: "",
+          nombre_completo: cuerpo.correo.split("@")[0],
           correo: cuerpo.correo,
           tipo_usuario: "CLIENTE"
         },
@@ -2524,8 +2518,7 @@ function respuestaLocal(ruta, opciones) {
         usuario: {
           numero_identificacion: cuerpo.numero_identificacion,
           tipo_identificacion: cuerpo.tipo_identificacion,
-          nombre: cuerpo.nombre,
-          apellidos: cuerpo.apellidos,
+          nombre_completo: (cuerpo.nombre + " " + cuerpo.apellidos).trim(),
           correo: cuerpo.correo,
           fecha_nacimiento: cuerpo.fecha_nacimiento || null,
           tipo_usuario: cuerpo.tipo_cuenta
@@ -2653,6 +2646,7 @@ function abrirAcceso(cual) {
 }
 
 /* Guarda la sesión que devolvió el API y recarga la página.
+   El API devuelve el nombre en un solo campo (nombre_completo, igual que la tabla USUARIO).
    Se mantiene el formato que ya usan las demás pantallas (nombre, correo y
    tipo "usuario" | "agente") y se agrega el token para las próximas llamadas. */
 function iniciarSesionLocal(respuesta) {
@@ -2661,7 +2655,7 @@ function iniciarSesionLocal(respuesta) {
   var tipos = { AGENTE: "agente", ADMIN: "admin" };
 
   guardarUsuario({
-    nombre: (u.nombre + " " + u.apellidos).trim(),
+    nombre: (u.nombre_completo || "").trim(),
     correo: u.correo,
     tipo: tipos[u.tipo_usuario] || "usuario",
     rol: u.tipo_usuario,
