@@ -2962,7 +2962,7 @@ prepararMenuMovil();
 prepararPanelAccesibilidad();
 prepararTamanoTexto();
 
-/* Convierte un evento que creó un agente (agente-eventos.html) al formato
+/* Convierte un evento que creó un agente (agente.html, sección Mis eventos) al formato
    de EVENTOS, para publicarlo cuando un administrador lo aprueba */
 function eventoDeSolicitud(s) {
   var inicio = new Date(s.inicio);

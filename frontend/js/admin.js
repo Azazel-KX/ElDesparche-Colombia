@@ -239,6 +239,14 @@ function escapar(texto) {
   });
 }
 
+/* Devuelve el foco a un elemento después de cerrar una ventana. En admin.html
+   la sección puede haber cambiado entretanto (botón atrás del navegador) y el
+   elemento ya no existir; entonces no hace nada. */
+function enfocarSiExiste(id) {
+  var elemento = document.getElementById(id);
+  if (elemento) elemento.focus();
+}
+
 /* Añade la clase "visible" cuando la tarjeta entra en pantalla: es la que
    arranca las animaciones del CSS */
 function animarAlVer(elemento) {
@@ -885,7 +893,7 @@ function guardarCambioLocal(nit, estado) {
   } catch (e) {}
 }
 
-/* Cambios que cada agente hizo a su perfil en agente-perfil.html (modo local) */
+/* Cambios que cada agente hizo a su perfil en agente.html?seccion=perfil (modo local) */
 function leerPerfilesAgentes() {
   try {
     return JSON.parse(localStorage.getItem("perfilesAgentes")) || {};
@@ -1449,7 +1457,7 @@ function paginaAgentes() {
     if (modo === "nuevo") {
       modo = null;
       /* después de que el navegador devuelve el foco por su cuenta */
-      setTimeout(function () { document.getElementById("nuevo-agente").focus(); }, 0);
+      setTimeout(function () { enfocarSiExiste("nuevo-agente"); }, 0);
       return;
     }
     modo = null;
@@ -1461,7 +1469,7 @@ function paginaAgentes() {
       if (boton) {
         boton.focus();
       } else {
-        document.getElementById("titulo-lista-agentes").focus();
+        enfocarSiExiste("titulo-lista-agentes");
       }
     }, 0);
   });
@@ -1906,7 +1914,7 @@ function barraOcupacion(e, grande) {
 }
 
 /* ===== EVENTOS POR REVISAR =====
-   Los crea un agente en agente-eventos.html y quedan "En revisión".
+   Los crea un agente en agente.html?seccion=eventos y quedan "En revisión".
    - GET   /api/admin/eventos/solicitudes       -> { solicitudes: [ en revisión ] }
    - PATCH /api/admin/eventos/solicitudes/:id   cuerpo { estado: "Aprobado" | "Rechazado", motivo }
      Al aprobar, el backend crea la fila de EVENTO como "Programado". */
@@ -2448,7 +2456,7 @@ function paginaEventosAdmin() {
     if (modo === "nuevo") {
       modo = null;
       /* después de que el navegador devuelve el foco por su cuenta */
-      setTimeout(function () { document.getElementById("nuevo-evento").focus(); }, 0);
+      setTimeout(function () { enfocarSiExiste("nuevo-evento"); }, 0);
       return;
     }
     modo = null;
@@ -2460,7 +2468,7 @@ function paginaEventosAdmin() {
       if (boton) {
         boton.focus();
       } else {
-        document.getElementById("titulo-lista-eventos").focus();
+        enfocarSiExiste("titulo-lista-eventos");
       }
     }, 0);
   });
@@ -2639,7 +2647,7 @@ function paginaEventosAdmin() {
     revisando = null;
     setTimeout(function () {
       var boton = listaRevision.querySelector('button[data-revisar="' + id + '"]');
-      (boton || document.getElementById("titulo-por-revisar")).focus();
+      if (boton) { boton.focus(); } else { enfocarSiExiste("titulo-por-revisar"); }
     }, 0);
   });
 
@@ -3211,7 +3219,7 @@ function paginaClientes() {
     if (modo === "nuevo") {
       modo = null;
       /* después de que el navegador devuelve el foco por su cuenta */
-      setTimeout(function () { document.getElementById("nuevo-cliente").focus(); }, 0);
+      setTimeout(function () { enfocarSiExiste("nuevo-cliente"); }, 0);
       return;
     }
     modo = null;
@@ -3223,7 +3231,7 @@ function paginaClientes() {
       if (boton) {
         boton.focus();
       } else {
-        document.getElementById("titulo-lista-clientes").focus();
+        enfocarSiExiste("titulo-lista-clientes");
       }
     }, 0);
   });
@@ -3629,7 +3637,7 @@ function paginaAdministradores() {
     if (modo === "nuevo") {
       modo = null;
       /* después de que el navegador devuelve el foco por su cuenta */
-      setTimeout(function () { document.getElementById("nuevo-administrador").focus(); }, 0);
+      setTimeout(function () { enfocarSiExiste("nuevo-administrador"); }, 0);
       return;
     }
     modo = null;
@@ -3641,7 +3649,7 @@ function paginaAdministradores() {
       if (boton) {
         boton.focus();
       } else {
-        document.getElementById("titulo-lista-administradores").focus();
+        enfocarSiExiste("titulo-lista-administradores");
       }
     }, 0);
   });
@@ -4810,7 +4818,7 @@ function paginaReservasAdmin(config) {
     if (modo === "nuevo") {
       modo = null;
       /* después de que el navegador devuelve el foco por su cuenta */
-      setTimeout(function () { document.getElementById("nueva-reserva").focus(); }, 0);
+      setTimeout(function () { enfocarSiExiste("nueva-reserva"); }, 0);
       return;
     }
     modo = null;
@@ -4822,7 +4830,7 @@ function paginaReservasAdmin(config) {
       if (boton) {
         boton.focus();
       } else {
-        document.getElementById("titulo-lista-reservas").focus();
+        enfocarSiExiste("titulo-lista-reservas");
       }
     }, 0);
   });
@@ -4924,7 +4932,7 @@ function registrarIngreso(reserva, revisor, ruta) {
   });
 }
 
-/* El agente usa esta misma página (agente-validar.html) limitada a sus
+/* El agente usa esta misma sección (agente.html?seccion=validar) limitada a sus
    eventos: config = { usuario, eventos: [ids], obtenerReservas, rutaIngreso } */
 function paginaValidar(config) {
   config = config || {};
@@ -5146,6 +5154,8 @@ function paginaValidar(config) {
   });
 
   window.addEventListener("pagehide", detener);
+  /* En admin.html, al pasar a otra sección del panel */
+  document.addEventListener("salirseccion", detener, { once: true });
 
   (config.obtenerReservas || obtenerReservasAdmin)().then(function (lista) {
     reservas = lista;
@@ -5517,33 +5527,125 @@ function paginaReportes() {
   });
 }
 
-var paginaAdmin = document.body.getAttribute("data-pagina");
+/* ===== SECCIONES DE LOS PANELES (admin.html y agente.html) =====
+   Cada panel es una sola página. Cada sección es un <template id="seccion-...">
+   y se muestra una a la vez: así los IDs que se repiten entre secciones
+   (admin-aviso, detalle-contenido, los campos de los formularios...) nunca
+   están dos veces en la página y cada función pagina...() sigue igual.
+   La dirección cambia a admin.html?seccion=agentes (o agente.html?seccion=perfil)
+   para que funcionen los botones atrás y adelante del navegador, recargar y
+   compartir el enlace. La primera sección de la lista es la de inicio. */
 
-if (paginaAdmin === "admin") {
-  paginaPanel();
-} else if (paginaAdmin === "admin-agentes") {
-  paginaAgentes();
-} else if (paginaAdmin === "admin-eventos") {
-  paginaEventosAdmin();
-} else if (paginaAdmin === "admin-clientes") {
-  paginaClientes();
-} else if (paginaAdmin === "admin-reservas") {
-  paginaReservasAdmin();
-} else if (paginaAdmin === "admin-ubicaciones") {
-  paginaUbicaciones();
-} else if (paginaAdmin === "admin-administradores") {
-  paginaAdministradores();
-} else if (paginaAdmin === "admin-reportes") {
-  paginaReportes();
-} else if (paginaAdmin === "admin-validar") {
-  paginaValidar();
+/* En el celular el menú lateral es una fila que se desplaza: que se vea la
+   opción actual. Va después de pintar la sección, que es la que muestra el marco. */
+function centrarOpcionActual() {
+  var actual = document.querySelector('.admin-lateral a[aria-current="page"]');
+  if (!actual) return;
+  var fila = actual.closest("ul");
+  fila.scrollLeft = actual.offsetLeft - fila.offsetLeft - (fila.clientWidth - actual.offsetWidth) / 2;
 }
 
-/* El panel del agente (js/agente.js) reutiliza las gráficas y los datos de
-   ejemplo de este archivo */
+/* secciones: { nombre: función que la arranca }, en el orden del menú */
+function iniciarSecciones(secciones) {
+  var inicio = Object.keys(secciones)[0];
+  var seccionActual = null;
+  var enlaces = document.querySelectorAll(".admin-lateral a[data-seccion]");
+
+  function seccionDeLaDireccion() {
+    var nombre = new URLSearchParams(window.location.search).get("seccion");
+    return secciones[nombre] ? nombre : inicio;
+  }
+
+  function mostrarSeccion(nombre, conFoco) {
+    var plantilla = document.getElementById("seccion-" + nombre);
+    var marco = document.getElementById("admin-marco");
+    var dialogos = document.getElementById("admin-dialogos");
+
+    /* Lo que la sección anterior deja abierto (la cámara de Validar entradas) */
+    document.dispatchEvent(new CustomEvent("salirseccion"));
+
+    Array.prototype.forEach.call(dialogos.querySelectorAll("dialog[open]"), function (dialogo) {
+      dialogo.close();
+    });
+    var anterior = marco.querySelector(".admin-contenido");
+    if (anterior) anterior.remove();
+    dialogos.innerHTML = "";
+
+    var copia = plantilla.content.cloneNode(true);
+    Array.prototype.forEach.call(copia.querySelectorAll("dialog"), function (dialogo) {
+      dialogos.appendChild(dialogo);
+    });
+    marco.appendChild(copia);
+    seccionActual = nombre;
+
+    document.title = plantilla.getAttribute("data-titulo") + " - El Desparche";
+    Array.prototype.forEach.call(enlaces, function (enlace) {
+      var esta = enlace.getAttribute("data-seccion") === nombre;
+      enlace.classList.toggle("activo", esta);
+      if (esta) {
+        enlace.setAttribute("aria-current", "page");
+      } else {
+        enlace.removeAttribute("aria-current");
+      }
+    });
+
+    secciones[nombre]();
+    centrarOpcionActual();
+
+    /* Como en un cambio de página: arriba y con el foco en el título, para que
+       el lector de pantalla anuncie la sección nueva */
+    if (conFoco) {
+      var titulo = marco.querySelector(".admin-contenido h1");
+      titulo.setAttribute("tabindex", "-1");
+      window.scrollTo(0, 0);
+      titulo.focus();
+    }
+  }
+
+  Array.prototype.forEach.call(enlaces, function (enlace) {
+    enlace.addEventListener("click", function (evento) {
+      /* Ctrl o clic central abren la sección en otra pestaña, como un enlace normal */
+      if (evento.ctrlKey || evento.metaKey || evento.shiftKey || evento.button !== 0) return;
+      evento.preventDefault();
+      var nombre = enlace.getAttribute("data-seccion");
+      if (nombre === seccionActual) return;
+      history.pushState(null, "", enlace.getAttribute("href"));
+      mostrarSeccion(nombre, true);
+    });
+  });
+
+  /* Atrás y adelante. Los enlaces internos de una sección (#grupo-... en
+     Reportes) también disparan popstate, pero no cambian de sección. */
+  window.addEventListener("popstate", function () {
+    var nombre = seccionDeLaDireccion();
+    if (nombre !== seccionActual) mostrarSeccion(nombre, true);
+  });
+
+  mostrarSeccion(seccionDeLaDireccion(), false);
+  /* Las tipografías cambian el ancho de las opciones cuando terminan de cargar */
+  if (document.fonts) document.fonts.ready.then(centrarOpcionActual);
+}
+
+if (document.body.getAttribute("data-pagina") === "admin") {
+  iniciarSecciones({
+    panel: paginaPanel,
+    reportes: paginaReportes,
+    agentes: paginaAgentes,
+    eventos: paginaEventosAdmin,
+    clientes: paginaClientes,
+    administradores: paginaAdministradores,
+    reservas: function () { paginaReservasAdmin(); },
+    ubicaciones: paginaUbicaciones,
+    validar: function () { paginaValidar(); }
+  });
+}
+
+/* El panel del agente (js/agente.js) reutiliza las gráficas, los datos de
+   ejemplo y las secciones de este archivo */
 export {
   pesos, numero, escapar, animarAlVer, pintarTarjetas, pintarMeses,
   prepararSelectorSerie, pintarEstados, pintarActividad, completarEvento,
   barraOcupacion, obtenerAgentes, obtenerReservasAdmin, ultimosMeses, COLOR_ESTADO,
-  paginaValidar, paginaReservasAdmin, cancelarReservaAdmin, crearMapaEvento, reducirImagen, esEventoDe
+  paginaValidar, paginaReservasAdmin, cancelarReservaAdmin, crearMapaEvento, reducirImagen, esEventoDe,
+  iniciarSecciones
 };
