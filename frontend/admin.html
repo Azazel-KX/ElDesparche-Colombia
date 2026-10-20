@@ -109,19 +109,28 @@
           <p class="admin-lateral-titulo" id="titulo-lateral">Administración</p>
           <nav aria-labelledby="titulo-lateral">
             <ul>
-              <li><a class="activo" href="admin.html" aria-current="page">Panel</a></li>
-              <li><a href="admin-reportes.html">Reportes</a></li>
-              <li><a href="admin-agentes.html">Agentes</a></li>
-              <li><a href="admin-eventos.html">Eventos</a></li>
-              <li><a href="admin-clientes.html">Clientes</a></li>
-              <li><a href="admin-administradores.html">Administradores</a></li>
-              <li><a href="admin-reservas.html">Reservas y pagos</a></li>
-              <li><a href="admin-ubicaciones.html">Ubicaciones</a></li>
-              <li><a href="admin-validar.html">Validar entradas</a></li>
+              <li><a href="admin.html" data-seccion="panel">Panel</a></li>
+              <li><a href="admin.html?seccion=reportes" data-seccion="reportes">Reportes</a></li>
+              <li><a href="admin.html?seccion=agentes" data-seccion="agentes">Agentes</a></li>
+              <li><a href="admin.html?seccion=eventos" data-seccion="eventos">Eventos</a></li>
+              <li><a href="admin.html?seccion=clientes" data-seccion="clientes">Clientes</a></li>
+              <li><a href="admin.html?seccion=administradores" data-seccion="administradores">Administradores</a></li>
+              <li><a href="admin.html?seccion=reservas" data-seccion="reservas">Reservas y pagos</a></li>
+              <li><a href="admin.html?seccion=ubicaciones" data-seccion="ubicaciones">Ubicaciones</a></li>
+              <li><a href="admin.html?seccion=validar" data-seccion="validar">Validar entradas</a></li>
             </ul>
           </nav>
         </aside>
 
+        <!-- Aquí js/admin.js pinta la sección elegida (ver las plantillas de abajo) -->
+      </div>
+      <div id="admin-dialogos"></div>
+
+      <!-- ===== SECCIONES =====
+           Cada sección del panel es una plantilla. js/admin.js muestra una a la vez
+           (admin.html?seccion=agentes, ?seccion=eventos...) y pone sus ventanas de
+           detalle en #admin-dialogos. -->
+      <template id="seccion-panel" data-titulo="Panel de administración">
         <div class="admin-contenido">
           <div class="recuadro-titulo admin-cabecera">
             <div>
@@ -178,7 +187,649 @@
             </section>
           </div>
         </div>
-      </div>
+      </template>
+
+      <template id="seccion-reportes" data-titulo="Reportes">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Reportes</h1>
+              <p>Los reportes del sistema: registros, ingresos, cobertura y cancelaciones del 2026.</p>
+            </div>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <nav class="reporte-indice" aria-labelledby="reporte-indice-titulo">
+            <h2 class="oculto" id="reporte-indice-titulo">Ir a un grupo de reportes</h2>
+            <ul>
+              <li><a href="#grupo-generales">Registros del sistema</a></li>
+              <li><a href="#grupo-comerciales">Comerciales</a></li>
+              <li><a href="#grupo-cobertura">Cobertura de eventos</a></li>
+              <li><a href="#grupo-operacion">Reservas y operación</a></li>
+            </ul>
+          </nav>
+
+          <!-- ===== REPORTE GENERAL ===== -->
+          <section class="reporte-grupo" id="grupo-generales" aria-labelledby="titulo-generales">
+            <h2 class="reporte-grupo-titulo" id="titulo-generales">Reporte general de registros del sistema</h2>
+            <ul class="admin-indicadores admin-indicadores-5" id="reporte-generales"></ul>
+          </section>
+
+          <!-- ===== REPORTES COMERCIALES ===== -->
+          <section class="reporte-grupo" id="grupo-comerciales" aria-labelledby="titulo-comerciales">
+            <h2 class="reporte-grupo-titulo" id="titulo-comerciales">Reportes comerciales</h2>
+            <p class="reporte-nota">
+              Los ingresos son los pagos aprobados de las reservas que no están canceladas.
+            </p>
+            <ul class="admin-indicadores admin-indicadores-2" id="reporte-promedios"></ul>
+
+            <section class="admin-tarjeta reporte-tarjeta" aria-labelledby="titulo-ingresos-agente">
+              <h3 id="titulo-ingresos-agente">Ingresos por agente</h3>
+              <div id="reporte-ingresos-agente"></div>
+            </section>
+
+            <section class="admin-tarjeta reporte-tarjeta" aria-labelledby="titulo-ingresos-cliente">
+              <h3 id="titulo-ingresos-cliente">Ingresos por cliente</h3>
+              <div id="reporte-ingresos-cliente"></div>
+            </section>
+
+            <section class="admin-tarjeta reporte-tarjeta" aria-labelledby="titulo-ingresos-mes">
+              <h3 id="titulo-ingresos-mes">Ingresos totales de todos los eventos por mes en el 2026</h3>
+              <div id="reporte-ingresos-mes"></div>
+            </section>
+
+            <section class="admin-tarjeta reporte-tarjeta" aria-labelledby="titulo-reservas-evento-mes">
+              <h3 id="titulo-reservas-evento-mes">Número de reservas por evento y por mes en el 2026</h3>
+              <div id="reporte-reservas-evento-mes"></div>
+            </section>
+
+            <section class="admin-tarjeta reporte-tarjeta" aria-labelledby="titulo-agente-ciudad">
+              <h3 id="titulo-agente-ciudad">Número de eventos creados por cada agente y por ciudad</h3>
+              <div id="reporte-agente-ciudad"></div>
+            </section>
+          </section>
+
+          <!-- ===== COBERTURA ===== -->
+          <section class="reporte-grupo" id="grupo-cobertura" aria-labelledby="titulo-cobertura">
+            <h2 class="reporte-grupo-titulo" id="titulo-cobertura">Reportes de cobertura y eventos</h2>
+            <section class="admin-tarjeta reporte-tarjeta" aria-labelledby="titulo-ubicacion">
+              <h3 id="titulo-ubicacion">Eventos por país, departamento y ciudad de realización</h3>
+              <div id="reporte-ubicacion"></div>
+            </section>
+          </section>
+
+          <!-- ===== RESERVAS Y OPERACIÓN ===== -->
+          <section class="reporte-grupo" id="grupo-operacion" aria-labelledby="titulo-operacion">
+            <h2 class="reporte-grupo-titulo" id="titulo-operacion">Reportes de reservas y operación</h2>
+
+            <section class="admin-tarjeta reporte-tarjeta" aria-labelledby="titulo-historial">
+              <h3 id="titulo-historial">Historial de reservas por cliente</h3>
+              <form class="admin-filtros reporte-filtro" id="form-historial" aria-label="Elegir cliente">
+                <div class="admin-filtro">
+                  <label for="reporte-cliente">Cliente</label>
+                  <select id="reporte-cliente"></select>
+                </div>
+              </form>
+              <div id="reporte-historial" aria-live="polite"></div>
+            </section>
+
+            <section class="admin-tarjeta reporte-tarjeta" aria-labelledby="titulo-reservas-canceladas">
+              <h3 id="titulo-reservas-canceladas">Reservas canceladas y su causa</h3>
+              <div id="reporte-causas-reservas"></div>
+              <div id="reporte-reservas-canceladas"></div>
+            </section>
+
+            <section class="admin-tarjeta reporte-tarjeta" aria-labelledby="titulo-eventos-cancelados">
+              <h3 id="titulo-eventos-cancelados">Eventos cancelados y su causa</h3>
+              <div id="reporte-eventos-cancelados"></div>
+            </section>
+          </section>
+        </div>
+      </template>
+
+      <template id="seccion-agentes" data-titulo="Gestión de agentes">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Gestión de agentes</h1>
+              <p>Registra, consulta, modifica y elimina las empresas que publican eventos, y apruébalas o suspéndelas.</p>
+            </div>
+            <button type="button" class="admin-boton" id="nuevo-agente">Registrar agente</button>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <section aria-labelledby="titulo-resumen-agentes">
+            <h2 class="oculto" id="titulo-resumen-agentes">Resumen de agentes</h2>
+            <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
+          </section>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-agentes">
+            <h2 id="titulo-lista-agentes" tabindex="-1">Agentes registrados</h2>
+
+            <form class="admin-filtros" role="search" aria-label="Filtrar agentes" id="filtros-agentes">
+              <div class="admin-filtro admin-filtro-buscar">
+                <label for="buscar-agente">Buscar</label>
+                <input type="search" id="buscar-agente" placeholder="Nombre, NIT o correo" autocomplete="off" />
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-estado">Estado</label>
+                <select id="filtro-estado">
+                  <option value="">Todos</option>
+                  <option value="Activo">Activo</option>
+                  <option value="Pendiente">Pendiente</option>
+                  <option value="Suspendido">Suspendido</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-ciudad">Ciudad</label>
+                <select id="filtro-ciudad">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="orden-agentes">Ordenar por</label>
+                <select id="orden-agentes">
+                  <option value="ingresos">Más ingresos</option>
+                  <option value="entradas">Más entradas vendidas</option>
+                  <option value="nombre">Nombre (A-Z)</option>
+                  <option value="registro">Registro más reciente</option>
+                </select>
+              </div>
+            </form>
+
+            <p class="admin-conteo" id="conteo-agentes" role="status"></p>
+
+            <table class="admin-tabla" role="table">
+              <caption class="oculto">Agentes registrados</caption>
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader">Agente</th>
+                  <th scope="col" role="columnheader">Ciudad</th>
+                  <th scope="col" role="columnheader" class="numero">Eventos</th>
+                  <th scope="col" role="columnheader" class="numero">Entradas vendidas</th>
+                  <th scope="col" role="columnheader" class="numero">Ingresos</th>
+                  <th scope="col" role="columnheader">Estado</th>
+                  <th scope="col" role="columnheader">Acciones</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" id="cuerpo-agentes"></tbody>
+            </table>
+          </section>
+        </div>
+
+      <!-- Detalle de un agente -->
+      <dialog class="modal modal-detalle" id="detalle-agente" aria-labelledby="detalle-nombre">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="detalle-cerrar" aria-label="Cerrar el detalle del agente">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div id="detalle-contenido"></div>
+        </div>
+      </dialog>
+      </template>
+
+      <template id="seccion-eventos" data-titulo="Gestión de eventos">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Gestión de eventos</h1>
+              <p>Registra, consulta, modifica y elimina eventos, revisa su ocupación y cambia su estado.</p>
+            </div>
+            <button type="button" class="admin-boton" id="nuevo-evento">Registrar evento</button>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <!-- Eventos que crearon los agentes y esperan aprobación -->
+          <section class="admin-tarjeta revision-eventos" aria-labelledby="titulo-por-revisar">
+            <h2 id="titulo-por-revisar" tabindex="-1">Por revisar</h2>
+            <p class="admin-conteo" id="conteo-por-revisar"></p>
+            <ul class="agente-eventos" id="lista-por-revisar"></ul>
+          </section>
+
+          <section aria-labelledby="titulo-resumen-eventos">
+            <h2 class="oculto" id="titulo-resumen-eventos">Eventos por estado</h2>
+            <ul class="admin-indicadores" id="admin-indicadores"></ul>
+          </section>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-eventos">
+            <h2 id="titulo-lista-eventos" tabindex="-1">Eventos publicados</h2>
+
+            <form class="admin-filtros" role="search" aria-label="Filtrar eventos" id="filtros-eventos">
+              <div class="admin-filtro admin-filtro-buscar">
+                <label for="buscar-evento">Buscar</label>
+                <input type="search" id="buscar-evento" placeholder="Nombre, teatro o agente" autocomplete="off" />
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-estado-evento">Estado</label>
+                <select id="filtro-estado-evento">
+                  <option value="">Todos</option>
+                  <option value="Programado">Programado</option>
+                  <option value="En Boletería">En Boletería</option>
+                  <option value="En Vivo">En Vivo</option>
+                  <option value="Finalizado">Finalizado</option>
+                  <option value="Cancelado">Cancelado</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-ciudad-evento">Ciudad</label>
+                <select id="filtro-ciudad-evento">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="orden-eventos">Ordenar por</label>
+                <select id="orden-eventos">
+                  <option value="ocupacion">Más ocupación</option>
+                  <option value="ingresos">Más ingresos</option>
+                  <option value="precio">Precio más alto</option>
+                  <option value="nombre">Nombre (A-Z)</option>
+                </select>
+              </div>
+            </form>
+
+            <p class="admin-conteo" id="conteo-eventos" role="status"></p>
+
+            <table class="admin-tabla" role="table">
+              <caption class="oculto">Eventos publicados</caption>
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader">Evento</th>
+                  <th scope="col" role="columnheader">Fecha</th>
+                  <th scope="col" role="columnheader" class="numero">Precio</th>
+                  <th scope="col" role="columnheader">Ocupación</th>
+                  <th scope="col" role="columnheader">Estado</th>
+                  <th scope="col" role="columnheader">Acciones</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" id="cuerpo-eventos"></tbody>
+            </table>
+          </section>
+        </div>
+
+      <!-- Detalle de un evento -->
+      <dialog class="modal modal-detalle" id="detalle-evento" aria-labelledby="detalle-nombre">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="detalle-cerrar" aria-label="Cerrar el detalle del evento">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div id="detalle-contenido"></div>
+        </div>
+      </dialog>
+      </template>
+
+      <template id="seccion-clientes" data-titulo="Gestión de clientes">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Gestión de clientes</h1>
+              <p>Registra, consulta, modifica y elimina clientes, y revisa sus reservas y el estado de su cuenta.</p>
+            </div>
+            <button type="button" class="admin-boton" id="nuevo-cliente">Registrar cliente</button>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <section aria-labelledby="titulo-resumen-clientes">
+            <h2 class="oculto" id="titulo-resumen-clientes">Resumen de clientes</h2>
+            <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
+          </section>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-clientes">
+            <h2 id="titulo-lista-clientes" tabindex="-1">Clientes registrados</h2>
+
+            <form class="admin-filtros" role="search" aria-label="Filtrar clientes" id="filtros-clientes">
+              <div class="admin-filtro admin-filtro-buscar">
+                <label for="buscar-cliente">Buscar</label>
+                <input type="search" id="buscar-cliente" placeholder="Nombre, documento, correo o alias" autocomplete="off" />
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-cuenta">Cuenta</label>
+                <select id="filtro-cuenta">
+                  <option value="">Todas</option>
+                  <option value="Activa">Activa</option>
+                  <option value="Bloqueada">Bloqueada</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="orden-clientes">Ordenar por</label>
+                <select id="orden-clientes">
+                  <option value="registro">Registro más reciente</option>
+                  <option value="reservas">Más reservas</option>
+                  <option value="puntos">Más puntos</option>
+                  <option value="nombre">Nombre (A-Z)</option>
+                </select>
+              </div>
+            </form>
+
+            <p class="admin-conteo" id="conteo-clientes" role="status"></p>
+
+            <table class="admin-tabla" role="table">
+              <caption class="oculto">Clientes registrados</caption>
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader">Cliente</th>
+                  <th scope="col" role="columnheader">Ciudad</th>
+                  <th scope="col" role="columnheader" class="numero">Edad</th>
+                  <th scope="col" role="columnheader" class="numero">Reservas</th>
+                  <th scope="col" role="columnheader" class="numero">Puntos</th>
+                  <th scope="col" role="columnheader">Acciones</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" id="cuerpo-clientes"></tbody>
+            </table>
+          </section>
+        </div>
+
+      <!-- Detalle de un cliente -->
+      <dialog class="modal modal-detalle" id="detalle-cliente" aria-labelledby="detalle-nombre">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="detalle-cerrar" aria-label="Cerrar el detalle del cliente">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div id="detalle-contenido"></div>
+        </div>
+      </dialog>
+      </template>
+
+      <template id="seccion-administradores" data-titulo="Gestión de administradores">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Gestión de administradores</h1>
+              <p>Registra, consulta, modifica y elimina las cuentas del equipo que administra El Desparche.</p>
+            </div>
+            <button type="button" class="admin-boton" id="nuevo-administrador">Registrar administrador</button>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <section aria-labelledby="titulo-resumen-administradores">
+            <h2 class="oculto" id="titulo-resumen-administradores">Resumen de administradores</h2>
+            <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
+          </section>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-administradores">
+            <h2 id="titulo-lista-administradores" tabindex="-1">Administradores registrados</h2>
+
+            <form class="admin-filtros" role="search" aria-label="Filtrar administradores" id="filtros-administradores">
+              <div class="admin-filtro admin-filtro-buscar">
+                <label for="buscar-administrador">Buscar</label>
+                <input type="search" id="buscar-administrador" placeholder="Nombre, documento o correo" autocomplete="off" />
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-horario">Horario</label>
+                <select id="filtro-horario">
+                  <option value="">Todos</option>
+                  <option value="Mañana">Mañana</option>
+                  <option value="Tarde">Tarde</option>
+                  <option value="Noche">Noche</option>
+                  <option value="Completa">Completa</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="orden-administradores">Ordenar por</label>
+                <select id="orden-administradores">
+                  <option value="nombre">Nombre (A-Z)</option>
+                  <option value="salario">Mayor salario</option>
+                  <option value="registro">Registro más reciente</option>
+                </select>
+              </div>
+            </form>
+
+            <p class="admin-conteo" id="conteo-administradores" role="status"></p>
+
+            <table class="admin-tabla" role="table">
+              <caption class="oculto">Administradores registrados</caption>
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader">Administrador</th>
+                  <th scope="col" role="columnheader">Ciudad</th>
+                  <th scope="col" role="columnheader">Horario</th>
+                  <th scope="col" role="columnheader" class="numero">Salario</th>
+                  <th scope="col" role="columnheader">Acciones</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" id="cuerpo-administradores"></tbody>
+            </table>
+          </section>
+        </div>
+
+      <!-- Detalle de un administrador -->
+      <dialog class="modal modal-detalle" id="detalle-administrador" aria-labelledby="detalle-nombre">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="detalle-cerrar" aria-label="Cerrar el detalle del administrador">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div id="detalle-contenido"></div>
+        </div>
+      </dialog>
+      </template>
+
+      <template id="seccion-reservas" data-titulo="Reservas y pagos">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Reservas y pagos</h1>
+              <p>Registra, consulta, modifica y elimina reservas, y revisa el estado de cada pago hecho con Wompi.</p>
+            </div>
+            <button type="button" class="admin-boton" id="nueva-reserva">Registrar reserva</button>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <section aria-labelledby="titulo-resumen-reservas">
+            <h2 class="oculto" id="titulo-resumen-reservas">Resumen de reservas y pagos</h2>
+            <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
+          </section>
+
+          <div class="admin-graficas">
+            <section class="admin-tarjeta" aria-labelledby="titulo-metodos">
+              <h2 id="titulo-metodos">Ingresos por medio de pago</h2>
+              <div id="grafica-metodos"></div>
+            </section>
+
+            <section class="admin-tarjeta" aria-labelledby="titulo-estados-pago">
+              <h2 id="titulo-estados-pago">Estado de los pagos</h2>
+              <div id="grafica-estados-pago"></div>
+            </section>
+          </div>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-reservas">
+            <h2 id="titulo-lista-reservas" tabindex="-1">Reservas</h2>
+
+            <form class="admin-filtros" role="search" aria-label="Filtrar reservas" id="filtros-reservas">
+              <div class="admin-filtro admin-filtro-buscar">
+                <label for="buscar-reserva">Buscar</label>
+                <input type="search" id="buscar-reserva" placeholder="Código, cliente, evento o ID de Wompi" autocomplete="off" />
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-pago">Estado del pago</label>
+                <select id="filtro-pago">
+                  <option value="">Todos</option>
+                  <option value="APPROVED">Aprobado</option>
+                  <option value="PENDING">Pendiente</option>
+                  <option value="DECLINED">Rechazado</option>
+                  <option value="VOIDED">Anulado</option>
+                  <option value="ERROR">Error</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-metodo">Medio de pago</label>
+                <select id="filtro-metodo">
+                  <option value="">Todos</option>
+                  <option value="CARD">Tarjeta</option>
+                  <option value="NEQUI">Nequi</option>
+                  <option value="PSE">PSE</option>
+                  <option value="BANCOLOMBIA_TRANSFER">Botón Bancolombia</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="orden-reservas">Ordenar por</label>
+                <select id="orden-reservas">
+                  <option value="fecha">Más reciente</option>
+                  <option value="valor">Mayor valor</option>
+                  <option value="entradas">Más entradas</option>
+                </select>
+              </div>
+            </form>
+
+            <p class="admin-conteo" id="conteo-reservas" role="status"></p>
+
+            <table class="admin-tabla" role="table">
+              <caption class="oculto">Reservas y pagos</caption>
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader">Reserva</th>
+                  <th scope="col" role="columnheader">Cliente</th>
+                  <th scope="col" role="columnheader">Evento</th>
+                  <th scope="col" role="columnheader" class="numero">Entradas</th>
+                  <th scope="col" role="columnheader" class="numero">Valor</th>
+                  <th scope="col" role="columnheader">Pago</th>
+                  <th scope="col" role="columnheader">Acciones</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" id="cuerpo-reservas"></tbody>
+            </table>
+          </section>
+        </div>
+
+      <!-- Detalle de una reserva -->
+      <dialog class="modal modal-detalle" id="detalle-reserva" aria-labelledby="detalle-nombre">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="detalle-cerrar" aria-label="Cerrar el detalle de la reserva">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div id="detalle-contenido"></div>
+        </div>
+      </dialog>
+      </template>
+
+      <template id="seccion-ubicaciones" data-titulo="Ubicaciones">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Ubicaciones</h1>
+              <p>Registra, consulta, modifica y elimina los países, departamentos y ciudades donde hay eventos y usuarios.</p>
+            </div>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status" tabindex="-1"></p>
+
+          <section aria-labelledby="titulo-resumen-ubicaciones">
+            <h2 class="oculto" id="titulo-resumen-ubicaciones">Resumen de ubicaciones</h2>
+            <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
+          </section>
+
+          <div class="ubic-columnas" id="ubicaciones">
+            <section class="admin-tarjeta ubic-columna" aria-labelledby="titulo-paises">
+              <h2 id="titulo-paises" tabindex="-1">Países</h2>
+              <p class="ubic-ayuda">Elige un país para ver sus departamentos.</p>
+              <ul class="ubic-lista" id="lista-paises"></ul>
+              <form class="ubic-agregar" id="agregar-pais" novalidate>
+                <label for="nuevo-pais">Nuevo país</label>
+                <div class="ubic-fila">
+                  <input type="text" id="nuevo-pais" autocomplete="off" />
+                  <button type="submit" class="admin-boton">Agregar</button>
+                </div>
+                <p class="detalle-error" id="error-nuevo-pais" role="alert"></p>
+              </form>
+            </section>
+
+            <section class="admin-tarjeta ubic-columna" aria-labelledby="titulo-departamentos">
+              <h2 id="titulo-departamentos" tabindex="-1">Departamentos</h2>
+              <p class="ubic-ayuda" id="sin-pais">Elige un país para ver y agregar sus departamentos.</p>
+              <div id="caja-departamentos" hidden>
+                <p class="ubic-ayuda">Elige un departamento para ver sus ciudades.</p>
+              <ul class="ubic-lista" id="lista-departamentos"></ul>
+              <form class="ubic-agregar" id="agregar-departamento" novalidate>
+                <label for="nuevo-departamento">Nuevo departamento</label>
+                <div class="ubic-fila">
+                  <input type="text" id="nuevo-departamento" autocomplete="off" />
+                  <button type="submit" class="admin-boton">Agregar</button>
+                </div>
+                <p class="detalle-error" id="error-nuevo-departamento" role="alert"></p>
+              </form>
+              </div>
+            </section>
+
+            <section class="admin-tarjeta ubic-columna" aria-labelledby="titulo-ciudades">
+              <h2 id="titulo-ciudades" tabindex="-1">Ciudades</h2>
+              <p class="ubic-ayuda" id="sin-departamento">Elige un departamento para ver y agregar sus ciudades.</p>
+              <div id="caja-ciudades" hidden>
+              <ul class="ubic-lista" id="lista-ciudades"></ul>
+              <form class="ubic-agregar" id="agregar-ciudad" novalidate>
+                <label for="nuevo-ciudad">Nueva ciudad</label>
+                <div class="ubic-fila">
+                  <input type="text" id="nuevo-ciudad" autocomplete="off" />
+                  <button type="submit" class="admin-boton">Agregar</button>
+                </div>
+                <p class="detalle-error" id="error-nuevo-ciudad" role="alert"></p>
+              </form>
+              </div>
+            </section>
+          </div>
+        </div>
+      </template>
+
+      <template id="seccion-validar" data-titulo="Validar entradas">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Validar entradas</h1>
+              <p>Escanea el QR de la entrada con la cámara o escribe el código de la reserva.</p>
+            </div>
+          </div>
+
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <div class="validar-columnas">
+            <section class="admin-tarjeta" aria-labelledby="titulo-escanear">
+              <h2 id="titulo-escanear">Escanear</h2>
+
+              <div class="admin-filtro validar-evento">
+                <label for="validar-evento">Evento en la puerta</label>
+                <select id="validar-evento">
+                  <option value="">Cualquier evento</option>
+                </select>
+              </div>
+
+              <div class="validar-camara" id="validar-visor" hidden>
+                <video id="validar-video" playsinline muted></video>
+                <span class="validar-marco" aria-hidden="true"></span>
+              </div>
+
+              <div class="detalle-botones">
+                <button type="button" class="admin-boton" id="validar-abrir">Abrir la cámara</button>
+                <button type="button" class="admin-boton-sec" id="validar-detener" hidden>Detener la cámara</button>
+              </div>
+
+              <form class="validar-manual" id="validar-manual" novalidate>
+                <label for="validar-codigo">O escribe el código de la reserva</label>
+                <div class="validar-manual-fila">
+                  <input type="text" id="validar-codigo" placeholder="DES-XXXXXXXX" autocomplete="off" autocapitalize="characters" />
+                  <button type="submit" class="admin-boton-sec">Validar</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="admin-tarjeta" aria-labelledby="titulo-resultado">
+              <h2 id="titulo-resultado">Resultado</h2>
+              <div id="validar-resultado" role="status" aria-live="polite">
+                <p class="validar-espera">Aquí verás si la entrada es válida en cuanto la escanees.</p>
+              </div>
+            </section>
+          </div>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-ingresos">
+            <h2 id="titulo-ingresos">Ingresos registrados</h2>
+            <p class="admin-conteo" id="conteo-ingresos"></p>
+            <ul class="admin-actividad" id="lista-ingresos"></ul>
+          </section>
+        </div>
+      </template>
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
