@@ -1574,6 +1574,62 @@
 }
 
 /* ==========================================================================
+   MANUAL DE USUARIO
+   Reutiliza la portada y el índice de las páginas de ayuda, la boleta oscura
+   de los términos («Lo esencial») y los talones desplegables de las preguntas
+   frecuentes: cada tarea es un talón y dentro van sus pasos numerados, que
+   aquí sí son una secuencia.
+   ========================================================================== */
+
+.manual-texto .terminos-resumen {
+  margin-bottom: 48px;
+}
+
+.manual-intro {
+  max-width: 64ch;
+  margin: -6px 0 20px;
+  color: var(--gris-texto);
+  font-size: calc(17px * var(--escala-texto));
+  line-height: 1.6;
+}
+
+.manual-pasos {
+  max-width: 64ch;
+  margin: 0;
+  padding-left: 1.5em;
+  color: var(--gris-texto);
+  font-size: calc(16px * var(--escala-texto));
+  line-height: 1.65;
+}
+
+.manual-pasos li + li {
+  margin-top: 8px;
+}
+
+.manual-pasos li::marker {
+  color: var(--morado);
+  font-family: "Outfit", "Inter", sans-serif;
+  font-weight: 800;
+}
+
+.manual-pasos strong,
+.manual-intro strong,
+.manual-guia .faq-respuesta strong {
+  color: var(--texto);
+}
+
+/* Nota debajo de los pasos, o párrafos seguidos */
+.manual-guia .faq-respuesta * + p {
+  margin-top: 12px;
+}
+
+.manual-texto .faq-cierre a:not(.info-boleta-boton) {
+  color: var(--morado);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+/* ==========================================================================
    PRENSA
    Idea visual: el planeta gira y las fotos de los eventos orbitan a su
    alrededor como polaroids, cada una unida con una línea a su ciudad.

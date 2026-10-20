@@ -171,9 +171,10 @@
 
     <!-- tabindex="-1" permite que el enlace de salto mueva el foco hasta aquí -->
     <main id="contenido" class="info" tabindex="-1">
-      <!-- Nosotros, Prensa, Preguntas frecuentes y Términos viven en esta página.
+      <!-- Nosotros, Prensa, Preguntas frecuentes, Términos y el Manual de usuario viven aquí.
            Se ve una parte a la vez; js/paginas.js la elige según el ancla
-           (#prensa, #preguntas-frecuentes, #terminos, o cualquier id de adentro).
+           (#prensa, #preguntas-frecuentes, #terminos, #manual-de-usuario, o cualquier
+           id de adentro).
            Se llega a cada una desde los enlaces del pie. -->
 
       <div class="info-parte" id="nosotros" data-titulo="Nosotros">
@@ -1028,6 +1029,372 @@
           </div>
         </div>
       </div>
+
+      <div class="info-parte" id="manual-de-usuario" data-titulo="Manual de usuario" hidden>
+        <!-- ===== PORTADA ===== -->
+        <section class="ayuda-portada" aria-labelledby="manual-titulo">
+          <div class="ayuda-portada-marco">
+            <h1 id="manual-titulo" class="ayuda-titulo">
+              <span>Del registro</span>
+              <span>a la puerta</span>
+            </h1>
+            <p class="ayuda-entrada">
+              El manual de usuario de El Desparche, paso a paso: cómo crear tu
+              cuenta, reservar y entrar al evento, publicar tus eventos como
+              organizador y administrar la plataforma.
+            </p>
+            <p class="terminos-fecha">
+              Última actualización: <time datetime="2026-10-20">20 de octubre de 2026</time>
+            </p>
+          </div>
+        </section>
+
+        <div class="ayuda-cuerpo">
+          <!-- ===== ÍNDICE ===== -->
+          <nav class="ayuda-indice" aria-labelledby="manual-indice-titulo">
+            <h2 class="ayuda-indice-titulo" id="manual-indice-titulo">Guías</h2>
+            <ul>
+              <li><a href="#manual-primeros-pasos">Primeros pasos</a></li>
+              <li><a href="#manual-clientes">Para clientes</a></li>
+              <li><a href="#manual-agentes">Para organizadores</a></li>
+              <li><a href="#manual-administradores">Para administradores</a></li>
+            </ul>
+          </nav>
+
+          <div class="manual-texto">
+            <!-- Lo esencial, con la misma boleta oscura de los términos -->
+            <section class="terminos-resumen" aria-labelledby="manual-resumen-titulo">
+              <h2 id="manual-resumen-titulo">Lo esencial</h2>
+              <ul>
+                <li>Sin cuenta puedes ver todos los eventos; para reservar necesitas una cuenta de cliente.</li>
+                <li>El total de una reserva es el número de entradas por el precio, más la tarifa de Wompi.</li>
+                <li>Tu QR es tu entrada y sirve para entrar una sola vez.</li>
+                <li>Los eventos que crean los organizadores se publican cuando un administrador los aprueba.</li>
+              </ul>
+            </section>
+
+            <!-- Cada tarea es un talón que se despliega, como las preguntas frecuentes -->
+            <!-- ===== PRIMEROS PASOS ===== -->
+            <section class="faq-grupo manual-guia" id="manual-primeros-pasos" aria-labelledby="manual-primeros-pasos-titulo">
+              <h2 id="manual-primeros-pasos-titulo">Primeros pasos</h2>
+              <p class="manual-intro">
+                Puedes ver los eventos sin una cuenta. Para reservar, publicar
+                eventos o administrar la plataforma, inicia sesión.
+              </p>
+
+              <details class="faq-pregunta" id="manual-crear-cuenta">
+                <summary>Crear tu cuenta</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>Toca <strong>Registrarse</strong> en la cabecera. En el celular está dentro del botón <strong>Menú</strong>, en la zona «Tu cuenta».</li>
+                    <li>Elige si eres <strong>cliente</strong> (vas a reservar) o <strong>agente</strong> (organizas eventos).</li>
+                    <li>Escribe tus datos: tipo y número de documento, nombres, apellidos, correo, contraseña, dirección y ciudad. El teléfono es opcional.</li>
+                    <li>Si eres cliente, agrega tu fecha de nacimiento: con ella se revisa la edad mínima de cada evento. También puedes elegir un alias. Si eres agente, agrega el NIT y la razón social de tu empresa y, si quieres, el nombre comercial y una descripción.</li>
+                    <li>Envía el formulario y entras con tu cuenta de una vez.</li>
+                  </ol>
+                  <p>
+                    Un administrador revisa y aprueba las cuentas de agente. Las
+                    cuentas de administrador no se crean aquí: las registra otro
+                    administrador.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-iniciar-sesion">
+                <summary>Iniciar y cerrar sesión</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>Toca <strong>Iniciar sesión</strong> y escribe tu correo y tu contraseña.</li>
+                    <li>Tu nombre aparece en la cabecera con el tipo de cuenta. Si eres agente, el menú muestra <strong>Mi panel</strong>; si eres administrador, <strong>Administración</strong>.</li>
+                    <li>Para salir, toca <strong>Cerrar sesión</strong>.</li>
+                  </ol>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-accesibilidad">
+                <summary>Agrandar el texto</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>Toca <strong>Accesibilidad</strong> en la cabecera.</li>
+                    <li>Usa <strong>A+</strong> y <strong>A−</strong> para cambiar el tamaño del texto, o <strong>Normal</strong> para volver al de siempre.</li>
+                  </ol>
+                  <p>
+                    El tamaño se guarda en tu navegador para tus próximas visitas.
+                    Toda la página se puede usar con el teclado y con un lector de
+                    pantalla.
+                  </p>
+                </div>
+              </details>
+            </section>
+
+            <!-- ===== CLIENTES ===== -->
+            <section class="faq-grupo manual-guia" id="manual-clientes" aria-labelledby="manual-clientes-titulo">
+              <h2 id="manual-clientes-titulo">Para clientes</h2>
+              <p class="manual-intro">
+                Todo lo que necesitas para encontrar un plan, reservar tus
+                entradas y entrar al evento.
+              </p>
+
+              <details class="faq-pregunta" id="manual-buscar">
+                <summary>Encontrar un evento</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En el inicio, filtra por país, departamento y ciudad, o por tipo de plan: <strong>Parchesotes</strong> (festivales y conciertos), <strong>Parches</strong> (teatro, comedia y cultura) y <strong>Parchesitos</strong> (familiares, gastronómicos y gratis).</li>
+                    <li>En <strong>Eventos</strong> puedes buscar por nombre y filtrar por ciudad y estado.</li>
+                    <li>Abre un evento para ver la fecha, el teatro, el mapa, el precio y la edad mínima.</li>
+                  </ol>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-reservar">
+                <summary>Reservar y pagar</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En la página del evento, toca <strong>Reservar</strong>. Necesitas haber iniciado sesión con una cuenta de cliente.</li>
+                    <li>Elige el número de tickets con los botones <strong>−</strong> y <strong>+</strong>: hasta 10 por reserva, sin pasar los cupos que quedan.</li>
+                    <li>Revisa el resumen: precio unitario, cantidad, tarifa de Wompi y total.</li>
+                    <li>Paga con tarjeta, Nequi, PSE o Botón Bancolombia a través de Wompi.</li>
+                    <li>Cuando el pago se aprueba, ves el comprobante con tu código QR.</li>
+                  </ol>
+                  <p>
+                    Si no cumples la edad mínima del evento o ya no quedan cupos,
+                    la página te lo avisa y no deja reservar.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-mis-reservas">
+                <summary>Ver tus reservas y tu QR</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>Entra a <strong>Mis reservas</strong> en el menú.</li>
+                    <li>Toca <strong>Ver QR</strong> en la reserva que quieras.</li>
+                    <li>Si el pago todavía está pendiente, el QR aparece cuando Wompi lo aprueba.</li>
+                  </ol>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-cancelar">
+                <summary>Cancelar una reserva</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En <strong>Mis reservas</strong>, toca <strong>Cancelar</strong> en la reserva.</li>
+                    <li>Elige el motivo, por ejemplo «Ya no puedo asistir», y si quieres escribe un detalle.</li>
+                    <li>Confirma. La reserva queda cancelada y sus cupos quedan libres para otras personas.</li>
+                  </ol>
+                  <p>
+                    La devolución del dinero depende de la política del
+                    organizador; si el organizador cancela el evento, te
+                    devolvemos lo que pagaste. Lee
+                    <a href="#cancelaciones">Cancelaciones y devoluciones</a> en
+                    los términos de servicio.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-dia-evento">
+                <summary>El día del evento</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>Abre tu QR desde <strong>Mis reservas</strong> antes de llegar y sube el brillo del celular.</li>
+                    <li>Muéstralo en la puerta: lo escanean, o escriben el código de tu reserva.</li>
+                    <li>El QR sirve una sola vez: al validarlo queda marcado como usado.</li>
+                  </ol>
+                </div>
+              </details>
+            </section>
+
+            <!-- ===== AGENTES ===== -->
+            <section class="faq-grupo manual-guia" id="manual-agentes" aria-labelledby="manual-agentes-titulo">
+              <h2 id="manual-agentes-titulo">Para organizadores</h2>
+              <p class="manual-intro">
+                Si organizas eventos (cuenta de agente), todo lo haces desde
+                <strong>Mi panel</strong>, en el menú principal.
+              </p>
+
+              <details class="faq-pregunta" id="manual-agente-resumen">
+                <summary>Revisar cómo van tus eventos</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    En <strong>Resumen</strong> ves tus eventos activos, las
+                    entradas vendidas, los ingresos y la ocupación, con la
+                    evolución de las ventas por mes.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-crear-evento">
+                <summary>Crear un evento</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En <strong>Mis eventos</strong>, toca <strong>Crear evento</strong>.</li>
+                    <li>Escribe el nombre y la descripción, y elige el tipo de plan y la categoría.</li>
+                    <li>Indica el teatro, la dirección y la ciudad, y marca el punto exacto en el mapa.</li>
+                    <li>Escribe cuándo empieza y termina, la capacidad, la edad mínima y el precio por entrada. Si quieres, sube una imagen.</li>
+                    <li>Envíalo. Queda <strong>En revisión</strong> hasta que un administrador lo aprueba y lo publica, o lo rechaza con un motivo.</li>
+                  </ol>
+                  <p>
+                    Si lo rechazan, toca <strong>Corregir y reenviar</strong>.
+                    Mientras no esté publicado, puedes retirarlo con
+                    <strong>Retirar</strong>.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-agente-reservas">
+                <summary>Ver y cancelar las reservas de tus eventos</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En <strong>Reservas</strong> ves solo las reservas de tus eventos. Puedes buscar y filtrar por evento, estado del pago y medio de pago.</li>
+                    <li>Para cancelar una, ábrela y toca <strong>Cancelar reserva</strong>. Elige la causa y, si hace falta, escribe un detalle.</li>
+                  </ol>
+                  <p>
+                    Si el pago ya estaba aprobado, haz la devolución del dinero
+                    desde el panel de comercios de Wompi.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-agente-validar">
+                <summary>Validar entradas en la puerta</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En <strong>Validar entradas</strong>, elige el evento en <strong>Evento en la puerta</strong>.</li>
+                    <li>Toca <strong>Abrir la cámara</strong> y apunta al QR, o escribe el código de la reserva (por ejemplo DES-1052) y toca <strong>Validar</strong>.</li>
+                    <li>La página te dice si la entrada es válida, o si ya se usó, está cancelada, no está pagada o es de otro evento.</li>
+                  </ol>
+                  <p>Solo puedes validar las entradas de tus propios eventos.</p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-agente-perfil">
+                <summary>Editar el perfil de tu empresa</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En <strong>Perfil de la empresa</strong>, cambia el nombre comercial, la descripción, el logo, el correo y el teléfono de contacto, la ciudad o tus años de experiencia.</li>
+                    <li>Guarda los cambios.</li>
+                  </ol>
+                  <p>
+                    El NIT, la razón social y la comisión no se cambian aquí; si
+                    necesitas corregirlos, escribe a soporte.
+                  </p>
+                </div>
+              </details>
+            </section>
+
+            <!-- ===== ADMINISTRADORES ===== -->
+            <section class="faq-grupo manual-guia" id="manual-administradores" aria-labelledby="manual-administradores-titulo">
+              <h2 id="manual-administradores-titulo">Para administradores</h2>
+              <p class="manual-intro">
+                El panel está en <strong>Administración</strong>, en el menú
+                principal. Cada opción del menú lateral es una sección de la
+                misma página.
+              </p>
+
+              <details class="faq-pregunta" id="manual-admin-panel">
+                <summary>Panel y reportes</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    <strong>Panel</strong> muestra los indicadores generales, la
+                    evolución por mes de reservas o ingresos, los eventos por
+                    estado y los agentes con más ventas; con <strong>Periodo</strong>
+                    eliges los últimos 6 o 12 meses.
+                  </p>
+                  <p>
+                    <strong>Reportes</strong> reúne los registros del sistema, los
+                    reportes comerciales, la cobertura de eventos por país,
+                    departamento y ciudad, y las reservas y eventos cancelados con
+                    su causa.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-admin-revisar">
+                <summary>Aprobar los eventos de los organizadores</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En <strong>Eventos</strong>, la parte <strong>Por revisar</strong> muestra los eventos que enviaron los agentes.</li>
+                    <li>Abre uno y toca <strong>Aprobar y publicar</strong>, o <strong>Rechazar</strong> escribiendo el motivo para el agente.</li>
+                  </ol>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-admin-registros">
+                <summary>Registrar, editar y eliminar</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En <strong>Agentes</strong>, <strong>Eventos</strong>, <strong>Clientes</strong>, <strong>Administradores</strong> o <strong>Reservas y pagos</strong>, toca el botón de arriba para registrar, por ejemplo <strong>Registrar agente</strong>.</li>
+                    <li>Para cambiar un registro, ábrelo en la tabla y toca <strong>Editar datos</strong> (o <strong>Editar evento</strong>, <strong>Editar reserva</strong>).</li>
+                    <li>Para borrarlo, toca <strong>Eliminar</strong> y confirma.</li>
+                  </ol>
+                  <p>
+                    No se puede eliminar lo que tiene datos que dependen de él: un
+                    agente con eventos o una reserva con un pago. Tampoco tu propia
+                    cuenta ni al último administrador. Todo evento debe tener un
+                    agente, aunque lo registre un administrador.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-admin-estados">
+                <summary>Cuentas, estados y cancelaciones</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    En el detalle de un agente puedes <strong>Aprobar agente</strong>,
+                    <strong>Suspender agente</strong> o <strong>Reactivar agente</strong>;
+                    en el de un cliente, <strong>Bloquear cuenta</strong> o
+                    <strong>Desbloquear cuenta</strong>.
+                  </p>
+                  <p>
+                    En un evento, <strong>Cambiar el estado</strong> lo pasa a
+                    Programado, En Boletería, En Vivo, Finalizado o Cancelado. Al
+                    cancelar un evento o una reserva se pide la causa: queda
+                    guardada y aparece en los reportes.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-admin-ubicaciones">
+                <summary>Países, departamentos y ciudades</summary>
+                <div class="faq-respuesta">
+                  <ol class="manual-pasos">
+                    <li>En <strong>Ubicaciones</strong>, elige un país para ver sus departamentos y un departamento para ver sus ciudades.</li>
+                    <li>Agrega, renombra o elimina en cada columna.</li>
+                  </ol>
+                  <p>
+                    No se elimina un país con departamentos, un departamento con
+                    ciudades ni una ciudad que usen personas o eventos.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="manual-admin-validar">
+                <summary>Validar entradas</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Funciona igual que para los organizadores (abre la cámara o
+                    escribe el código de la reserva), pero sirve para las
+                    entradas de cualquier evento.
+                  </p>
+                </div>
+              </details>
+            </section>
+
+            <!-- ===== CIERRE ===== -->
+            <section class="faq-cierre" aria-labelledby="manual-cierre-titulo">
+              <h2 id="manual-cierre-titulo">¿Te quedaste en algún paso?</h2>
+              <p>
+                Revisa las <a href="#preguntas-frecuentes">preguntas frecuentes</a>
+                o escríbenos y te respondemos de lunes a viernes, de 8:00 a. m.
+                a 6:00 p. m.
+              </p>
+              <a class="info-boleta-boton info-boleta-morada" href="mailto:soporte@eldesparche.online"
+                >Escribir a soporte</a
+              >
+            </section>
+          </div>
+        </div>
+      </div>
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
@@ -1059,7 +1426,7 @@
           <h2 class="pie-titulo" id="pie-ayuda">Ayuda</h2>
           <ul>
             <li><a href="#">Soporte</a></li>
-            <li><a href="#">Manual de usuario</a></li>
+            <li><a href="nosotros.html#manual-de-usuario">Manual de usuario</a></li>
             <li><a href="nosotros.html#preguntas-frecuentes">Preguntas frecuentes</a></li>
           </ul>
         </nav>
