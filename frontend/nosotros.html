@@ -6,7 +6,7 @@
     <title>Nosotros - El Desparche</title>
     <meta
       name="description"
-      content="Descubre conciertos, festivales y experiencias cerca de ti. Reserva tus entradas en línea con El Desparche."
+      content="Conoce El Desparche: quiénes somos, la sala de prensa, las preguntas frecuentes sobre reservas y pagos, y los términos de servicio."
     />
     <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
 
@@ -171,198 +171,863 @@
 
     <!-- tabindex="-1" permite que el enlace de salto mueva el foco hasta aquí -->
     <main id="contenido" class="info" tabindex="-1">
-      <!-- ===== PORTADA ===== -->
-      <section class="info-portada" aria-labelledby="titulo-nosotros">
-        <div class="info-portada-texto">
-          <h1 id="titulo-nosotros">
-            <span>Somos el parche</span>
-            <span>que conecta a Colombia</span>
-            <span>con sus mejores planes.</span>
-          </h1>
-          <p class="info-entrada">
-            Nacimos en Tuluá con una pregunta: «¿qué hay pa’ hacer hoy?». Ahora mismo la respuesta son
-            <strong><span data-cifra="eventos">12</span> eventos</strong> en
-            <strong><span data-cifra="ciudades">6</span> ciudades</strong>, listos para reservar.
-          </p>
-          <div class="info-botones">
-            <a class="info-boleta-boton" href="eventos.html">Explorar eventos</a>
-            <a class="info-enlace-claro" href="#equipo">Conoce al equipo</a>
+      <!-- Nosotros, Prensa, Preguntas frecuentes y Términos viven en esta página.
+           Se ve una parte a la vez; js/paginas.js la elige según el ancla
+           (#prensa, #preguntas-frecuentes, #terminos, o cualquier id de adentro).
+           Se llega a cada una desde los enlaces del pie. -->
+
+      <div class="info-parte" id="nosotros" data-titulo="Nosotros">
+        <!-- ===== PORTADA ===== -->
+        <section class="info-portada" aria-labelledby="titulo-nosotros">
+          <div class="info-portada-texto">
+            <h1 id="titulo-nosotros">
+              <span>Somos el parche</span>
+              <span>que conecta a Colombia</span>
+              <span>con sus mejores planes.</span>
+            </h1>
+            <p class="info-entrada">
+              Nacimos en Tuluá con una pregunta: «¿qué hay pa’ hacer hoy?». Ahora mismo la respuesta son
+              <strong><span data-cifra="eventos">12</span> eventos</strong> en
+              <strong><span data-cifra="ciudades">6</span> ciudades</strong>, listos para reservar.
+            </p>
+            <div class="info-botones">
+              <a class="info-boleta-boton" href="eventos.html">Explorar eventos</a>
+              <a class="info-enlace-claro" href="#equipo">Conoce al equipo</a>
+            </div>
           </div>
-        </div>
 
-        <div class="info-cinta" aria-hidden="true">
-          <div class="info-cinta-pista" id="cinta-pista">
-            <img src="img/nosotros/cinta-27459.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-6554e.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-d7016.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-12935.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-337fd.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-5fb48.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-67c1c.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-7d702.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-33202.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-1c2e7.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-94bcf.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-1cbb3.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-27459.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-6554e.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-d7016.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-12935.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-337fd.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-5fb48.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-67c1c.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-7d702.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-33202.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-1c2e7.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-94bcf.webp" alt="" width="360" height="240" decoding="async" />
-            <img src="img/nosotros/cinta-1cbb3.webp" alt="" width="360" height="240" decoding="async" />
+          <div class="info-cinta" aria-hidden="true">
+            <div class="info-cinta-pista" id="cinta-pista">
+              <img src="img/nosotros/cinta-27459.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-6554e.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-d7016.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-12935.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-337fd.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-5fb48.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-67c1c.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-7d702.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-33202.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-1c2e7.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-94bcf.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-1cbb3.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-27459.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-6554e.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-d7016.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-12935.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-337fd.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-5fb48.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-67c1c.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-7d702.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-33202.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-1c2e7.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-94bcf.webp" alt="" width="360" height="240" decoding="async" />
+              <img src="img/nosotros/cinta-1cbb3.webp" alt="" width="360" height="240" decoding="async" />
+            </div>
           </div>
-        </div>
-        <button type="button" class="info-cinta-pausa" id="cinta-pausa" aria-pressed="false">Pausar la cinta de fotos</button>
-      </section>
+          <button type="button" class="info-cinta-pausa" id="cinta-pausa" aria-pressed="false">Pausar la cinta de fotos</button>
+        </section>
 
-      <!-- ===== HISTORIA + CÓMO FUNCIONA ===== -->
-      <section class="info-seccion info-historia" aria-labelledby="titulo-historia">
-        <div class="info-historia-texto">
-          <h2 id="titulo-historia">De una tarea de clase a una plataforma de verdad</h2>
-          <p>
-            Empezamos como el proyecto integrador del semestre en la Unidad Central del Valle del Cauca.
-            Los mejores planes de Colombia estaban regados en mil páginas, grupos y carteleras, y reservar
-            una entrada podía ser una odisea.
-          </p>
-          <p>
-            Así que armamos un solo lugar para descubrir conciertos, festivales, teatro y planes familiares,
-            reservar en minutos, pagar seguro y entrar al evento con un QR en el celular.
-          </p>
-        </div>
-
-        <ol class="info-boletas" aria-label="Cómo funciona El Desparche, paso a paso" data-animar>
-          <li>
-            <span class="info-boleta-talon" aria-hidden="true">1</span>
-            <div class="info-boleta-cuerpo">
-              <h3>Descubres</h3>
-              <p>Buscas por ciudad, fecha o tipo de plan.</p>
-            </div>
-          </li>
-          <li>
-            <span class="info-boleta-talon" aria-hidden="true">2</span>
-            <div class="info-boleta-cuerpo">
-              <h3>Reservas</h3>
-              <p>Eliges cuántas entradas quieres y las apartas en línea.</p>
-            </div>
-          </li>
-          <li>
-            <span class="info-boleta-talon" aria-hidden="true">3</span>
-            <div class="info-boleta-cuerpo">
-              <h3>Pagas seguro</h3>
-              <p>Con tarjeta, Nequi, PSE o Botón Bancolombia, a través de Wompi.</p>
-            </div>
-          </li>
-          <li>
-            <span class="info-boleta-talon" aria-hidden="true">4</span>
-            <div class="info-boleta-cuerpo">
-              <h3>Lo vives</h3>
-              <p>Muestras tu QR en la entrada y a disfrutar.</p>
-            </div>
-          </li>
-        </ol>
-      </section>
-
-      <!-- ===== PROPÓSITO ===== -->
-      <section class="info-seccion info-proposito" aria-labelledby="titulo-proposito">
-        <h2 id="titulo-proposito">Para qué existimos</h2>
-        <div class="info-proposito-columnas" data-animar>
-          <div>
-            <h3>Misión</h3>
+        <!-- ===== HISTORIA + CÓMO FUNCIONA ===== -->
+        <section class="info-seccion info-historia" aria-labelledby="titulo-historia">
+          <div class="info-historia-texto">
+            <h2 id="titulo-historia">De una tarea de clase a una plataforma de verdad</h2>
             <p>
-              Acercar la cultura y el entretenimiento de Colombia a todas las personas, con una forma de
-              reservar fácil, segura y accesible para cualquiera.
+              Empezamos como el proyecto integrador del semestre en la Unidad Central del Valle del Cauca.
+              Los mejores planes de Colombia estaban regados en mil páginas, grupos y carteleras, y reservar
+              una entrada podía ser una odisea.
+            </p>
+            <p>
+              Así que armamos un solo lugar para descubrir conciertos, festivales, teatro y planes familiares,
+              reservar en minutos, pagar seguro y entrar al evento con un QR en el celular.
             </p>
           </div>
-          <div>
-            <h3>Visión</h3>
-            <p>
-              Ser el lugar al que vas primero cuando quieres salir, y donde los organizadores locales
-              encuentran a su público.
-            </p>
-          </div>
-        </div>
 
-        <h2 class="info-subtitulo-valores" id="titulo-valores">Lo que nos mueve</h2>
-        <dl class="info-valores" aria-labelledby="titulo-valores" data-animar>
-          <div>
-            <dt>Cultura local</dt>
-            <dd>Le damos vitrina a los artistas, teatros y festivales de cada región.</dd>
-          </div>
-          <div>
-            <dt>Seguridad</dt>
-            <dd>Los pagos pasan por Wompi y cada entrada tiene un QR que sirve una sola vez.</dd>
-          </div>
-          <div>
-            <dt>Accesibilidad</dt>
-            <dd>Todas las personas pueden usar la web, también con teclado o lector de pantalla.</dd>
-          </div>
-          <div>
-            <dt>Comunidad</dt>
-            <dd>Un buen plan es mejor con tu gente; la web crece con quienes la usan.</dd>
-          </div>
-        </dl>
-      </section>
+          <ol class="info-boletas" aria-label="Cómo funciona El Desparche, paso a paso" data-animar>
+            <li>
+              <span class="info-boleta-talon" aria-hidden="true">1</span>
+              <div class="info-boleta-cuerpo">
+                <h3>Descubres</h3>
+                <p>Buscas por ciudad, fecha o tipo de plan.</p>
+              </div>
+            </li>
+            <li>
+              <span class="info-boleta-talon" aria-hidden="true">2</span>
+              <div class="info-boleta-cuerpo">
+                <h3>Reservas</h3>
+                <p>Eliges cuántas entradas quieres y las apartas en línea.</p>
+              </div>
+            </li>
+            <li>
+              <span class="info-boleta-talon" aria-hidden="true">3</span>
+              <div class="info-boleta-cuerpo">
+                <h3>Pagas seguro</h3>
+                <p>Con tarjeta, Nequi, PSE o Botón Bancolombia, a través de Wompi.</p>
+              </div>
+            </li>
+            <li>
+              <span class="info-boleta-talon" aria-hidden="true">4</span>
+              <div class="info-boleta-cuerpo">
+                <h3>Lo vives</h3>
+                <p>Muestras tu QR en la entrada y a disfrutar.</p>
+              </div>
+            </li>
+          </ol>
+        </section>
 
-      <!-- ===== COMUNIDAD ===== -->
-      <section class="info-seccion info-comunidad" id="comunidad" aria-labelledby="titulo-comunidad" tabindex="-1">
-        <h2 id="titulo-comunidad">Hay un lugar para ti en el parche</h2>
-        <ul class="info-roles">
-          <li>
-            <h3>Parcero</h3>
-            <p>Vas a los eventos. Creas tu cuenta y reservas tus planes.</p>
-            <a class="info-enlace" href="eventos.html">Ver eventos</a>
-          </li>
-          <li class="info-rol-agente">
-            <h3>Agente</h3>
-            <p>Organizas eventos. Registras tu empresa, publicas tus eventos y sigues tus ventas desde un solo lugar.</p>
-            <a class="info-enlace" href="index.html" data-registro-agente>Crear cuenta de agente</a>
-          </li>
-          <li>
-            <h3>Seguidor</h3>
-            <p>¿Te gusta el parche? ¡Síguenos en redes para enterarte primero de los eventos nuevos y las preventas!</p>
-            <a class="info-enlace" href="#pie-redes">Ir a nuestras redes</a>
-          </li>
-        </ul>
-      </section>
+        <!-- ===== PROPÓSITO ===== -->
+        <section class="info-seccion info-proposito" aria-labelledby="titulo-proposito">
+          <h2 id="titulo-proposito">Para qué existimos</h2>
+          <div class="info-proposito-columnas" data-animar>
+            <div>
+              <h3>Misión</h3>
+              <p>
+                Acercar la cultura y el entretenimiento de Colombia a todas las personas, con una forma de
+                reservar fácil, segura y accesible para cualquiera.
+              </p>
+            </div>
+            <div>
+              <h3>Visión</h3>
+              <p>
+                Ser el lugar al que vas primero cuando quieres salir, y donde los organizadores locales
+                encuentran a su público.
+              </p>
+            </div>
+          </div>
 
-      <!-- ===== EQUIPO: CARTEL DE FESTIVAL ===== -->
-      <section class="info-equipo" id="equipo" aria-labelledby="titulo-equipo" tabindex="-1">
-        <div class="info-cartel">
-          <p class="info-cartel-presenta">El Desparche presenta</p>
-          <h2 class="info-cartel-titulo" id="titulo-equipo">El equipo detrás del parche</h2>
+          <h2 class="info-subtitulo-valores" id="titulo-valores">Lo que nos mueve</h2>
+          <dl class="info-valores" aria-labelledby="titulo-valores" data-animar>
+            <div>
+              <dt>Cultura local</dt>
+              <dd>Le damos vitrina a los artistas, teatros y festivales de cada región.</dd>
+            </div>
+            <div>
+              <dt>Seguridad</dt>
+              <dd>Los pagos pasan por Wompi y cada entrada tiene un QR que sirve una sola vez.</dd>
+            </div>
+            <div>
+              <dt>Accesibilidad</dt>
+              <dd>Todas las personas pueden usar la web, también con teclado o lector de pantalla.</dd>
+            </div>
+            <div>
+              <dt>Comunidad</dt>
+              <dd>Un buen plan es mejor con tu gente; la web crece con quienes la usan.</dd>
+            </div>
+          </dl>
+        </section>
 
-          <ul class="info-lineup" data-animar>
-            <li style="--orden:0"><span class="info-lineup-nombre">Emmanuel</span> <span class="info-lineup-apellido">Obando Sánchez</span></li>
-            <li style="--orden:1"><span class="info-lineup-nombre">Issabhella</span> <span class="info-lineup-apellido">Alarcón Moreno</span></li>
-            <li style="--orden:2"><span class="info-lineup-nombre">Juan Sebastián</span> <span class="info-lineup-apellido">Jaramillo Ortiz</span></li>
-            <li style="--orden:3"><span class="info-lineup-nombre">Valentina Isabel</span> <span class="info-lineup-apellido">Osorio Morán</span></li>
+        <!-- ===== COMUNIDAD ===== -->
+        <section class="info-seccion info-comunidad" id="comunidad" aria-labelledby="titulo-comunidad" tabindex="-1">
+          <h2 id="titulo-comunidad">Hay un lugar para ti en el parche</h2>
+          <ul class="info-roles">
+            <li>
+              <h3>Parcero</h3>
+              <p>Vas a los eventos. Creas tu cuenta y reservas tus planes.</p>
+              <a class="info-enlace" href="eventos.html">Ver eventos</a>
+            </li>
+            <li class="info-rol-agente">
+              <h3>Agente</h3>
+              <p>Organizas eventos. Registras tu empresa, publicas tus eventos y sigues tus ventas desde un solo lugar.</p>
+              <a class="info-enlace" href="index.html" data-registro-agente>Crear cuenta de agente</a>
+            </li>
+            <li>
+              <h3>Seguidor</h3>
+              <p>¿Te gusta el parche? ¡Síguenos en redes para enterarte primero de los eventos nuevos y las preventas!</p>
+              <a class="info-enlace" href="#pie-redes">Ir a nuestras redes</a>
+            </li>
           </ul>
+        </section>
 
-          <div class="info-talon">
-            <p class="info-talon-titulo">Proyecto integrador, hecho en la UCEVA</p>
-            <dl>
-              <div><dt>Universidad</dt><dd>Unidad Central del Valle del Cauca</dd></div>
-              <div><dt>Facultad</dt><dd>Ingeniería</dd></div>
-              <div><dt>Asignatura</dt><dd>Programación en Ambiente Web</dd></div>
-              <div><dt>Docente</dt><dd>Jairo Rodriguez Martinez</dd></div>
-              <div><dt>Periodo</dt><dd>2026-2</dd></div>
-              <div><dt>Sede</dt><dd>Tuluá, Valle del Cauca</dd></div>
-            </dl>
+        <!-- ===== EQUIPO: CARTEL DE FESTIVAL ===== -->
+        <section class="info-equipo" id="equipo" aria-labelledby="titulo-equipo" tabindex="-1">
+          <div class="info-cartel">
+            <p class="info-cartel-presenta">El Desparche presenta</p>
+            <h2 class="info-cartel-titulo" id="titulo-equipo">El equipo detrás del parche</h2>
+
+            <ul class="info-lineup" data-animar>
+              <li style="--orden:0"><span class="info-lineup-nombre">Emmanuel</span> <span class="info-lineup-apellido">Obando Sánchez</span></li>
+              <li style="--orden:1"><span class="info-lineup-nombre">Issabhella</span> <span class="info-lineup-apellido">Alarcón Moreno</span></li>
+              <li style="--orden:2"><span class="info-lineup-nombre">Juan Sebastián</span> <span class="info-lineup-apellido">Jaramillo Ortiz</span></li>
+              <li style="--orden:3"><span class="info-lineup-nombre">Valentina Isabel</span> <span class="info-lineup-apellido">Osorio Morán</span></li>
+            </ul>
+
+            <div class="info-talon">
+              <p class="info-talon-titulo">Proyecto integrador, hecho en la UCEVA</p>
+              <dl>
+                <div><dt>Universidad</dt><dd>Unidad Central del Valle del Cauca</dd></div>
+                <div><dt>Facultad</dt><dd>Ingeniería</dd></div>
+                <div><dt>Asignatura</dt><dd>Programación en Ambiente Web</dd></div>
+                <div><dt>Docente</dt><dd>Jairo Rodriguez Martinez</dd></div>
+                <div><dt>Periodo</dt><dd>2026-2</dd></div>
+                <div><dt>Sede</dt><dd>Tuluá, Valle del Cauca</dd></div>
+              </dl>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== CIERRE ===== -->
+        <section class="info-cierre" aria-labelledby="titulo-cierre">
+          <h2 id="titulo-cierre">¿Qué hay pa’ hacer hoy?</h2>
+          <a class="info-boleta-boton info-boleta-morada" href="eventos.html">Ver los eventos</a>
+        </section>
+      </div>
+
+      <div class="info-parte" id="prensa" data-titulo="Prensa" hidden>
+        <!-- ===== PORTADA: el planeta con los parches ===== -->
+        <section class="prensa-portada" aria-labelledby="prensa-titulo">
+          <div class="prensa-portada-texto">
+            <h1 id="prensa-titulo" class="ayuda-titulo">
+              <span>Sala de prensa</span>
+              <span>Los parches, en el mapa</span>
+            </h1>
+            <p class="ayuda-entrada">
+              Noticias, logos y datos para periodistas y medios. En el planeta están
+              los parches de la comunidad, en Colombia y en el mundo.
+            </p>
+            <div class="info-botones">
+              <a class="info-boleta-boton" href="#kit">Ver el kit de prensa</a>
+              <a class="info-enlace-claro" href="mailto:prensa@eldesparche.online">Escribir a prensa</a>
+            </div>
+          </div>
+
+          <figure class="prensa-globo" id="prensa-globo">
+            <div class="prensa-globo-lienzo">
+              <canvas id="prensa-lienzo" aria-hidden="true"></canvas>
+              <div class="prensa-pines" id="prensa-pines" aria-hidden="true"></div>
+            </div>
+            <figcaption class="prensa-globo-pie">
+              <span id="prensa-globo-texto">Arrastra el planeta para girarlo.</span>
+              <button type="button" class="info-cinta-pausa prensa-pausa" id="prensa-pausa" aria-pressed="false">Pausar el giro del planeta</button>
+            </figcaption>
+            <details class="prensa-lugares">
+              <summary>Ver la lista de eventos del mapa</summary>
+              <ul id="prensa-lista"></ul>
+            </details>
+          </figure>
+        </section>
+
+        <!-- ===== COMUNICADOS ===== -->
+        <section class="info-seccion prensa-seccion" id="comunicados" aria-labelledby="comunicados-titulo">
+          <h2 id="comunicados-titulo">Comunicados</h2>
+          <ol class="prensa-comunicados">
+            <li>
+              <article aria-labelledby="comunicado-agentes">
+                <time class="prensa-talon" datetime="2026-10-17"><span>17</span> oct 2026</time>
+                <div>
+                  <h3 id="comunicado-agentes">Los organizadores ya tienen su propio panel</h3>
+                  <p>
+                    Las productoras y colectivos que organizan eventos pueden publicarlos,
+                    seguir sus ventas y validar las entradas en la puerta desde su panel de
+                    agente. Cada evento nuevo lo revisa un administrador antes de salir al público.
+                  </p>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article aria-labelledby="comunicado-pagos">
+                <time class="prensa-talon" datetime="2026-10-15"><span>15</span> oct 2026</time>
+                <div>
+                  <h3 id="comunicado-pagos">Pagos con Wompi y entradas con código QR</h3>
+                  <p>
+                    Las entradas se pagan con tarjeta, Nequi, PSE o el Botón Bancolombia a
+                    través de Wompi. Cada reserva confirmada trae un QR personal que sirve para
+                    entrar una sola vez.
+                  </p>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article aria-labelledby="comunicado-inicio">
+                <time class="prensa-talon" datetime="2026-09-01"><span>1</span> sep 2026</time>
+                <div>
+                  <h3 id="comunicado-inicio">Nace El Desparche en Tuluá</h3>
+                  <p>
+                    Cuatro estudiantes de la UCEVA crean El Desparche como proyecto integrador:
+                    una plataforma para encontrar conciertos, festivales, teatro y planes
+                    gratis en Colombia, y reservar las entradas en línea.
+                  </p>
+                </div>
+              </article>
+            </li>
+          </ol>
+        </section>
+
+        <!-- ===== KIT DE PRENSA ===== -->
+        <section class="info-seccion prensa-seccion prensa-kit" id="kit" aria-labelledby="kit-titulo">
+          <h2 id="kit-titulo">Kit de prensa</h2>
+          <p class="prensa-intro">Usa estos recursos para hablar de El Desparche. Por favor no cambies los colores ni las proporciones del logo.</p>
+
+          <div class="prensa-kit-rejilla">
+            <section class="prensa-pieza" aria-labelledby="kit-logo">
+              <h3 id="kit-logo">Logo</h3>
+              <div class="prensa-logos">
+                <div class="prensa-logo prensa-logo-oscuro">
+                  <img src="img/logo-eldesparche.svg" alt="Logo de El Desparche sobre fondo oscuro" />
+                </div>
+                <div class="prensa-logo prensa-logo-morado">
+                  <img src="img/logo-eldesparche.svg" alt="Logo de El Desparche sobre fondo morado" />
+                </div>
+                <div class="prensa-logo prensa-logo-oscuro prensa-isotipo">
+                  <img src="img/isotipo-eldesparche.svg" alt="Isotipo de El Desparche sobre fondo oscuro" />
+                </div>
+                <div class="prensa-logo prensa-logo-morado prensa-isotipo">
+                  <img src="img/isotipo-eldesparche.svg" alt="Isotipo de El Desparche sobre fondo morado" />
+                </div>
+              </div>
+              <a class="prensa-descarga" href="img/logo-eldesparche.svg" download="logo-eldesparche.svg">
+                Descargar el logo (SVG)
+              </a>
+              <a class="prensa-descarga" href="img/isotipo-eldesparche.svg" download="isotipo-eldesparche.svg">
+                Descargar el isotipo (SVG)
+              </a>
+            </section>
+
+            <section class="prensa-pieza" aria-labelledby="kit-colores">
+              <h3 id="kit-colores">Colores</h3>
+              <ul class="prensa-colores">
+                <li><span class="prensa-muestra" style="background:#130a2b" aria-hidden="true"></span><span>Noche</span><button type="button" class="prensa-copiar" data-copiar="#130a2b">#130a2b<span class="oculto">, copiar el color Noche</span></button></li>
+                <li><span class="prensa-muestra" style="background:#5b36f2" aria-hidden="true"></span><span>Morado</span><button type="button" class="prensa-copiar" data-copiar="#5b36f2">#5b36f2<span class="oculto">, copiar el color Morado</span></button></li>
+                <li><span class="prensa-muestra" style="background:#c4b5fd" aria-hidden="true"></span><span>Lila</span><button type="button" class="prensa-copiar" data-copiar="#c4b5fd">#c4b5fd<span class="oculto">, copiar el color Lila</span></button></li>
+                <li><span class="prensa-muestra" style="background:#ffbf47" aria-hidden="true"></span><span>Ámbar</span><button type="button" class="prensa-copiar" data-copiar="#ffbf47">#ffbf47<span class="oculto">, copiar el color Ámbar</span></button></li>
+              </ul>
+            </section>
+
+            <section class="prensa-pieza" aria-labelledby="kit-letras">
+              <h3 id="kit-letras">Tipografías</h3>
+              <p class="prensa-letra prensa-letra-titulo">Outfit</p>
+              <p class="prensa-letra-uso">Para los títulos, siempre en negrita.</p>
+              <p class="prensa-letra">Inter y Geist</p>
+              <p class="prensa-letra-uso">Para el texto y los botones.</p>
+            </section>
+
+            <section class="prensa-pieza prensa-pieza-ancha" aria-labelledby="kit-sobre">
+              <h3 id="kit-sobre">Sobre El Desparche</h3>
+              <p id="texto-sobre">
+                El Desparche es una plataforma colombiana para encontrar conciertos, festivales,
+                teatro y planes gratis, y reservar las entradas en línea. Nació en Tuluá en 2026
+                como proyecto integrador de estudiantes de la UCEVA. Los organizadores publican sus
+                eventos; el público reserva, paga con Wompi y entra con un código QR.
+              </p>
+              <button type="button" class="prensa-copiar prensa-copiar-texto" data-copiar-de="texto-sobre">Copiar el texto</button>
+            </section>
+          </div>
+          <p class="oculto" id="aviso-copiado" role="status" aria-live="polite"></p>
+        </section>
+
+        <!-- ===== CONTACTO ===== -->
+        <section class="faq-cierre prensa-contacto" aria-labelledby="prensa-contacto-titulo">
+          <h2 id="prensa-contacto-titulo">¿Escribes sobre nosotros?</h2>
+          <p>
+            Respondemos a periodistas y medios en un día hábil. Si necesitas fotos, datos o
+            una entrevista con el equipo, escríbenos.
+          </p>
+          <a class="info-boleta-boton info-boleta-morada" href="mailto:prensa@eldesparche.online">prensa@eldesparche.online</a>
+        </section>
+      </div>
+
+      <div class="info-parte" id="preguntas-frecuentes" data-titulo="Preguntas frecuentes" hidden>
+        <!-- ===== PORTADA: la ventanilla de la taquilla ===== -->
+        <section class="ayuda-portada" aria-labelledby="ayuda-titulo">
+          <div class="ayuda-portada-marco">
+            <h1 id="ayuda-titulo" class="ayuda-titulo">
+              <span>¿Dudas?</span>
+              <span>Pregunta en taquilla</span>
+            </h1>
+            <p class="ayuda-entrada">
+              Reservas, pagos y el QR de tu entrada. Si no está
+              aquí, escríbenos y te ayudamos.
+            </p>
+
+            <div class="faq-buscador" role="search">
+              <label for="faq-buscar">Busca tu pregunta</label>
+              <div class="faq-buscador-campo">
+                <svg class="faq-lupa" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <circle cx="11" cy="11" r="6.5" />
+                  <path d="M16 16l4.5 4.5" />
+                </svg>
+                <input
+                  type="search"
+                  id="faq-buscar"
+                  placeholder="Ejemplo: Nequi, QR, cancelar"
+                  autocomplete="off"
+                  aria-describedby="faq-cuantas"
+                />
+              </div>
+              <p class="faq-cuantas" id="faq-cuantas" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
+
+        <div class="ayuda-cuerpo">
+          <!-- ===== ÍNDICE DE TEMAS ===== -->
+          <nav class="ayuda-indice" aria-labelledby="ayuda-indice-titulo">
+            <h2 class="ayuda-indice-titulo" id="ayuda-indice-titulo">Temas</h2>
+            <ul>
+              <li><a href="#tema-reservas">Reservas y entradas</a></li>
+              <li><a href="#tema-pagos">Pagos con Wompi</a></li>
+              <li><a href="#tema-qr">El QR y el día del evento</a></li>
+              <li><a href="#tema-cuenta">Tu cuenta y los agentes</a></li>
+            </ul>
+          </nav>
+
+          <div class="faq-grupos">
+            <!-- ===== RESERVAS ===== -->
+            <section class="faq-grupo" id="tema-reservas" aria-labelledby="tema-reservas-titulo">
+              <h2 id="tema-reservas-titulo">Reservas y entradas</h2>
+
+              <details class="faq-pregunta" id="como-reservar">
+                <summary>¿Cómo reservo una entrada?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Busca el evento en el <a href="index.html">inicio</a> o en
+                    <a href="eventos.html">Eventos</a>, entra a su página y pulsa
+                    «Reservar». Eliges cuántas entradas quieres, revisas el total
+                    y pagas. Necesitas una cuenta de cliente.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="cuantas-entradas">
+                <summary>¿Cuántas entradas puedo reservar a la vez?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Hasta 10 entradas por reserva. Si necesitas más, puedes hacer
+                    otra reserva para el mismo evento.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="ver-reservas">
+                <summary>¿Dónde veo las entradas que ya reservé?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    En <a href="mis-reservas.html">Mis reservas</a>, con tu sesión
+                    iniciada. Ahí aparece cada reserva con su fecha, lugar, total y
+                    estado: Confirmada, Reservada (pago pendiente) o Cancelada.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="cancelar-reserva">
+                <summary>¿Puedo cancelar una reserva?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Sí. En <a href="mis-reservas.html">Mis reservas</a> pulsa
+                    «Cancelar» junto a la reserva y confirma. Al cancelarla, su QR
+                    deja de servir para entrar al evento.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="eventos-gratis">
+                <summary>¿Los eventos gratis también se reservan?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Sí. Así el organizador sabe cuántas personas van y tú recibes
+                    tu QR para entrar, aunque no pagues nada.
+                  </p>
+                </div>
+              </details>
+            </section>
+
+            <!-- ===== PAGOS ===== -->
+            <section class="faq-grupo" id="tema-pagos" aria-labelledby="tema-pagos-titulo">
+              <h2 id="tema-pagos-titulo">Pagos con Wompi</h2>
+
+              <details class="faq-pregunta" id="medios-pago">
+                <summary>¿Con qué puedo pagar?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Con tarjeta débito o crédito, Nequi, PSE o el Botón
+                    Bancolombia. Todos los pagos se hacen en pesos colombianos a
+                    través de Wompi.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="pago-seguro">
+                <summary>¿Es seguro pagar aquí?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Sí. El pago lo procesa Wompi, una pasarela de pagos de
+                    Bancolombia. Los datos de tu tarjeta o de tu banco se escriben
+                    en la ventana de Wompi: El Desparche nunca los ve ni los guarda.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="pago-pendiente">
+                <summary>Mi pago quedó «Pendiente». ¿Qué hago?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Nada por ahora. Algunos pagos, sobre todo con PSE, tardan unos
+                    minutos en confirmarse. Mientras tanto la reserva aparece como
+                    «Reservada» y el QR se activa solo cuando el pago se aprueba.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="pago-rechazado">
+                <summary>Mi pago fue rechazado. ¿Me cobraron?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    No. Si el pago aparece como rechazado o con error, no se hizo
+                    ningún cobro y la reserva no queda activa. Revisa los datos o
+                    el saldo e inténtalo de nuevo, o prueba con otro medio de pago.
+                  </p>
+                </div>
+              </details>
+            </section>
+
+            <!-- ===== QR ===== -->
+            <section class="faq-grupo" id="tema-qr" aria-labelledby="tema-qr-titulo">
+              <h2 id="tema-qr-titulo">El QR y el día del evento</h2>
+
+              <details class="faq-pregunta" id="donde-qr">
+                <summary>¿Dónde está el QR de mi entrada?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    En <a href="mis-reservas.html">Mis reservas</a>, con el botón
+                    «Ver QR». Aparece en cuanto el pago está aprobado. También lo
+                    ves en la página de confirmación justo después de pagar.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="qr-dos-veces">
+                <summary>¿Puedo usar el mismo QR dos veces?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    No. En la entrada lo escanean y queda marcado como usado. Si
+                    alguien intenta entrar otra vez con el mismo QR, el sistema lo
+                    rechaza. Por eso no lo compartas.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="qr-captura">
+                <summary>¿Sirve una captura de pantalla del QR?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Sí, y es buena idea guardarla por si no tienes señal en el
+                    lugar. Sube el brillo de la pantalla al mostrarla.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="evento-cancelado">
+                <summary>¿Qué pasa si cancelan el evento?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    La página del evento lo mostrará como «Cancelado» y explicará
+                    cómo se hace la devolución del dinero. Tu reserva queda
+                    cancelada y su QR deja de funcionar.
+                  </p>
+                </div>
+              </details>
+            </section>
+
+            <!-- ===== CUENTA ===== -->
+            <section class="faq-grupo" id="tema-cuenta" aria-labelledby="tema-cuenta-titulo">
+              <h2 id="tema-cuenta-titulo">Tu cuenta y los agentes</h2>
+
+              <details class="faq-pregunta" id="crear-cuenta">
+                <summary>¿Cómo creo una cuenta?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Con el botón «Registrarse» de la parte de arriba. Te pide tus
+                    datos básicos: documento, nombres y apellidos, teléfono,
+                    ciudad, fecha de nacimiento, correo y una contraseña.
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="ser-agente">
+                <summary>Quiero publicar mi evento. ¿Cómo hago?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Regístrate como Agente. Los agentes son los organizadores que
+                    publican eventos en El Desparche; un administrador revisa y
+                    aprueba cada cuenta de agente.
+                    <a href="#" data-registro-agente>Registrarme como agente</a>
+                  </p>
+                </div>
+              </details>
+
+              <details class="faq-pregunta" id="texto-grande">
+                <summary>La letra se ve muy pequeña. ¿Puedo agrandarla?</summary>
+                <div class="faq-respuesta">
+                  <p>
+                    Sí. Con el botón «Accesibilidad» de la parte de arriba puedes
+                    aumentar o disminuir el tamaño del texto. Se guarda en tu
+                    navegador para las próximas visitas.
+                  </p>
+                </div>
+              </details>
+            </section>
+
+            <p class="faq-vacio" id="faq-vacio" hidden>
+              No encontramos preguntas con esas palabras. Prueba con otra o
+              escríbenos.
+            </p>
+
+            <!-- ===== CIERRE ===== -->
+            <section class="faq-cierre" aria-labelledby="faq-cierre-titulo">
+              <h2 id="faq-cierre-titulo">¿No encontraste tu respuesta?</h2>
+              <p>
+                Escríbenos y te respondemos de lunes a viernes, de 8:00 a. m. a
+                6:00 p. m.
+              </p>
+              <a class="info-boleta-boton info-boleta-morada" href="mailto:soporte@eldesparche.online"
+                >Escribir a soporte</a
+              >
+            </section>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- ===== CIERRE ===== -->
-      <section class="info-cierre" aria-labelledby="titulo-cierre">
-        <h2 id="titulo-cierre">¿Qué hay pa’ hacer hoy?</h2>
-        <a class="info-boleta-boton info-boleta-morada" href="eventos.html">Ver los eventos</a>
-      </section>
+      <div class="info-parte" id="terminos" data-titulo="Términos de servicio" hidden>
+        <!-- ===== PORTADA ===== -->
+        <section class="ayuda-portada" aria-labelledby="terminos-titulo">
+          <div class="ayuda-portada-marco">
+            <h1 id="terminos-titulo" class="ayuda-titulo">
+              <span>La letra pequeña,</span>
+              <span>en grande</span>
+            </h1>
+            <p class="ayuda-entrada">
+              Estos son los términos de servicio de El Desparche: las reglas para
+              reservar, pagar y usar tus entradas. Los escribimos para que se
+              entiendan a la primera.
+            </p>
+            <p class="terminos-fecha">
+              Última actualización: <time datetime="2026-10-17">17 de octubre de 2026</time>
+            </p>
+          </div>
+        </section>
+
+        <div class="ayuda-cuerpo">
+          <!-- ===== ÍNDICE ===== -->
+          <nav class="ayuda-indice" aria-labelledby="terminos-indice-titulo">
+            <h2 class="ayuda-indice-titulo" id="terminos-indice-titulo">Contenido</h2>
+            <ol class="terminos-indice-lista">
+              <li><a href="#quienes-somos">Quiénes somos</a></li>
+              <li><a href="#cuenta">Tu cuenta</a></li>
+              <li><a href="#reservas">Reservas</a></li>
+              <li><a href="#pagos">Pagos</a></li>
+              <li><a href="#entradas">Entradas y código QR</a></li>
+              <li><a href="#cancelaciones">Cancelaciones y devoluciones</a></li>
+              <li><a href="#agentes">Organizadores (agentes)</a></li>
+              <li><a href="#uso">Uso permitido</a></li>
+              <li><a href="#datos">Datos personales</a></li>
+              <li><a href="#responsabilidad">Responsabilidad</a></li>
+              <li><a href="#cambios">Cambios a estos términos</a></li>
+              <li><a href="#contacto">Ley aplicable y contacto</a></li>
+            </ol>
+          </nav>
+
+          <div class="terminos-texto">
+            <!-- Resumen con forma de boleta: lo esencial antes de leer todo -->
+            <section class="terminos-resumen" aria-labelledby="terminos-resumen-titulo">
+              <h2 id="terminos-resumen-titulo">Lo esencial</h2>
+              <ul>
+                <li>Para reservar necesitas una cuenta de cliente.</li>
+                <li>Los pagos los procesa Wompi; nunca vemos los datos de tu tarjeta.</li>
+                <li>Tu QR es personal y sirve para entrar una sola vez. No se revende.</li>
+                <li>Si el evento se cancela, te devolvemos lo que pagaste.</li>
+              </ul>
+            </section>
+
+            <aside class="terminos-aviso" aria-label="Aviso sobre este texto">
+              <p>
+                Este texto es un modelo preparado para el proyecto integrador de
+                la UCEVA. Antes de usarse con clientes reales debe revisarlo un
+                abogado.
+              </p>
+            </aside>
+
+            <ol class="terminos-clausulas">
+              <li>
+                <section id="quienes-somos" aria-labelledby="t-quienes-somos">
+                  <h2 id="t-quienes-somos">Quiénes somos</h2>
+                  <p>
+                    El Desparche es una plataforma en línea que conecta a las
+                    personas con conciertos, festivales, teatro y otros eventos en
+                    Colombia. En ella los organizadores publican sus eventos y el
+                    público reserva y paga sus entradas.
+                  </p>
+                  <p>
+                    Al crear una cuenta o reservar una entrada aceptas estos
+                    términos. Si no estás de acuerdo con ellos, no uses la
+                    plataforma.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="cuenta" aria-labelledby="t-cuenta">
+                  <h2 id="t-cuenta">Tu cuenta</h2>
+                  <p>
+                    Para crear una cuenta debes ser mayor de edad y dar datos
+                    verdaderos: tu documento, nombres, teléfono, ciudad, fecha de
+                    nacimiento y correo. Cada persona puede tener una sola cuenta.
+                  </p>
+                  <p>
+                    Eres responsable de cuidar tu contraseña y de lo que se haga
+                    con tu cuenta. Si crees que alguien más entró a ella,
+                    escríbenos de inmediato.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="reservas" aria-labelledby="t-reservas">
+                  <h2 id="t-reservas">Reservas</h2>
+                  <p>
+                    Puedes reservar hasta 10 entradas por reserva. El precio que
+                    ves en el resumen, en pesos colombianos, es el que pagas. La
+                    reserva queda confirmada cuando el pago se aprueba; mientras
+                    tanto aparece como «Reservada».
+                  </p>
+                  <p>
+                    Los cupos de cada evento son limitados. Una reserva sin pagar
+                    no garantiza el cupo hasta que el pago se confirme.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="pagos" aria-labelledby="t-pagos">
+                  <h2 id="t-pagos">Pagos</h2>
+                  <p>
+                    Los pagos se hacen a través de Wompi, con tarjeta, Nequi, PSE o
+                    el Botón Bancolombia. Los datos de tu tarjeta o de tu banco los
+                    recibe Wompi directamente: El Desparche no los ve ni los guarda.
+                  </p>
+                  <p>
+                    Si un pago es rechazado o tiene un error, no se hace ningún
+                    cobro y la reserva no queda activa.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="entradas" aria-labelledby="t-entradas">
+                  <h2 id="t-entradas">Entradas y código QR</h2>
+                  <p>
+                    Cada reserva confirmada tiene un código QR, que es tu entrada.
+                    El QR es personal y sirve para entrar una sola vez: al
+                    escanearlo en la puerta queda marcado como usado.
+                  </p>
+                  <p>
+                    No está permitido revender las entradas ni compartir el QR. Si
+                    detectamos reventa o un QR alterado, podemos anular la reserva
+                    sin devolución.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="cancelaciones" aria-labelledby="t-cancelaciones">
+                  <h2 id="t-cancelaciones">Cancelaciones y devoluciones</h2>
+                  <p>
+                    Puedes cancelar una reserva desde Mis reservas antes del
+                    evento. La devolución del dinero depende de la política del
+                    organizador, que se muestra en la página de cada evento, y de
+                    lo que establece el Estatuto del Consumidor (Ley 1480 de 2011).
+                  </p>
+                  <p>
+                    Si el organizador cancela el evento, te devolvemos el valor que
+                    pagaste por el mismo medio de pago. Si cambia la fecha o el
+                    lugar, te avisaremos y podrás pedir la devolución si ya no
+                    puedes asistir.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="agentes" aria-labelledby="t-agentes">
+                  <h2 id="t-agentes">Organizadores (agentes)</h2>
+                  <p>
+                    Los agentes son las personas o empresas que publican eventos en
+                    El Desparche. Un administrador revisa y aprueba cada cuenta de
+                    agente antes de que pueda publicar.
+                  </p>
+                  <p>
+                    Cada agente es responsable de que la información de su evento
+                    sea correcta y de que el evento se realice como lo anunció.
+                    El Desparche facilita la reserva y el pago, pero no organiza
+                    los eventos.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="uso" aria-labelledby="t-uso">
+                  <h2 id="t-uso">Uso permitido</h2>
+                  <p>
+                    No está permitido usar la plataforma para cometer fraude,
+                    hacerse pasar por otra persona, reservar con programas
+                    automáticos ni intentar entrar a partes del sitio que no te
+                    corresponden. Si eso ocurre podemos suspender la cuenta.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="datos" aria-labelledby="t-datos">
+                  <h2 id="t-datos">Datos personales</h2>
+                  <p>
+                    Tratamos tus datos según la Ley 1581 de 2012 de protección de
+                    datos personales. Los usamos para manejar tu cuenta, procesar
+                    tus reservas y avisarte sobre tus
+                    eventos. No los vendemos.
+                  </p>
+                  <p>
+                    Tienes derecho a conocer, actualizar, corregir y pedir que se
+                    borren tus datos. Para hacerlo, escríbenos al correo de
+                    contacto.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="responsabilidad" aria-labelledby="t-responsabilidad">
+                  <h2 id="t-responsabilidad">Responsabilidad</h2>
+                  <p>
+                    Hacemos lo posible para que la plataforma funcione siempre,
+                    pero puede haber pausas por mantenimiento o fallas técnicas.
+                    El Desparche no responde por lo que ocurra dentro de un evento,
+                    que es responsabilidad de su organizador.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="cambios" aria-labelledby="t-cambios">
+                  <h2 id="t-cambios">Cambios a estos términos</h2>
+                  <p>
+                    Podemos actualizar estos términos. Cuando lo hagamos cambiará
+                    la fecha de la parte de arriba y, si el cambio es importante,
+                    te avisaremos por correo antes de que empiece a aplicar.
+                  </p>
+                </section>
+              </li>
+
+              <li>
+                <section id="contacto" aria-labelledby="t-contacto">
+                  <h2 id="t-contacto">Ley aplicable y contacto</h2>
+                  <p>
+                    Estos términos se rigen por las leyes de Colombia. Si tienes
+                    preguntas o un reclamo, escríbenos a
+                    <a href="mailto:soporte@eldesparche.online">soporte@eldesparche.online</a>.
+                    También puedes revisar las
+                    <a href="#preguntas-frecuentes">preguntas frecuentes</a>.
+                  </p>
+                </section>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
@@ -385,8 +1050,8 @@
           <h2 class="pie-titulo" id="pie-nosotros">Sobre nosotros</h2>
           <ul>
             <li><a href="nosotros.html#comunidad">Comunidad</a></li>
-            <li><a href="prensa.html">Prensa</a></li>
-            <li><a href="terminos.html">Términos de servicio</a></li>
+            <li><a href="nosotros.html#prensa">Prensa</a></li>
+            <li><a href="nosotros.html#terminos">Términos de servicio</a></li>
           </ul>
         </nav>
 
@@ -394,8 +1059,8 @@
           <h2 class="pie-titulo" id="pie-ayuda">Ayuda</h2>
           <ul>
             <li><a href="#">Soporte</a></li>
-            <li><a href="#">Organizar evento</a></li>
-            <li><a href="preguntas-frecuentes.html">Preguntas frecuentes</a></li>
+            <li><a href="#">Manual de usuario</a></li>
+            <li><a href="nosotros.html#preguntas-frecuentes">Preguntas frecuentes</a></li>
           </ul>
         </nav>
 
@@ -442,5 +1107,6 @@
 
     <script type="module" src="js/script.js"></script>
     <script type="module" src="js/paginas.js"></script>
+    <script type="module" src="js/prensa.js"></script>
   </body>
 </html>

@@ -1,11 +1,75 @@
 /* ==========================================================================
    El Desparche - paginas.js
-   Páginas informativas: cifras con los datos reales, las animaciones al
-   hacer scroll y el atajo para abrir el registro de agente.
+   Páginas informativas (nosotros.html): las partes de la página, cifras con
+   los datos reales, las animaciones al hacer scroll, el buscador de preguntas
+   frecuentes y el atajo para abrir el registro de agente.
    ========================================================================== */
 
 var D = window.Desparche;
 var reducirMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ===== PARTES DE LA PÁGINA (nosotros.html) =====
+   Nosotros, Prensa, Preguntas frecuentes y Términos viven en nosotros.html y
+   se ve una parte a la vez. La parte sale del ancla de la dirección: el id de
+   la parte (#prensa, #preguntas-frecuentes, #terminos) o cualquier id que esté
+   dentro de ella (#comunidad, #tema-pagos, #cancelaciones...). Así funcionan
+   los enlaces del pie desde otras páginas y los botones atrás y adelante. */
+function prepararPartes() {
+  var partes = document.querySelectorAll(".info-parte");
+  if (!partes.length) return;
+  var actual = null;
+
+  function mostrar(parte) {
+    if (parte === actual) return false;
+    partes.forEach(function (p) { p.hidden = p !== parte; });
+    actual = parte;
+    document.title = parte.getAttribute("data-titulo") + " - El Desparche";
+
+    /* El pie marca la parte actual, como antes cada página */
+    document.querySelectorAll('.pie a[href^="nosotros.html#"]').forEach(function (enlace) {
+      if (enlace.getAttribute("href").split("#")[1] === parte.id) {
+        enlace.setAttribute("aria-current", "page");
+      } else {
+        enlace.removeAttribute("aria-current");
+      }
+    });
+
+    /* El planeta de Prensa se mide con el ancho que tiene al verse */
+    window.dispatchEvent(new Event("resize"));
+    return true;
+  }
+
+  function irAlAncla(conFoco) {
+    var id = decodeURIComponent(location.hash.slice(1));
+    var destino = id ? document.getElementById(id) : null;
+    var parte = destino ? destino.closest(".info-parte") : null;
+
+    /* Sin ancla, o un ancla fuera de las partes (#contenido, #pie-redes) */
+    if (!parte) {
+      if (!actual) mostrar(partes[0]);
+      return;
+    }
+
+    var cambio = mostrar(parte);
+    if (destino === parte) {
+      /* Como abrir una página: arriba y con el foco en su título. Sin animar,
+         para que no se cruce con el desplazamiento suave hasta el ancla */
+      window.scrollTo({ top: 0, behavior: "instant" });
+      if (conFoco) {
+        var titulo = parte.querySelector("h1");
+        titulo.setAttribute("tabindex", "-1");
+        titulo.focus({ preventScroll: true });
+      }
+    } else if (cambio) {
+      /* El navegador no pudo bajar hasta el destino mientras estaba oculto */
+      destino.scrollIntoView();
+      if (conFoco && destino.hasAttribute("tabindex")) destino.focus({ preventScroll: true });
+    }
+  }
+
+  irAlAncla(false);
+  window.addEventListener("hashchange", function () { irAlAncla(true); });
+}
 
 /* Cifras dentro del texto, calculadas con los eventos de la web */
 function prepararCifras() {
@@ -120,6 +184,9 @@ function prepararPreguntas() {
   window.addEventListener("hashchange", abrirDesdeEnlace);
 }
 
+/* Primero las partes: las preguntas frecuentes abren la respuesta del ancla
+   y para eso su parte ya tiene que estar a la vista */
+prepararPartes();
 prepararCifras();
 prepararAnimaciones();
 prepararCinta();

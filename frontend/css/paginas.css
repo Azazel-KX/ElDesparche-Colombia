@@ -47,6 +47,13 @@
   line-height: 1.65;
 }
 
+/* ===== PARTES DE LA PÁGINA (nosotros.html) =====
+   Al ir a #prensa o #terminos el navegador sube hasta arriba de la página
+   en vez de dejar la parte pegada a la cabecera */
+.info-parte {
+  scroll-margin-top: 100vh;
+}
+
 /* ===== PORTADA ===== */
 
 .info-portada {
