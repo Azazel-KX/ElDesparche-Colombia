@@ -893,7 +893,7 @@ function guardarCambioLocal(nit, estado) {
   } catch (e) {}
 }
 
-/* Cambios que cada agente hizo a su perfil en agente-perfil.html (modo local) */
+/* Cambios que cada agente hizo a su perfil en agente.html?seccion=perfil (modo local) */
 function leerPerfilesAgentes() {
   try {
     return JSON.parse(localStorage.getItem("perfilesAgentes")) || {};
@@ -1914,7 +1914,7 @@ function barraOcupacion(e, grande) {
 }
 
 /* ===== EVENTOS POR REVISAR =====
-   Los crea un agente en agente-eventos.html y quedan "En revisión".
+   Los crea un agente en agente.html?seccion=eventos y quedan "En revisión".
    - GET   /api/admin/eventos/solicitudes       -> { solicitudes: [ en revisión ] }
    - PATCH /api/admin/eventos/solicitudes/:id   cuerpo { estado: "Aprobado" | "Rechazado", motivo }
      Al aprobar, el backend crea la fila de EVENTO como "Programado". */
@@ -4932,7 +4932,7 @@ function registrarIngreso(reserva, revisor, ruta) {
   });
 }
 
-/* El agente usa esta misma página (agente-validar.html) limitada a sus
+/* El agente usa esta misma sección (agente.html?seccion=validar) limitada a sus
    eventos: config = { usuario, eventos: [ids], obtenerReservas, rutaIngreso } */
 function paginaValidar(config) {
   config = config || {};
@@ -5527,30 +5527,14 @@ function paginaReportes() {
   });
 }
 
-/* ===== SECCIONES DEL PANEL (admin.html) =====
-   Todo el panel es una sola página. Cada sección es un <template id="seccion-...">
-   en admin.html y se muestra una a la vez: así los IDs que se repiten entre
-   secciones (admin-aviso, detalle-contenido, los campos de los formularios...)
-   nunca están dos veces en la página y cada función pagina...() sigue igual.
-   La dirección cambia a admin.html?seccion=agentes para que funcionen los
-   botones atrás y adelante del navegador, recargar y compartir el enlace. */
-var SECCIONES_ADMIN = {
-  panel: paginaPanel,
-  reportes: paginaReportes,
-  agentes: paginaAgentes,
-  eventos: paginaEventosAdmin,
-  clientes: paginaClientes,
-  administradores: paginaAdministradores,
-  reservas: function () { paginaReservasAdmin(); },
-  ubicaciones: paginaUbicaciones,
-  validar: function () { paginaValidar(); }
-};
-var seccionActual = null;
-
-function seccionDeLaDireccion() {
-  var nombre = new URLSearchParams(window.location.search).get("seccion");
-  return SECCIONES_ADMIN[nombre] ? nombre : "panel";
-}
+/* ===== SECCIONES DE LOS PANELES (admin.html y agente.html) =====
+   Cada panel es una sola página. Cada sección es un <template id="seccion-...">
+   y se muestra una a la vez: así los IDs que se repiten entre secciones
+   (admin-aviso, detalle-contenido, los campos de los formularios...) nunca
+   están dos veces en la página y cada función pagina...() sigue igual.
+   La dirección cambia a admin.html?seccion=agentes (o agente.html?seccion=perfil)
+   para que funcionen los botones atrás y adelante del navegador, recargar y
+   compartir el enlace. La primera sección de la lista es la de inicio. */
 
 /* En el celular el menú lateral es una fila que se desplaza: que se vea la
    opción actual. Va después de pintar la sección, que es la que muestra el marco. */
@@ -5561,54 +5545,64 @@ function centrarOpcionActual() {
   fila.scrollLeft = actual.offsetLeft - fila.offsetLeft - (fila.clientWidth - actual.offsetWidth) / 2;
 }
 
-function mostrarSeccion(nombre, conFoco) {
-  var plantilla = document.getElementById("seccion-" + nombre);
-  var marco = document.getElementById("admin-marco");
-  var dialogos = document.getElementById("admin-dialogos");
+/* secciones: { nombre: función que la arranca }, en el orden del menú */
+function iniciarSecciones(secciones) {
+  var inicio = Object.keys(secciones)[0];
+  var seccionActual = null;
+  var enlaces = document.querySelectorAll(".admin-lateral a[data-seccion]");
 
-  /* Lo que la sección anterior deja abierto (la cámara de Validar entradas) */
-  document.dispatchEvent(new CustomEvent("salirseccion"));
-
-  Array.prototype.forEach.call(dialogos.querySelectorAll("dialog[open]"), function (dialogo) {
-    dialogo.close();
-  });
-  var anterior = marco.querySelector(".admin-contenido");
-  if (anterior) anterior.remove();
-  dialogos.innerHTML = "";
-
-  var copia = plantilla.content.cloneNode(true);
-  Array.prototype.forEach.call(copia.querySelectorAll("dialog"), function (dialogo) {
-    dialogos.appendChild(dialogo);
-  });
-  marco.appendChild(copia);
-  seccionActual = nombre;
-
-  document.title = plantilla.getAttribute("data-titulo") + " - El Desparche";
-  Array.prototype.forEach.call(document.querySelectorAll(".admin-lateral a[data-seccion]"), function (enlace) {
-    var esta = enlace.getAttribute("data-seccion") === nombre;
-    enlace.classList.toggle("activo", esta);
-    if (esta) {
-      enlace.setAttribute("aria-current", "page");
-    } else {
-      enlace.removeAttribute("aria-current");
-    }
-  });
-
-  SECCIONES_ADMIN[nombre]();
-  centrarOpcionActual();
-
-  /* Como en un cambio de página: arriba y con el foco en el título, para que
-     el lector de pantalla anuncie la sección nueva */
-  if (conFoco) {
-    var titulo = marco.querySelector(".admin-contenido h1");
-    titulo.setAttribute("tabindex", "-1");
-    window.scrollTo(0, 0);
-    titulo.focus();
+  function seccionDeLaDireccion() {
+    var nombre = new URLSearchParams(window.location.search).get("seccion");
+    return secciones[nombre] ? nombre : inicio;
   }
-}
 
-if (document.body.getAttribute("data-pagina") === "admin") {
-  Array.prototype.forEach.call(document.querySelectorAll(".admin-lateral a[data-seccion]"), function (enlace) {
+  function mostrarSeccion(nombre, conFoco) {
+    var plantilla = document.getElementById("seccion-" + nombre);
+    var marco = document.getElementById("admin-marco");
+    var dialogos = document.getElementById("admin-dialogos");
+
+    /* Lo que la sección anterior deja abierto (la cámara de Validar entradas) */
+    document.dispatchEvent(new CustomEvent("salirseccion"));
+
+    Array.prototype.forEach.call(dialogos.querySelectorAll("dialog[open]"), function (dialogo) {
+      dialogo.close();
+    });
+    var anterior = marco.querySelector(".admin-contenido");
+    if (anterior) anterior.remove();
+    dialogos.innerHTML = "";
+
+    var copia = plantilla.content.cloneNode(true);
+    Array.prototype.forEach.call(copia.querySelectorAll("dialog"), function (dialogo) {
+      dialogos.appendChild(dialogo);
+    });
+    marco.appendChild(copia);
+    seccionActual = nombre;
+
+    document.title = plantilla.getAttribute("data-titulo") + " - El Desparche";
+    Array.prototype.forEach.call(enlaces, function (enlace) {
+      var esta = enlace.getAttribute("data-seccion") === nombre;
+      enlace.classList.toggle("activo", esta);
+      if (esta) {
+        enlace.setAttribute("aria-current", "page");
+      } else {
+        enlace.removeAttribute("aria-current");
+      }
+    });
+
+    secciones[nombre]();
+    centrarOpcionActual();
+
+    /* Como en un cambio de página: arriba y con el foco en el título, para que
+       el lector de pantalla anuncie la sección nueva */
+    if (conFoco) {
+      var titulo = marco.querySelector(".admin-contenido h1");
+      titulo.setAttribute("tabindex", "-1");
+      window.scrollTo(0, 0);
+      titulo.focus();
+    }
+  }
+
+  Array.prototype.forEach.call(enlaces, function (enlace) {
     enlace.addEventListener("click", function (evento) {
       /* Ctrl o clic central abren la sección en otra pestaña, como un enlace normal */
       if (evento.ctrlKey || evento.metaKey || evento.shiftKey || evento.button !== 0) return;
@@ -5632,11 +5626,26 @@ if (document.body.getAttribute("data-pagina") === "admin") {
   if (document.fonts) document.fonts.ready.then(centrarOpcionActual);
 }
 
-/* El panel del agente (js/agente.js) reutiliza las gráficas y los datos de
-   ejemplo de este archivo */
+if (document.body.getAttribute("data-pagina") === "admin") {
+  iniciarSecciones({
+    panel: paginaPanel,
+    reportes: paginaReportes,
+    agentes: paginaAgentes,
+    eventos: paginaEventosAdmin,
+    clientes: paginaClientes,
+    administradores: paginaAdministradores,
+    reservas: function () { paginaReservasAdmin(); },
+    ubicaciones: paginaUbicaciones,
+    validar: function () { paginaValidar(); }
+  });
+}
+
+/* El panel del agente (js/agente.js) reutiliza las gráficas, los datos de
+   ejemplo y las secciones de este archivo */
 export {
   pesos, numero, escapar, animarAlVer, pintarTarjetas, pintarMeses,
   prepararSelectorSerie, pintarEstados, pintarActividad, completarEvento,
   barraOcupacion, obtenerAgentes, obtenerReservasAdmin, ultimosMeses, COLOR_ESTADO,
-  paginaValidar, paginaReservasAdmin, cancelarReservaAdmin, crearMapaEvento, reducirImagen, esEventoDe
+  paginaValidar, paginaReservasAdmin, cancelarReservaAdmin, crearMapaEvento, reducirImagen, esEventoDe,
+  iniciarSecciones
 };

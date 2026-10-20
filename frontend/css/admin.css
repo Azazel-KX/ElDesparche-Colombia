@@ -1642,7 +1642,7 @@
   }
 }
 
-/* ===== PANEL DEL AGENTE (agente.html, agente-eventos.html) =====
+/* ===== PANEL DEL AGENTE (agente.html: Resumen y Mis eventos) =====
    Mismo diseño que administración, con el morado de la página. */
 
 .agente-cuenta {
@@ -2015,7 +2015,7 @@
   background: var(--blanco);
 }
 
-/* ===== PERFIL DE LA EMPRESA (agente-perfil.html) ===== */
+/* ===== PERFIL DE LA EMPRESA (agente.html, sección Perfil) ===== */
 
 .perfil-cabecera {
   display: flex;

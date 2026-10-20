@@ -33,7 +33,7 @@ import {
   pesos, numero, escapar, animarAlVer, pintarTarjetas, pintarMeses, prepararSelectorSerie,
   pintarEstados, pintarActividad, completarEvento, barraOcupacion,
   obtenerAgentes, obtenerReservasAdmin, ultimosMeses, COLOR_ESTADO, paginaValidar,
-  paginaReservasAdmin, cancelarReservaAdmin, crearMapaEvento, reducirImagen, esEventoDe
+  paginaReservasAdmin, cancelarReservaAdmin, crearMapaEvento, reducirImagen, esEventoDe, iniciarSecciones
 } from "./admin.js";
 
 var D = window.Desparche;
@@ -277,7 +277,7 @@ function paginaPanelAgente() {
 }
 
 /* ==========================================================================
-   PÁGINA: MIS EVENTOS (agente-eventos.html)
+   SECCIÓN: MIS EVENTOS (agente.html?seccion=eventos)
    ========================================================================== */
 
 var NOMBRE_CATEGORIA = { musica: "Música", teatro: "Teatro", danza: "Danza", circo: "Circo", comedia: "Comedia" };
@@ -806,7 +806,7 @@ function paginaEventosAgente() {
 
 
 /* ==========================================================================
-   PÁGINA: VALIDAR ENTRADAS (agente-validar.html)
+   SECCIÓN: VALIDAR ENTRADAS (agente.html?seccion=validar)
    Es la misma validación del administrador, limitada a los eventos del agente.
    ========================================================================== */
 
@@ -844,7 +844,7 @@ function paginaValidarAgente() {
 
 
 /* ==========================================================================
-   PÁGINA: RESERVAS (agente-reservas.html)
+   SECCIÓN: RESERVAS (agente.html?seccion=reservas)
    Es la misma lista del administrador, limitada a los eventos del agente.
    ========================================================================== */
 
@@ -884,7 +884,7 @@ function paginaReservasAgente() {
 
 
 /* ==========================================================================
-   PÁGINA: PERFIL DE LA EMPRESA (agente-perfil.html)
+   SECCIÓN: PERFIL DE LA EMPRESA (agente.html?seccion=perfil)
    ========================================================================== */
 
 function guardarPerfil(usuario, datos) {
@@ -1086,16 +1086,14 @@ function paginaPerfilAgente() {
 }
 
 
-var paginaAgente = document.body.getAttribute("data-pagina");
-
-if (paginaAgente === "agente") {
-  paginaPanelAgente();
-} else if (paginaAgente === "agente-eventos") {
-  paginaEventosAgente();
-} else if (paginaAgente === "agente-reservas") {
-  paginaReservasAgente();
-} else if (paginaAgente === "agente-validar") {
-  paginaValidarAgente();
-} else if (paginaAgente === "agente-perfil") {
-  paginaPerfilAgente();
+/* Todo el panel del agente es agente.html: cada sección es una plantilla y
+   iniciarSecciones() (js/admin.js) muestra una a la vez, igual que en admin.html */
+if (document.body.getAttribute("data-pagina") === "agente") {
+  iniciarSecciones({
+    panel: paginaPanelAgente,
+    eventos: paginaEventosAgente,
+    reservas: paginaReservasAgente,
+    validar: paginaValidarAgente,
+    perfil: paginaPerfilAgente
+  });
 }

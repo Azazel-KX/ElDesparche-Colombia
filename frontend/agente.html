@@ -109,15 +109,24 @@
           <p class="admin-lateral-titulo" id="titulo-lateral">Mi panel de agente</p>
           <nav aria-labelledby="titulo-lateral">
             <ul>
-              <li><a class="activo" href="agente.html" aria-current="page">Resumen</a></li>
-              <li><a href="agente-eventos.html">Mis eventos</a></li>
-              <li><a href="agente-reservas.html">Reservas</a></li>
-              <li><a href="agente-validar.html">Validar entradas</a></li>
-              <li><a href="agente-perfil.html">Perfil de la empresa</a></li>
+              <li><a href="agente.html" data-seccion="panel">Resumen</a></li>
+              <li><a href="agente.html?seccion=eventos" data-seccion="eventos">Mis eventos</a></li>
+              <li><a href="agente.html?seccion=reservas" data-seccion="reservas">Reservas</a></li>
+              <li><a href="agente.html?seccion=validar" data-seccion="validar">Validar entradas</a></li>
+              <li><a href="agente.html?seccion=perfil" data-seccion="perfil">Perfil de la empresa</a></li>
             </ul>
           </nav>
         </aside>
 
+        <!-- Aquí js/agente.js pinta la sección elegida (ver las plantillas de abajo) -->
+      </div>
+      <div id="admin-dialogos"></div>
+
+      <!-- ===== SECCIONES =====
+           Cada sección del panel es una plantilla. js/agente.js muestra una a la vez
+           (agente.html?seccion=eventos, ?seccion=perfil...) y pone sus ventanas de
+           detalle en #admin-dialogos. -->
+      <template id="seccion-panel" data-titulo="Mi panel de agente">
         <div class="admin-contenido">
           <div class="recuadro-titulo admin-cabecera">
             <div>
@@ -162,7 +171,449 @@
             </section>
           </div>
         </div>
-      </div>
+      </template>
+
+      <template id="seccion-eventos" data-titulo="Mis eventos - Panel de agente">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Mis eventos</h1>
+              <p>Crea eventos nuevos y sigue su revisión. Un administrador revisa cada evento antes de publicarlo.</p>
+            </div>
+            <button type="button" class="admin-boton agente-crear" id="crear-evento">Crear evento</button>
+          </div>
+
+          <p class="agente-cuenta" id="agente-cuenta" role="status" hidden></p>
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+          <p class="mensaje exito" id="exito-evento" role="status"></p>
+
+          <section class="admin-tarjeta" aria-labelledby="titulo-lista-eventos">
+            <h2 id="titulo-lista-eventos" class="oculto">Lista de tus eventos</h2>
+            <form class="admin-filtros agente-filtros" role="search" aria-label="Filtrar tus eventos" id="filtros-agente">
+              <div class="admin-filtro admin-filtro-buscar">
+                <label for="buscar-mis-eventos">Buscar</label>
+                <input type="search" id="buscar-mis-eventos" placeholder="Nombre, teatro o ciudad" autocomplete="off" />
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-mis-eventos">Estado</label>
+                <select id="filtro-mis-eventos">
+                  <option value="">Todos</option>
+                  <option value="En revisión">En revisión</option>
+                  <option value="Rechazado">Rechazado</option>
+                  <option value="Programado">Programado</option>
+                  <option value="En Boletería">En Boletería</option>
+                  <option value="En Vivo">En Vivo</option>
+                  <option value="Finalizado">Finalizado</option>
+                  <option value="Cancelado">Cancelado</option>
+                </select>
+              </div>
+            </form>
+            <p class="admin-conteo" id="resultado-mis-eventos" role="status" aria-live="polite"></p>
+            <ul class="agente-eventos" id="lista-mis-eventos"></ul>
+          </section>
+        </div>
+
+      <!-- Formulario para crear o editar un evento -->
+      <dialog class="modal modal-detalle modal-evento" id="dialogo-evento" aria-labelledby="titulo-formulario">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="cerrar-formulario" aria-label="Cerrar el formulario">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div class="detalle-cabecera">
+            <div>
+              <h2 id="titulo-formulario">Crear evento</h2>
+              <p>Al enviarlo queda en revisión hasta que un administrador lo apruebe.</p>
+            </div>
+          </div>
+
+          <form id="formulario-evento" novalidate>
+            <p class="mensaje error" id="error-evento" role="alert"></p>
+
+            <div class="campo">
+              <label for="evento-nombre">Nombre del evento</label>
+              <input type="text" id="evento-nombre" maxlength="150" required autocomplete="off" />
+            </div>
+
+            <div class="agente-campos-dobles">
+              <div class="campo">
+                <label for="evento-categoria">Categoría</label>
+                <select id="evento-categoria" required>
+                  <option value="">Elige una</option>
+                  <option value="musica">Música</option>
+                  <option value="teatro">Teatro</option>
+                  <option value="danza">Danza</option>
+                  <option value="circo">Circo</option>
+                  <option value="comedia">Comedia</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="evento-plan">Tipo de plan</label>
+                <select id="evento-plan" required aria-describedby="ayuda-plan">
+                  <option value="">Elige uno</option>
+                  <option value="parchesote">Parchesote</option>
+                  <option value="parche">Parche</option>
+                  <option value="parchesito">Parchesito</option>
+                </select>
+                <p class="agente-ayuda" id="ayuda-plan">Parchesote: festivales y conciertos. Parche: teatro, comedia y cultura. Parchesito: familiar, gastronómico o gratis.</p>
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="evento-descripcion">Descripción</label>
+              <textarea id="evento-descripcion" rows="4" required aria-describedby="ayuda-descripcion"></textarea>
+              <p class="agente-ayuda" id="ayuda-descripcion">Mínimo 30 caracteres. Cuenta qué va a pasar y por qué vale la pena ir.</p>
+            </div>
+
+            <div class="agente-campos-dobles">
+              <div class="campo">
+                <label for="evento-inicio">Empieza</label>
+                <input type="datetime-local" id="evento-inicio" required />
+              </div>
+              <div class="campo">
+                <label for="evento-fin">Termina</label>
+                <input type="datetime-local" id="evento-fin" required />
+              </div>
+            </div>
+
+            <div class="agente-campos-dobles">
+              <div class="campo">
+                <label for="evento-ciudad">Ciudad</label>
+                <select id="evento-ciudad" required>
+                  <option value="">Cargando ciudades</option>
+                </select>
+              </div>
+              <div class="campo">
+                <label for="evento-teatro">Teatro</label>
+                <input type="text" id="evento-teatro" maxlength="150" required placeholder="Ejemplo: Teatro Municipal" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="evento-direccion">Dirección</label>
+              <input type="text" id="evento-direccion" maxlength="200" required autocomplete="off" />
+            </div>
+
+            <!-- Punto exacto del evento: se marca en el mapa o se escribe -->
+            <fieldset class="agente-mapa-campo">
+              <legend>Ubicación en el mapa</legend>
+              <p class="agente-ayuda" id="ayuda-mapa">
+                Toca el mapa para marcar el punto exacto del evento o arrastra el marcador.
+                También puedes buscar la dirección o escribir las coordenadas.
+              </p>
+              <div class="agente-mapa-barra">
+                <button type="button" class="admin-boton-sec" id="buscar-direccion">Buscar la dirección en el mapa</button>
+                <p class="agente-ayuda" id="estado-mapa" role="status"></p>
+              </div>
+              <div class="agente-mapa" id="mapa-evento" role="region"
+                   aria-label="Mapa para marcar la ubicación del evento" aria-describedby="ayuda-mapa"></div>
+              <div class="agente-campos-dobles">
+                <div class="campo">
+                  <label for="evento-lat">Latitud</label>
+                  <input type="number" id="evento-lat" step="any" min="-90" max="90" inputmode="decimal" />
+                </div>
+                <div class="campo">
+                  <label for="evento-lon">Longitud</label>
+                  <input type="number" id="evento-lon" step="any" min="-180" max="180" inputmode="decimal" />
+                </div>
+              </div>
+            </fieldset>
+
+            <div class="agente-campos-triples">
+              <div class="campo">
+                <label for="evento-capacidad">Capacidad</label>
+                <input type="number" id="evento-capacidad" min="1" step="1" inputmode="numeric" required />
+              </div>
+              <div class="campo">
+                <label for="evento-precio">Precio por entrada</label>
+                <input type="number" id="evento-precio" min="0" step="1000" inputmode="numeric" required aria-describedby="ayuda-precio" />
+                <p class="agente-ayuda" id="ayuda-precio">En pesos. Escribe 0 si es gratis.</p>
+              </div>
+              <div class="campo">
+                <label for="evento-edad">Edad mínima</label>
+                <input type="number" id="evento-edad" min="0" max="21" step="1" inputmode="numeric" value="0" required />
+              </div>
+            </div>
+
+            <div class="campo">
+              <label for="evento-imagen">Imagen del evento <span class="opcional">(opcional)</span></label>
+              <input type="file" id="evento-imagen" accept="image/*" aria-describedby="ayuda-imagen" />
+              <p class="agente-ayuda" id="ayuda-imagen">Una foto horizontal se ve mejor. Se reduce sola antes de guardarse.</p>
+              <img class="agente-vista-previa" id="vista-imagen" alt="Vista previa de la imagen del evento" hidden />
+            </div>
+
+            <div class="campo">
+              <label for="evento-observaciones">Observaciones <span class="opcional">(opcional)</span></label>
+              <textarea id="evento-observaciones" rows="2" placeholder="Ejemplo: apertura de puertas a las 6:00 p. m."></textarea>
+            </div>
+
+            <div class="agente-acciones-formulario">
+              <button type="submit" class="admin-boton" id="enviar-evento">Enviar a revisión</button>
+              <button type="button" class="admin-boton-sec" id="cancelar-formulario">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+      </template>
+
+      <template id="seccion-reservas" data-titulo="Reservas - Panel de agente">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Reservas</h1>
+              <p>Todas las reservas de tus eventos y el estado de su pago con Wompi. Desde el detalle puedes cancelar una reserva.</p>
+            </div>
+          </div>
+
+          <p class="agente-cuenta" id="agente-cuenta" role="status" hidden></p>
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <section aria-labelledby="titulo-resumen-reservas">
+            <h2 class="oculto" id="titulo-resumen-reservas">Resumen de reservas y pagos</h2>
+            <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
+          </section>
+
+          <div class="admin-graficas">
+            <section class="admin-tarjeta" aria-labelledby="titulo-metodos">
+              <h2 id="titulo-metodos">Ingresos por medio de pago</h2>
+              <div id="grafica-metodos"></div>
+            </section>
+
+            <section class="admin-tarjeta" aria-labelledby="titulo-estados-pago">
+              <h2 id="titulo-estados-pago">Estado de los pagos</h2>
+              <div id="grafica-estados-pago"></div>
+            </section>
+          </div>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-reservas">
+            <h2 id="titulo-lista-reservas" tabindex="-1">Reservas</h2>
+
+            <form class="admin-filtros" role="search" aria-label="Filtrar reservas" id="filtros-reservas">
+              <div class="admin-filtro admin-filtro-buscar">
+                <label for="buscar-reserva">Buscar</label>
+                <input type="search" id="buscar-reserva" placeholder="Código, cliente o evento" autocomplete="off" />
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-evento">Evento</label>
+                <select id="filtro-evento">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-pago">Estado del pago</label>
+                <select id="filtro-pago">
+                  <option value="">Todos</option>
+                  <option value="APPROVED">Aprobado</option>
+                  <option value="PENDING">Pendiente</option>
+                  <option value="DECLINED">Rechazado</option>
+                  <option value="VOIDED">Anulado</option>
+                  <option value="ERROR">Error</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="filtro-metodo">Medio de pago</label>
+                <select id="filtro-metodo">
+                  <option value="">Todos</option>
+                  <option value="CARD">Tarjeta</option>
+                  <option value="NEQUI">Nequi</option>
+                  <option value="PSE">PSE</option>
+                  <option value="BANCOLOMBIA_TRANSFER">Botón Bancolombia</option>
+                </select>
+              </div>
+              <div class="admin-filtro">
+                <label for="orden-reservas">Ordenar por</label>
+                <select id="orden-reservas">
+                  <option value="fecha">Más reciente</option>
+                  <option value="valor">Mayor valor</option>
+                  <option value="entradas">Más entradas</option>
+                </select>
+              </div>
+            </form>
+
+            <p class="admin-conteo" id="conteo-reservas" role="status"></p>
+
+            <table class="admin-tabla" role="table">
+              <caption class="oculto">Reservas de tus eventos</caption>
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th scope="col" role="columnheader">Reserva</th>
+                  <th scope="col" role="columnheader">Cliente</th>
+                  <th scope="col" role="columnheader">Evento</th>
+                  <th scope="col" role="columnheader" class="numero">Entradas</th>
+                  <th scope="col" role="columnheader" class="numero">Valor</th>
+                  <th scope="col" role="columnheader">Pago</th>
+                  <th scope="col" role="columnheader">Acciones</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" id="cuerpo-reservas"></tbody>
+            </table>
+          </section>
+        </div>
+
+      <!-- Detalle de una reserva -->
+      <dialog class="modal modal-detalle" id="detalle-reserva" aria-labelledby="detalle-nombre">
+        <div class="modal-caja">
+          <button type="button" class="modal-cerrar" id="detalle-cerrar" aria-label="Cerrar el detalle de la reserva">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div id="detalle-contenido"></div>
+        </div>
+      </dialog>
+      </template>
+
+      <template id="seccion-validar" data-titulo="Validar entradas - Panel de agente">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Validar entradas</h1>
+              <p>Escanea el QR de las entradas de tus eventos con la cámara o escribe el código de la reserva.</p>
+            </div>
+          </div>
+
+          <p class="agente-cuenta" id="agente-cuenta" role="status" hidden></p>
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+
+          <div class="validar-columnas">
+            <section class="admin-tarjeta" aria-labelledby="titulo-escanear">
+              <h2 id="titulo-escanear">Escanear</h2>
+
+              <div class="admin-filtro validar-evento">
+                <label for="validar-evento">Evento en la puerta</label>
+                <select id="validar-evento">
+                  <option value="">Cualquiera de tus eventos</option>
+                </select>
+              </div>
+
+              <div class="validar-camara" id="validar-visor" hidden>
+                <video id="validar-video" playsinline muted></video>
+                <span class="validar-marco" aria-hidden="true"></span>
+              </div>
+
+              <div class="detalle-botones">
+                <button type="button" class="admin-boton" id="validar-abrir">Abrir la cámara</button>
+                <button type="button" class="admin-boton-sec" id="validar-detener" hidden>Detener la cámara</button>
+              </div>
+
+              <form class="validar-manual" id="validar-manual" novalidate>
+                <label for="validar-codigo">O escribe el código de la reserva</label>
+                <div class="validar-manual-fila">
+                  <input type="text" id="validar-codigo" placeholder="DES-XXXXXXXX" autocomplete="off" autocapitalize="characters" />
+                  <button type="submit" class="admin-boton-sec">Validar</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="admin-tarjeta" aria-labelledby="titulo-resultado">
+              <h2 id="titulo-resultado">Resultado</h2>
+              <div id="validar-resultado" role="status" aria-live="polite">
+                <p class="validar-espera">Aquí verás si la entrada es válida en cuanto la escanees.</p>
+              </div>
+            </section>
+          </div>
+
+          <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-ingresos">
+            <h2 id="titulo-ingresos">Ingresos registrados</h2>
+            <p class="admin-conteo" id="conteo-ingresos"></p>
+            <ul class="admin-actividad" id="lista-ingresos"></ul>
+          </section>
+        </div>
+      </template>
+
+      <template id="seccion-perfil" data-titulo="Perfil de la empresa - Panel de agente">
+        <div class="admin-contenido">
+          <div class="recuadro-titulo admin-cabecera">
+            <div>
+              <h1>Perfil de la empresa</h1>
+              <p>Los datos de tu empresa como organizadora de eventos en El Desparche.</p>
+            </div>
+          </div>
+
+          <p class="agente-cuenta" id="agente-cuenta" role="status" hidden></p>
+          <p class="admin-aviso" id="admin-aviso" role="status"></p>
+          <p class="mensaje exito" id="exito-perfil" role="status"></p>
+
+          <!-- Cabecera con el logo, el nombre y el estado de la cuenta -->
+          <section class="perfil-cabecera" id="perfil-cabecera" aria-labelledby="perfil-nombre" hidden>
+            <div class="perfil-logo" id="perfil-logo" aria-hidden="true"></div>
+            <div>
+              <h2 id="perfil-nombre"></h2>
+              <p id="perfil-razon"></p>
+              <div id="perfil-estado"></div>
+            </div>
+          </section>
+
+          <div class="perfil-columnas">
+            <!-- Datos legales: solo se cambian escribiendo a soporte -->
+            <section class="admin-tarjeta" aria-labelledby="titulo-datos-legales">
+              <h2 id="titulo-datos-legales">Datos legales</h2>
+              <dl class="detalle-datos perfil-datos" id="perfil-legales"></dl>
+              <p class="agente-ayuda">
+                El NIT, la razón social y la comisión no se cambian desde aquí. Si hay un error,
+                escribe a <a class="agente-enlace" href="mailto:soporte@eldesparche.online">soporte@eldesparche.online</a>.
+              </p>
+            </section>
+
+            <!-- Datos que el agente sí puede editar -->
+            <section class="admin-tarjeta" aria-labelledby="titulo-editar-perfil">
+              <h2 id="titulo-editar-perfil">Datos públicos y de contacto</h2>
+
+              <form id="formulario-perfil" novalidate>
+                <p class="mensaje error" id="error-perfil" role="alert"></p>
+
+                <div class="campo">
+                  <label for="perfil-comercial">Nombre comercial</label>
+                  <input type="text" id="perfil-comercial" maxlength="150" required autocomplete="organization" aria-describedby="ayuda-comercial" />
+                  <p class="agente-ayuda" id="ayuda-comercial">Es el nombre con el que te conoce el público.</p>
+                </div>
+
+                <div class="campo">
+                  <label for="perfil-descripcion">Descripción</label>
+                  <textarea id="perfil-descripcion" rows="4" maxlength="600" required aria-describedby="ayuda-perfil-descripcion"></textarea>
+                  <p class="agente-ayuda" id="ayuda-perfil-descripcion">Entre 30 y 600 caracteres. Qué tipo de eventos organizan y desde cuándo.</p>
+                </div>
+
+                <div class="campo">
+                  <label for="perfil-logo-archivo">Logo <span class="opcional">(opcional)</span></label>
+                  <input type="file" id="perfil-logo-archivo" accept="image/*" aria-describedby="ayuda-logo" />
+                  <p class="agente-ayuda" id="ayuda-logo">Una imagen cuadrada se ve mejor. Se reduce sola antes de guardarse.</p>
+                  <div class="perfil-logo-acciones">
+                    <img class="perfil-logo-vista" id="perfil-logo-vista" alt="Vista previa del logo" hidden />
+                    <button type="button" class="admin-boton-sec agente-retirar" id="perfil-quitar-logo" hidden>Quitar el logo</button>
+                  </div>
+                </div>
+
+                <div class="agente-campos-dobles">
+                  <div class="campo">
+                    <label for="perfil-correo">Correo de contacto</label>
+                    <input type="email" id="perfil-correo" maxlength="150" required autocomplete="email" />
+                  </div>
+                  <div class="campo">
+                    <label for="perfil-telefono">Teléfono</label>
+                    <input type="tel" id="perfil-telefono" maxlength="10" required autocomplete="tel" inputmode="numeric" aria-describedby="ayuda-telefono" />
+                    <p class="agente-ayuda" id="ayuda-telefono">10 dígitos, sin espacios.</p>
+                  </div>
+                </div>
+
+                <div class="agente-campos-dobles">
+                  <div class="campo">
+                    <label for="perfil-ciudad">Ciudad</label>
+                    <select id="perfil-ciudad" required>
+                      <option value="">Cargando ciudades</option>
+                    </select>
+                  </div>
+                  <div class="campo">
+                    <label for="perfil-experiencia">Años de experiencia</label>
+                    <input type="number" id="perfil-experiencia" min="0" max="80" step="1" inputmode="numeric" required />
+                  </div>
+                </div>
+
+                <div class="agente-acciones-formulario">
+                  <button type="submit" class="admin-boton" id="guardar-perfil">Guardar cambios</button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </div>
+      </template>
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
