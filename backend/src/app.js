@@ -4,6 +4,7 @@ const helmet = require("helmet");
 const { corsOrigins } = require("./config/env");
 const authRoutes = require("./routes/authRoutes");
 const ciudadRoutes = require("./routes/ciudadRoutes");
+const eventoRoutes = require("./routes/eventoRoutes");
 const { errorHandler, noEncontrado } = require("./middlewares/errorHandler");
 
 // Crear aplicación Express
@@ -49,6 +50,10 @@ app.use("/api/auth", authRoutes);
 // Rutas de ciudades
 // GET /api/ciudades, etc.
 app.use("/api/ciudades", ciudadRoutes);
+
+// Rutas de eventos
+// GET /api/eventos, GET /api/eventos/:codigo (públicas); POST, PUT y PATCH estado (agente dueño o admin)
+app.use("/api/eventos", eventoRoutes);
 
 // ============================================
 // MANEJO DE ERRORES (DEBE IR AL FINAL)
