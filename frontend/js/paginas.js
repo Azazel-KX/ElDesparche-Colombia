@@ -9,10 +9,11 @@ var D = window.Desparche;
 var reducirMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* ===== PARTES DE LA PÁGINA (nosotros.html) =====
-   Nosotros, Prensa, Preguntas frecuentes y Términos viven en nosotros.html y
-   se ve una parte a la vez. La parte sale del ancla de la dirección: el id de
-   la parte (#prensa, #preguntas-frecuentes, #terminos) o cualquier id que esté
-   dentro de ella (#comunidad, #tema-pagos, #cancelaciones...). Así funcionan
+   Nosotros, Prensa, Preguntas frecuentes, Términos y el Manual de usuario viven
+   en nosotros.html y se ve una parte a la vez. La parte sale del ancla de la
+   dirección: el id de la parte (#prensa, #preguntas-frecuentes, #terminos,
+   #manual-de-usuario) o cualquier id que esté dentro de ella (#comunidad,
+   #tema-pagos, #cancelaciones, #manual-reservar...). Así funcionan
    los enlaces del pie desde otras páginas y los botones atrás y adelante. */
 function prepararPartes() {
   var partes = document.querySelectorAll(".info-parte");
@@ -138,8 +139,11 @@ function prepararPreguntas() {
   var campo = document.getElementById("faq-buscar");
   if (!campo) return;
 
-  var preguntas = document.querySelectorAll(".faq-pregunta");
-  var grupos = document.querySelectorAll(".faq-grupo");
+  /* Solo las preguntas de su parte: el Manual de usuario usa los mismos
+     talones desplegables y no debe filtrarse con este buscador */
+  var zona = campo.closest(".info-parte") || document;
+  var preguntas = zona.querySelectorAll(".faq-pregunta");
+  var grupos = zona.querySelectorAll(".faq-grupo");
   var aviso = document.getElementById("faq-cuantas");
   var vacio = document.getElementById("faq-vacio");
   var espera;
