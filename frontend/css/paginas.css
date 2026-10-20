@@ -1581,6 +1581,11 @@
    aquí sí son una secuencia.
    ========================================================================== */
 
+/* Botones del PDF del manual en la portada, antes de la fecha */
+.manual-documento {
+  margin-bottom: 28px;
+}
+
 .manual-texto .terminos-resumen {
   margin-bottom: 48px;
 }
