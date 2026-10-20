@@ -22,7 +22,7 @@ const query = (texto, params = []) => pool.query(texto, params);
 // Uso:
 //   await conTransaccion(async (cliente) => {
 //     await cliente.query("INSERT INTO USUARIO ...");
-//     await cliente.query("INSERT INTO TELEFONO_USUARIO ...");
+//     await cliente.query("INSERT INTO USUARIO_TELEFONO ...");
 //     return usuario_id;
 //   });
 //

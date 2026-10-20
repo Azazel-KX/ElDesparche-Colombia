@@ -1,11 +1,21 @@
 const db = require("../config/db");
 
+// TIPO_USUARIO: el perfil del usuario (ADMIN, CLIENTE o AGENTE).
+// En la base NO hay una columna tipo_usuario: el perfil lo define la tabla de subtipo en la que está la fila
+// (generalización IS-A total y disjunta), así que aquí se deduce de en cuál aparece el usuario.
+// Como la herencia es disjunta, solo una de las tres consultas EXISTS puede dar verdadero.
+const TIPO_USUARIO = `
+  CASE WHEN EXISTS (SELECT 1 FROM CLIENTE x WHERE x.numero_identificacion = u.numero_identificacion) THEN 'CLIENTE'
+       WHEN EXISTS (SELECT 1 FROM AGENTE  x WHERE x.numero_identificacion = u.numero_identificacion) THEN 'AGENTE'
+       ELSE 'ADMIN'
+  END`;
+
 // COLUMNAS_PUBLICAS: campos que SÍ podemos devolver al frontend
 // NUNCA incluye: contrasena_hash, tokens, datos sensibles
 // ¿Por qué separar esto? Para no exponernos a errores si hacemos SELECT *
 const COLUMNAS_PUBLICAS = `
-  u.numero_identificacion, u.tipo_identificacion, u.nombre, u.apellidos,
-  u.tipo_usuario, u.correo, u.fecha_registro`;
+  u.numero_identificacion, u.tipo_identificacion, u.nombre_completo,
+  ${TIPO_USUARIO} AS tipo_usuario, u.correo, u.fecha_registro`;
 
 // Función 1: Busca un usuario por correo
 // ¿Cuándo se usa?
@@ -32,7 +42,7 @@ async function buscarPorCorreo(correo) {
 // - USUARIO es la tabla central
 // - CIUDAD → DEPARTAMENTO → PAIS: el contexto geográfico (el usuario solo guarda id_ciudad)
 // - CLIENTE / AGENTE / ADMIN: datos del tipo de usuario (solo uno tendrá valores; LEFT JOIN)
-// - TELEFONO_USUARIO: puede haber varios teléfonos
+// - USUARIO_TELEFONO: puede haber varios teléfonos
 //
 // ¿Por qué COALESCE?
 // - Si no hay teléfonos, devolvemos array vacío {} en vez de NULL
@@ -51,7 +61,7 @@ async function perfilPorId(numeroIdentificacion) {
             ad.horario,
             COALESCE(
               (SELECT ARRAY_AGG(t.telefono ORDER BY t.telefono)
-                 FROM TELEFONO_USUARIO t
+                 FROM USUARIO_TELEFONO t
                 WHERE t.numero_identificacion = u.numero_identificacion),
               '{}') AS telefonos
        FROM USUARIO u
@@ -69,28 +79,31 @@ async function perfilPorId(numeroIdentificacion) {
 
 // Función auxiliar 3: Inserta el USUARIO BASE + TELÉFONO (opcional)
 //
+// El formulario envía nombre y apellidos por separado; la base guarda un solo campo, nombre_completo.
+// El perfil (CLIENTE o AGENTE) no se escribe aquí: queda definido por la tabla de subtipo que se inserta después.
+//
 // ¿Por qué el teléfono es una tabla aparte?
 // - Un usuario puede tener múltiples teléfonos
 // - Si fuera una columna, solo podrían tener 1
 // - Esto es normalización de BD (1FN: atributo multivalorado)
 //
 // ¿Qué es el "trigger diferido"?
-// - La BD exige que todo USUARIO tenga su fila en CLIENTE, AGENTE o ADMIN
+// - La BD exige que todo USUARIO esté en exactamente una de CLIENTE, AGENTE o ADMIN
 // - Lo verifica al COMMIT, no en cada INSERT
 // - Por eso creamos el subtipo DENTRO de la misma transacción
 async function insertarUsuarioBase(cliente, d) {
   await cliente.query(
-    `INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, tipo_usuario, nombre, apellidos,
+    `INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, nombre_completo,
                           correo, contrasena_hash, direccion, id_ciudad)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    [d.numero_identificacion, d.tipo_identificacion, d.tipo_cuenta, d.nombre, d.apellidos,
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [d.numero_identificacion, d.tipo_identificacion, `${d.nombre} ${d.apellidos}`,
      d.correo, d.contrasena_hash, d.direccion, d.id_ciudad]
   );
 
   // Si hay teléfono, insertarlo
   if (d.telefono) {
     await cliente.query(
-      `INSERT INTO TELEFONO_USUARIO (numero_identificacion, telefono) VALUES ($1, $2)`,
+      `INSERT INTO USUARIO_TELEFONO (numero_identificacion, telefono) VALUES ($1, $2)`,
       [d.numero_identificacion, d.telefono]
     );
   }
