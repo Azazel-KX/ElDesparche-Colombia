@@ -12,7 +12,7 @@
             <mxPoint x="5830" y="1440" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="t7T0K22vDVdZTDrvjCEd-19" connectable="0" parent="t7T0K22vDVdZTDrvjCEd-16" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;" value="(1:N)" vertex="1">
+        <mxCell id="t7T0K22vDVdZTDrvjCEd-19" connectable="0" parent="t7T0K22vDVdZTDrvjCEd-16" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;" value="(0,N)" vertex="1">
           <mxGeometry relative="1" x="0.5565" y="2" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -66,7 +66,7 @@
         <mxCell id="t7T0K22vDVdZTDrvjCEd-4" edge="1" parent="1" source="Mq6hkwXfZcYeHEss-Ytd-360" style="shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=none;endFill=0;" target="Mq6hkwXfZcYeHEss-Ytd-343">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="t7T0K22vDVdZTDrvjCEd-5" connectable="0" parent="t7T0K22vDVdZTDrvjCEd-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;" value="(1:1)" vertex="1">
+        <mxCell id="t7T0K22vDVdZTDrvjCEd-5" connectable="0" parent="t7T0K22vDVdZTDrvjCEd-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;" value="(1,1)" vertex="1">
           <mxGeometry relative="1" x="0.2131" y="5" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -282,9 +282,9 @@
           <mxGeometry height="38" width="140" x="3626.9998371601105" y="2927.666585286459" as="geometry" />
         </mxCell>
         <mxCell id="Mq6hkwXfZcYeHEss-Ytd-483" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=22;fontStyle=1;" value="Modelo Entidad-Relación – Plataforma de eventos" vertex="1">
-          <mxGeometry height="40" width="700" x="4746.9998371601105" y="869.996585286459" as="geometry" />
+          <mxGeometry height="40" width="700" x="2985" y="869.996585286459" as="geometry" />
         </mxCell>
-        <mxCell id="Mq6hkwXfZcYeHEss-Ytd-484" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=#fafafa;strokeColor=#999999;fontSize=11;arcSize=4;" value="&lt;b&gt;Convenciones&lt;/b&gt;&lt;br&gt;• (mín,máx) junto a cada entidad: cuántas instancias de esa entidad se relacionan con una de la otra. 1:N / N:1 en el rombo.&lt;br&gt;• Subrayado: clave primaria.&lt;br&gt;• Doble elipse: multivalorado. Elipse punteada: derivado.&lt;br&gt;• Línea doble: participación total (la entidad siempre debe participar en la relación).&lt;br&gt;&lt;br&gt;&lt;b&gt;Reglas (triggers / CHECK)&lt;/b&gt;&lt;br&gt;• Cada reserva la realiza un único cliente y está asociada a un único evento; un cliente puede realizar muchas reservas.&lt;br&gt;• Edad del cliente ≥ edad_minima del evento.&lt;br&gt;• La suma de numero_entradas de las reservas no canceladas de un evento ≤ capacidad_total del evento.&lt;br&gt;• valor_total de la reserva = numero_entradas × precio del evento + tarifa de Wompi.&lt;br&gt;• Solo los agentes registran eventos; el administrador consulta los reportes.&lt;br&gt;• Estados (obligatorios) EVENTO: Programado, En Boletería, En Vivo, Finalizado, Cancelado. RESERVA: Reservada, Confirmada, Cancelada." vertex="1">
+        <mxCell id="Mq6hkwXfZcYeHEss-Ytd-484" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fillColor=#fafafa;strokeColor=#999999;fontSize=11;arcSize=4;" value="&lt;b&gt;Convenciones&lt;/b&gt;&lt;br&gt;• (mín,máx) junto a cada entidad: cuántas instancias de esa entidad se relacionan con una de la otra. 1:N / N:1 en el rombo.&lt;br&gt;• Subrayado: clave primaria.&lt;br&gt;• Doble elipse: multivalorado. Elipse punteada: derivado.&lt;br&gt;• Línea doble: participación total (la entidad siempre debe participar en la relación).&lt;br&gt;&lt;br&gt;&lt;b&gt;Reglas (triggers / CHECK)&lt;/b&gt;&lt;br&gt;• Cada reserva la realiza un único cliente y está asociada a un único evento; un cliente puede realizar muchas reservas.&lt;br&gt;• Edad del cliente ≥ edad_minima del evento.&lt;br&gt;• La suma de numero_entradas de las reservas no canceladas de un evento ≤ capacidad_total del evento.&lt;br&gt;• valor_total de la reserva = numero_entradas × precio del evento + tarifa de Wompi.&lt;br&gt;• Solo los agentes registran eventos; el administrador consulta los reportes.&lt;br&gt;• Estados (obligatorios) USUARIO: Activo, Pendiente, Suspendido, Bloqueado. EVENTO: En revisión, Rechazado, Programado, En Boletería, En Vivo, Finalizado, Cancelado. RESERVA: Reservada, Confirmada, Usada, Cancelada.&lt;br&gt;• El motivo de un rechazo y la causa de una cancelación van en observaciones." vertex="1">
           <mxGeometry height="330" width="900" x="2961.9998371601105" y="3246.666585286459" as="geometry" />
         </mxCell>
         <mxCell id="Mq6hkwXfZcYeHEss-Ytd-485" edge="1" parent="1" source="Mq6hkwXfZcYeHEss-Ytd-341" style="endArrow=none;html=1;rounded=0;strokeColor=#333333;" target="Mq6hkwXfZcYeHEss-Ytd-380">
@@ -302,7 +302,7 @@
         <mxCell id="Mq6hkwXfZcYeHEss-Ytd-496" edge="1" parent="1" source="Mq6hkwXfZcYeHEss-Ytd-341" style="endArrow=none;html=1;rounded=0;strokeColor=#333333;shape=link;exitX=1;exitY=0;exitDx=0;exitDy=0;" target="Mq6hkwXfZcYeHEss-Ytd-360">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="Mq6hkwXfZcYeHEss-Ytd-497" connectable="0" parent="Mq6hkwXfZcYeHEss-Ytd-496" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;labelBackgroundColor=#ffffff;" value="(N:1)" vertex="1">
+        <mxCell id="Mq6hkwXfZcYeHEss-Ytd-497" connectable="0" parent="Mq6hkwXfZcYeHEss-Ytd-496" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;labelBackgroundColor=#ffffff;" value="(0,N)" vertex="1">
           <mxGeometry relative="1" x="-0.45" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -482,6 +482,12 @@
         <mxCell id="Mq6hkwXfZcYeHEss-Ytd-585" edge="1" parent="1" source="Mq6hkwXfZcYeHEss-Ytd-393" style="endArrow=none;html=1;rounded=0;strokeColor=#333333;" target="Mq6hkwXfZcYeHEss-Ytd-341">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
+        <mxCell id="estado-usuario-attr" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" value="estado_usuario" vertex="1">
+          <mxGeometry height="38" width="140" x="3560" y="1240" as="geometry" />
+        </mxCell>
+        <mxCell id="estado-usuario-edge" edge="1" parent="1" source="estado-usuario-attr" style="endArrow=none;html=1;rounded=0;strokeColor=#333333;" target="Mq6hkwXfZcYeHEss-Ytd-341">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
         <mxCell id="Mq6hkwXfZcYeHEss-Ytd-608" edge="1" parent="1" source="Mq6hkwXfZcYeHEss-Ytd-416" style="endArrow=none;html=1;rounded=0;strokeColor=#333333;" target="Mq6hkwXfZcYeHEss-Ytd-342">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -655,13 +661,13 @@
         <mxCell id="t7T0K22vDVdZTDrvjCEd-3" edge="1" parent="1" source="t7T0K22vDVdZTDrvjCEd-2" style="shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.369;entryY=1.019;entryDx=0;entryDy=0;entryPerimeter=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=none;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="Mq6hkwXfZcYeHEss-Ytd-353">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="t7T0K22vDVdZTDrvjCEd-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;align=center;" value="salario" vertex="1">
+        <mxCell id="t7T0K22vDVdZTDrvjCEd-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" value="salario" vertex="1">
           <mxGeometry height="40" width="100" x="3470" y="1938" as="geometry" />
         </mxCell>
         <mxCell id="t7T0K22vDVdZTDrvjCEd-9" edge="1" parent="1" source="t7T0K22vDVdZTDrvjCEd-7" style="shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=none;endFill=0;" target="Mq6hkwXfZcYeHEss-Ytd-346">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="t7T0K22vDVdZTDrvjCEd-7" parent="1" style="ellipse;whiteSpace=wrap;html=1;align=center;" value="horario" vertex="1">
+        <mxCell id="t7T0K22vDVdZTDrvjCEd-7" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" value="horario" vertex="1">
           <mxGeometry height="40" width="100" x="3612" y="1941" as="geometry" />
         </mxCell>
         <mxCell id="t7T0K22vDVdZTDrvjCEd-8" edge="1" parent="1" source="t7T0K22vDVdZTDrvjCEd-6" style="shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=none;endFill=0;" target="Mq6hkwXfZcYeHEss-Ytd-346">
@@ -673,16 +679,16 @@
         <mxCell id="t7T0K22vDVdZTDrvjCEd-11" edge="1" parent="1" source="t7T0K22vDVdZTDrvjCEd-10" style="shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.584;entryY=-0.045;entryDx=0;entryDy=0;entryPerimeter=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=none;endFill=0;" target="Mq6hkwXfZcYeHEss-Ytd-387">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="t7T0K22vDVdZTDrvjCEd-13" parent="1" style="ellipse;whiteSpace=wrap;html=1;align=center;" value="puntos" vertex="1">
+        <mxCell id="t7T0K22vDVdZTDrvjCEd-13" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" value="puntos" vertex="1">
           <mxGeometry height="40" width="100" x="4250" y="1747.67" as="geometry" />
         </mxCell>
-        <mxCell id="t7T0K22vDVdZTDrvjCEd-14" parent="1" style="ellipse;whiteSpace=wrap;html=1;align=center;" value="publicidad" vertex="1">
+        <mxCell id="t7T0K22vDVdZTDrvjCEd-14" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" value="publicidad" vertex="1">
           <mxGeometry height="40" width="100" x="4362" y="1894.67" as="geometry" />
         </mxCell>
         <mxCell id="t7T0K22vDVdZTDrvjCEd-18" edge="1" parent="1" source="t7T0K22vDVdZTDrvjCEd-17" style="shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=none;endFill=0;" target="Mq6hkwXfZcYeHEss-Ytd-343">
           <mxGeometry relative="1" x="0.0465" as="geometry" />
         </mxCell>
-        <mxCell id="t7T0K22vDVdZTDrvjCEd-20" connectable="0" parent="t7T0K22vDVdZTDrvjCEd-18" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;" value="(1:1)" vertex="1">
+        <mxCell id="t7T0K22vDVdZTDrvjCEd-20" connectable="0" parent="t7T0K22vDVdZTDrvjCEd-18" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;" value="(1,1)" vertex="1">
           <mxGeometry relative="1" x="0.6136" y="3" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -690,10 +696,10 @@
         <mxCell id="t7T0K22vDVdZTDrvjCEd-17" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="Pertenece&lt;br&gt;&lt;b&gt;N:1&lt;/b&gt;" vertex="1">
           <mxGeometry height="80" width="140" x="5832" y="1370" as="geometry" />
         </mxCell>
-        <mxCell id="jS0Mwd0h-fChSU6wMmDk-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;align=center;fontStyle=4;" value="&lt;span style=&quot;font-size: 10px;&quot;&gt;numero_identificacion&lt;/span&gt;" vertex="1">
+        <mxCell id="jS0Mwd0h-fChSU6wMmDk-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=4;" value="&lt;span style=&quot;font-size: 10px;&quot;&gt;numero_identificacion&lt;/span&gt;" vertex="1">
           <mxGeometry height="40" width="153" x="3797" y="1180" as="geometry" />
         </mxCell>
-        <mxCell id="jS0Mwd0h-fChSU6wMmDk-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;align=center;" value="experiencia" vertex="1">
+        <mxCell id="jS0Mwd0h-fChSU6wMmDk-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" value="experiencia" vertex="1">
           <mxGeometry height="40" width="100" x="4990" y="1910" as="geometry" />
         </mxCell>
         <mxCell id="jCYqUBCmOiZAG7pTqi3w-2" edge="1" parent="1" source="jCYqUBCmOiZAG7pTqi3w-1" style="shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=11;fontColor=default;labelBackgroundColor=default;endArrow=none;endFill=0;" target="Mq6hkwXfZcYeHEss-Ytd-353">
