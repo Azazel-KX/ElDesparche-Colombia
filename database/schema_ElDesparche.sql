@@ -9,14 +9,32 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_uuid(), crypt() para el seed
 
+-- Zona horaria: las columnas son TIMESTAMP sin zona y guardan la hora de Colombia (así las escribe la web). Si el
+-- servidor está en UTC (Docker, Neon), NOW() y CURRENT_DATE darían la hora de Londres: las fechas automáticas saldrían
+-- 5 horas adelantadas y un evento se daría por terminado 5 horas antes. Vale para las conexiones nuevas (el seed y
+-- psql); el backend además la fija en cada conexión (backend/src/config/db.js).
+DO $$
+BEGIN
+    EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'America/Bogota');
+EXCEPTION WHEN insufficient_privilege THEN
+    RAISE WARNING 'Sin permiso para fijar la zona horaria de la base; el backend la fija en cada conexión.';
+END $$;
+SET timezone TO 'America/Bogota';   -- y para el resto de esta carga
+
 -- ==================================================================================================================
 -- TIPOS ENUMERADOS (opciones fijas que define el sistema)
 -- ==================================================================================================================
 
 CREATE TYPE tipo_identificacion_t  AS ENUM ('CC', 'CE', 'PAS', 'PPT', 'NIT');
 CREATE TYPE jornada_t              AS ENUM ('Mañana', 'Tarde', 'Noche', 'Completa');
-CREATE TYPE estado_evento_t        AS ENUM ('Programado', 'En Boletería', 'En Vivo', 'Finalizado', 'Cancelado');
-CREATE TYPE estado_reserva_t       AS ENUM ('Reservada', 'Confirmada', 'Cancelada');
+-- Estado de la cuenta: un agente nuevo queda Pendiente hasta que un administrador lo aprueba; Suspendido (agentes)
+-- y Bloqueado (clientes) impiden iniciar sesión. El motivo, si lo hay, no se guarda aquí.
+CREATE TYPE estado_usuario_t       AS ENUM ('Activo', 'Pendiente', 'Suspendido', 'Bloqueado');
+-- En revisión / Rechazado: el evento lo registró un agente y todavía no lo aprueba un administrador. Al aprobarlo
+-- pasa a Programado. El motivo del rechazo (y la causa de una cancelación) van en EVENTO.observaciones.
+CREATE TYPE estado_evento_t        AS ENUM ('En revisión', 'Rechazado', 'Programado', 'En Boletería', 'En Vivo', 'Finalizado', 'Cancelado');
+-- Usada: la entrada ya se validó en la puerta del evento. La causa de una cancelación va en RESERVA.observaciones.
+CREATE TYPE estado_reserva_t       AS ENUM ('Reservada', 'Confirmada', 'Usada', 'Cancelada');
 CREATE TYPE tipo_metodo_pago_t     AS ENUM ('Tarjeta crédito', 'Tarjeta débito', 'Transferencia bancaria', 'Billetera digital');
 CREATE TYPE estado_pago_t          AS ENUM ('Pendiente', 'Aprobado', 'Rechazado');
 
@@ -66,9 +84,12 @@ CREATE TABLE USUARIO (
     contrasena_hash       VARCHAR(255) NOT NULL,
     direccion             VARCHAR(200) NOT NULL,
     fecha_registro        TIMESTAMP NOT NULL DEFAULT NOW(),
+    estado_usuario        estado_usuario_t NOT NULL DEFAULT 'Activo',   -- suspensión o bloqueo de la cuenta
     id_ciudad             INTEGER NOT NULL REFERENCES CIUDAD(id_ciudad) ON DELETE RESTRICT,   -- ciudad de residencia (UbiPer)
-    -- Formato según el tipo de documento (la PK no incluye el tipo, así que el número debe ser válido para su tipo)
-    CONSTRAINT ck_usuario_documento_formato CHECK (CASE tipo_identificacion
+    -- Formato según el tipo de documento (la PK no incluye el tipo, así que el número debe ser válido para su tipo).
+    -- Solo se juzga un número ya normalizado: si tiene puntos o minúsculas, lo rechaza ck_usuario_documento_normalizado
+    -- (sin esa condición fallaban las dos y PostgreSQL informaba esta, con un mensaje que no explica el problema).
+    CONSTRAINT ck_usuario_documento_formato CHECK (numero_identificacion !~ '^[A-Z0-9]+$' OR CASE tipo_identificacion
                WHEN 'CC'  THEN numero_identificacion ~ '^[0-9]{6,10}$'
                WHEN 'CE'  THEN numero_identificacion ~ '^[0-9]{4,10}$'
                WHEN 'PPT' THEN numero_identificacion ~ '^[0-9]{5,10}$'
@@ -118,7 +139,7 @@ CREATE TABLE AGENTE (
 
 -- ==================================================================================================================
 -- EVENTOS  (Enunciado, punto 6; ciudad de realización = UBICACION → CIUDAD)
--- La causa de una cancelación se guarda en observaciones, con el formato
+-- La causa de una cancelación (o el motivo de un rechazo) se agrega a observaciones, en una línea nueva, con el formato
 -- "Cancelado por <quién>. Causa: <causa>. Detalle: <detalle>" (lo escribe la web).
 -- ==================================================================================================================
 
@@ -142,6 +163,11 @@ CREATE TABLE EVENTO (
     numero_identificacion VARCHAR(20) NOT NULL REFERENCES AGENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE RESTRICT,   -- Registra: agente que registra el evento
     CHECK (fecha_hora_fin > fecha_hora_inicio)
 );
+
+-- Número del código de un evento (EVT-AAAA-NNNN). Lo pide el backend con nextval al registrar un evento.
+-- Una secuencia nunca entrega el mismo número dos veces, así que el código de un evento borrado no se vuelve a usar
+-- (calcularlo como "el último + 1" repetía el del último evento si se borraba).
+CREATE SEQUENCE evento_numero_seq;
 
 CREATE INDEX idx_evento_estado    ON EVENTO(estado);
 CREATE INDEX idx_evento_inicio    ON EVENTO(fecha_hora_inicio);
