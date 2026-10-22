@@ -6,7 +6,7 @@
 
 Fuente    : documents/BD/Diagrama_corregido.drawio · database/schema_ElDesparche.sql
 Documentos: documents/BD/Avance_El_desparche_PI_2026-2_Corte_2.docx (análisis, entidades, relaciones y esquema relacional)
-Versión   : 3.0 — alineado con el diagrama corregido y el avance del corte 2
+Versión   : 3.1 — diagrama corregido y avance del corte 2, con estado de la cuenta, revisión de eventos y entradas usadas
 
 ------------------------------------------------------------------------------------------------------------------------------
 CONVENCIONES
@@ -45,9 +45,11 @@ CONVENCIONES
                            Uso: USUARIO.tipo_identificacion
   jornada_t                Mañana | Tarde | Noche | Completa
                            Uso: ADMIN.horario
-  estado_evento_t          Programado | En Boletería | En Vivo | Finalizado | Cancelado
+  estado_usuario_t         Activo | Pendiente | Suspendido | Bloqueado
+                           Uso: USUARIO.estado_usuario
+  estado_evento_t          En revisión | Rechazado | Programado | En Boletería | En Vivo | Finalizado | Cancelado
                            Uso: EVENTO.estado
-  estado_reserva_t         Reservada | Confirmada | Cancelada
+  estado_reserva_t         Reservada | Confirmada | Usada | Cancelada
                            Uso: RESERVA.estado
   tipo_metodo_pago_t       Tarjeta crédito | Tarjeta débito | Transferencia bancaria | Billetera digital
                            Uso: METODO_PAGO.tipo
@@ -167,6 +169,8 @@ contrasena_hash          VARCHAR(255)           NO                              
 direccion                VARCHAR(200)           NO                                Texto    Dirección de residencia.
 fecha_registro           TIMESTAMP              NO           NOW()                Sistema  Fecha y hora en que se registró el
                                                                                            usuario.
+estado_usuario           estado_usuario_t       NO           'Activo'             Lista    Estado de la cuenta: Activo,
+                                                                                           Pendiente, Suspendido o Bloqueado.
 id_ciudad                INTEGER                NO   FK                           Lista    Ciudad de residencia. →
                                                                                            CIUDAD.id_ciudad
 CONSTRAINT               ck_usuario_documento_formato SÍ                                Texto
@@ -183,6 +187,8 @@ Restricciones y reglas:
   - Trigger diferido (se valida al COMMIT): todo usuario está en exactamente un subtipo; sin subtipo o en más de uno se
     rechaza (IS-A total y disjunta).
   - telefono es multivaluado: vive en USUARIO_TELEFONO.
+  - estado_usuario: un agente que se registra solo queda Pendiente hasta que un administrador lo aprueba; Suspendido (agentes)
+    y Bloqueado (clientes) impiden iniciar sesión, y el API corta el acceso al instante aunque la sesión ya estuviera abierta.
 
 Relaciones:
   - USUARIO N:1 CIUDAD (relación UbiPer).
@@ -295,8 +301,9 @@ Relaciones:
 ==============================================================================================================================
 10. TABLA: EVENTO
 ==============================================================================================================================
-Descripción: Evento o espectáculo registrado por un agente. Siempre tiene un estado y una ubicación. La causa de una
-             cancelación se guarda en observaciones.
+Descripción: Evento o espectáculo de un agente. Siempre tiene un estado y una ubicación. Si lo registra un agente queda En
+             revisión hasta que un administrador lo aprueba (pasa a Programado) o lo rechaza; el motivo del rechazo y la causa
+             de una cancelación se agregan a observaciones.
 Clave primaria: (codigo)
 
 Campo                    Tipo                   Nulo Clave   Default              Entrada  Descripción
@@ -316,10 +323,12 @@ fecha_hora_fin           TIMESTAMP              NO                              
 capacidad_total          INTEGER                NO                                Número   Capacidad total de espectadores.
 edad_minima              SMALLINT               NO           0                    Número   Edad mínima para asistir (0 = sin
                                                                                            restricción).
-observaciones            TEXT                   SÍ                                Texto    Observaciones del evento; si está
-                                                                                           cancelado, incluye la causa.
-estado                   estado_evento_t        NO           'Programado'         Lista    Estado: Programado, En Boletería, En
-                                                                                           Vivo, Finalizado o Cancelado.
+observaciones            TEXT                   SÍ                                Texto    Observaciones del evento; si se
+                                                                                           rechazó o se canceló, incluye el
+                                                                                           motivo o la causa.
+estado                   estado_evento_t        NO           'Programado'         Lista    Estado: En revisión, Rechazado,
+                                                                                           Programado, En Boletería, En Vivo,
+                                                                                           Finalizado o Cancelado.
 fecha_creacion           TIMESTAMP              NO           NOW()                Sistema  Fecha y hora de creación del evento.
 precio                   NUMERIC(12,2)          NO           0                    Número   Precio base de la entrada (COP).
 id_ubicacion             INTEGER                NO   FK                           Lista    Lugar de realización. →
@@ -329,10 +338,15 @@ numero_identificacion    VARCHAR(20)            NO   FK                         
 
 Restricciones y reglas:
   - fecha_hora_fin > fecha_hora_inicio.
+  - El código (EVT-AAAA-NNNN) lo genera el backend con la secuencia evento_numero_seq: el número nunca se repite, ni siquiera
+    si se borra un evento.
   - La suma de numero_entradas de las reservas no canceladas no puede superar capacidad_total (también al bajar la capacidad).
   - Solo los agentes registran eventos: numero_identificacion referencia a AGENTE.
-  - Causa de cancelación: va en observaciones con el formato "Cancelado por <quién>. Causa: <causa>. Detalle: <detalle>" (lo
-    escribe la web).
+  - Causa de cancelación: se agrega a observaciones, en una línea nueva, con el formato "Cancelado por <quién>. Causa:
+    <causa>. Detalle: <detalle>" (el mismo de la web).
+  - Revisión: En revisión y Rechazado son solicitudes de un agente y no se publican. El motivo de un rechazo se agrega a
+    observaciones como "Rechazado por el administrador. Motivo: <motivo>" y se quita cuando el agente corrige la solicitud.
+  - Al cancelar un evento, sus reservas Reservada y Confirmada se cancelan también (con su causa en observaciones).
   - La ciudad del evento no se guarda: se obtiene por UBICACION → CIUDAD.
 
 Relaciones:
@@ -355,8 +369,9 @@ codigo_qr                UUID                   NO   UQ      gen_random_uuid()  
 valor_total              NUMERIC(12,2)          NO                                Número   Valor total de la reserva (COP):
                                                                                            entradas × precio + tarifa de Wompi.
 fecha_hora               TIMESTAMP              NO           NOW()                Sistema  Fecha y hora de la reserva.
-estado                   estado_reserva_t       NO           'Reservada'          Lista    Estado: Reservada, Confirmada o
-                                                                                           Cancelada.
+estado                   estado_reserva_t       NO           'Reservada'          Lista    Estado: Reservada, Confirmada, Usada
+                                                                                           (la entrada ya se validó en la
+                                                                                           puerta) o Cancelada.
 numero_entradas          INTEGER                NO                                Número   Número de entradas reservadas.
 observaciones            TEXT                   SÍ                                Texto    Observaciones de la reserva; si está
                                                                                            cancelada, incluye la causa.
@@ -371,7 +386,10 @@ Restricciones y reglas:
     más IVA; una vez por pago y 0 si el evento es gratis). No se recalcula si el precio cambia después.
   - Si cambia numero_entradas, valor_total se recalcula con el precio unitario original.
   - Solo un cliente reserva: numero_identificacion referencia a CLIENTE.
-  - Causa de cancelación: va en observaciones con el formato "Cancelada por <quién>. Causa: <causa>. Detalle: <detalle>".
+  - Causa de cancelación: se agrega a observaciones, en una línea nueva, con el formato "Cancelada por <quién>. Causa:
+    <causa>. Detalle: <detalle>".
+  - Usada: la entrada ya se validó en la puerta; solo pasa a Usada una reserva Confirmada (pagada o gratis) de un evento
+    vigente, y una Usada no se cancela.
 
 Relaciones:
   - RESERVA N:1 CLIENTE (relación Inscribe).
@@ -472,8 +490,9 @@ IS-A (total, disjunta) USUARIO → ADMIN, CLIENTE, AGENTE   1:1   PK de la subcl
     (fn_usuario_documento_inmutable).
   - Solo los agentes registran eventos y solo los clientes reservan y tienen métodos de pago (garantizado por las FK hacia
     AGENTE y CLIENTE).
-  - Estados obligatorios: EVENTO (Programado, En Boletería, En Vivo, Finalizado, Cancelado); RESERVA (Reservada, Confirmada,
-    Cancelada); PAGO (Pendiente, Aprobado, Rechazado).
+  - Estados obligatorios: USUARIO (Activo, Pendiente, Suspendido, Bloqueado); EVENTO (En revisión, Rechazado, Programado, En
+    Boletería, En Vivo, Finalizado, Cancelado); RESERVA (Reservada, Confirmada, Usada, Cancelada); PAGO (Pendiente, Aprobado,
+    Rechazado).
 
 ##############################################################################################################################
 # CAMBIOS RESPECTO A LA VERSIÓN 2.0 (18 tablas)
@@ -487,6 +506,9 @@ IS-A (total, disjunta) USUARIO → ADMIN, CLIENTE, AGENTE   1:1   PK de la subcl
     y METODO_PAGO (id_cliente).
   - EVENTO: nueva columna teatro; la causa de cancelación (EVENTO y RESERVA) va en observaciones, ya no en id_causa.
   - RESERVA: ya no exige verificación de contacto; valor_total incluye la tarifa de Wompi.
+  - Versión 3.1: USUARIO.estado_usuario (suspensión o bloqueo); EVENTO.estado agrega En revisión y Rechazado (revisión de los
+    eventos que registran los agentes, con el motivo en observaciones); RESERVA.estado agrega Usada (entrada validada en la
+    puerta).
 
 ==============================================================================================================================
                                                  Fin del diccionario de datos

@@ -30,4 +30,9 @@ const asincrono = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-module.exports = { ErrorHttp, asincrono };
+// ¿Algo que se quiere borrar todavía lo usa otra tabla con ON DELETE RESTRICT? PostgreSQL avisa con el código 23001
+// (restrict_violation) cuando la llave se declaró RESTRICT, y con 23503 (foreign_key_violation) cuando es NO ACTION.
+// El controlador lo traduce a un 409 con un mensaje claro.
+const esRestriccion = (err) => err && (err.code === "23001" || err.code === "23503");
+
+module.exports = { ErrorHttp, asincrono, esRestriccion };

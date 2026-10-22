@@ -4,6 +4,9 @@ Plataforma web de geolocalización y eventos sociales con verificación biométr
 Integrantes:
 
 Issabhella Alarcon Moreno
+
 Sebastian jaramillo Ortiz 
+
 Emmanuel Obando Sanchez
+
 Valentina Osorio Moran 

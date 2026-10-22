@@ -160,3 +160,9 @@ build/
 # Configuracion local de Claude Code
 .claude/
 .neon
+
+# Imágenes subidas por los agentes y administradores (eventos y logos)
+backend/uploads/
+
+# Respaldos locales de la base de datos
+database/respaldos/

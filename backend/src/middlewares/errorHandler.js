@@ -24,6 +24,10 @@ function traducirErrorPg(err) {
   switch (err.code) {
     // 23505: Violación de UNIQUE (correo ya existe, NIT ya existe, etc.)
     case "23505": {
+      // País, departamento o ciudad con un nombre que ya existe (en su país o departamento)
+      if (/^(pais|departamento|ciudad)_.*nombre.*key$/.test(err.constraint || "")) {
+        return new ErrorHttp(409, "Ya existe uno con ese nombre.", { nombre: "Ya existe uno con ese nombre." });
+      }
       // Detectar qué campo duplicado fue (leyendo el error message de PG)
       const campo = /correo/i.test(err.constraint || err.detail || "")
         ? "correo"
@@ -42,8 +46,17 @@ function traducirErrorPg(err) {
       return new ErrorHttp(409, mensajes[campo], { [campo]: mensajes[campo] });
     }
 
-    // 23503: Foreign key (ej: id_ciudad no existe)
+    // 23001: RESTRICT (ej: se quiere borrar una ciudad que todavía usan personas o ubicaciones)
+    case "23001":
+      return new ErrorHttp(409, "No se puede eliminar: otros datos todavía dependen de este registro.");
+
+    // 23503: Foreign key. Sale en dos casos:
+    // - al borrar algo que otra tabla todavía usa (las FK ON DELETE RESTRICT también responden 23503) → 409
+    // - al guardar una referencia que no existe (ej: id_ciudad) → 400
     case "23503":
+      if (/^update or delete on table/.test(err.message || "")) {
+        return new ErrorHttp(409, "No se puede eliminar: otros datos todavía dependen de este registro.");
+      }
       if (/id_ciudad/.test(err.constraint || "")) {
         return new ErrorHttp(400, "La ciudad elegida no existe.", { id_ciudad: "La ciudad elegida no existe." });
       }
@@ -90,6 +103,11 @@ function errorHandler(err, _req, res, _next) {
     return res.status(400).json({ error: "El cuerpo de la petición no es JSON válido." });
   }
 
+  // Caso especial: el cuerpo supera el límite de la ruta (100 KB, o 3 MB en los paneles)
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({ error: "El cuerpo de la petición es demasiado grande." });
+  }
+
   // Intentar traducir el error
   // Si es ErrorHttp → usarlo directamente
   // Si es error de PG → traducirlo
@@ -98,7 +116,7 @@ function errorHandler(err, _req, res, _next) {
   if (error) {
     // Error controlado → devolver respuesta clara
     const cuerpo = { error: error.message };
-    if (error.detalles) cuerpo.detalles = error.detalles;
+    if (error.detalles && Object.keys(error.detalles).length) cuerpo.detalles = error.detalles;   // sin detalles: { error }
     return res.status(error.estado).json(cuerpo);
   }
 

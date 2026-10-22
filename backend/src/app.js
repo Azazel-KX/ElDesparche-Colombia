@@ -5,7 +5,12 @@ const { corsOrigins } = require("./config/env");
 const authRoutes = require("./routes/authRoutes");
 const ciudadRoutes = require("./routes/ciudadRoutes");
 const eventoRoutes = require("./routes/eventoRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const reservaRoutes = require("./routes/reservaRoutes");
+const agenteRoutes = require("./routes/agenteRoutes");
+const { CARPETA_UPLOADS } = require("./utils/imagenes");
 const { errorHandler, noEncontrado } = require("./middlewares/errorHandler");
+const { jsonSegunRuta } = require("./middlewares/cuerpo");
 
 // Crear aplicación Express
 const app = express();
@@ -29,7 +34,16 @@ app.use(cors({ origin: corsOrigins.length ? corsOrigins : false }));
 
 // 4. Parsear JSON en el body
 // - limit: máximo 100KB (evita ataques DoS con payloads enormes)
-app.use(express.json({ limit: "100kb" }));
+// - Los paneles (/api/admin y /api/agente) admiten 3MB para las imágenes, pero lo leen después de validar el token
+//   (ver middlewares/cuerpo.js)
+app.use(jsonSegunRuta);
+
+// 5. Imágenes subidas (eventos y logos)
+// - helmet manda Cross-Origin-Resource-Policy: same-origin; la web corre en otro origen, así que se relaja solo aquí
+app.use("/uploads", (_req, res, next) => {
+  res.set("Cross-Origin-Resource-Policy", "cross-origin");
+  next();
+}, express.static(CARPETA_UPLOADS, { index: false, fallthrough: true }));
 
 // ============================================
 // RUTAS PÚBLICAS
@@ -54,6 +68,15 @@ app.use("/api/ciudades", ciudadRoutes);
 // Rutas de eventos
 // GET /api/eventos, GET /api/eventos/:codigo (públicas); POST, PUT y PATCH estado (agente dueño o admin)
 app.use("/api/eventos", eventoRoutes);
+
+// Rutas del panel de administración (solo ADMINISTRADOR)
+app.use("/api/admin", adminRoutes);
+
+// Rutas del panel del agente (solo AGENTE): sus eventos, sus reservas y el perfil de su empresa
+app.use("/api/agente", agenteRoutes);
+
+// Reservas del cliente autenticado (solo CLIENTE)
+app.use("/api/reservas", reservaRoutes);
 
 // ============================================
 // MANEJO DE ERRORES (DEBE IR AL FINAL)
