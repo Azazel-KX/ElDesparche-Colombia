@@ -27,6 +27,14 @@ if (jwtSecret.length < 32) {
 // 2. Parámetros individuales (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD)
 let dbConfig;
 
+// Zona horaria de las consultas. Las columnas son TIMESTAMP sin zona y guardan la hora de Colombia (así las escribe la
+// web), así que NOW() también debe dar la hora de Colombia: si el servidor de PostgreSQL está en UTC (Docker, Neon), las
+// fechas automáticas saldrían 5 horas adelantadas y un evento se daría por terminado 5 horas antes.
+// - Modo local: se pide al abrir cada conexión (parámetro de arranque "options"), sin consultas extra.
+// - Modo DATABASE_URL: no se toca la URL (el pooler de Neon puede rechazar parámetros de arranque y la URL ya trae los
+//   suyos); la zona la fija la propia base con el ALTER DATABASE de database/schema_ElDesparche.sql.
+const zonaHoraria = process.env.DB_TIMEZONE || "America/Bogota";
+
 if (process.env.DATABASE_URL) {
   // Modo Neon/Cloud: usar URL de conexión
   dbConfig = {
@@ -41,6 +49,7 @@ if (process.env.DATABASE_URL) {
     database: process.env.DB_NAME || "eldesparche_db",
     user: process.env.DB_USER || "postgres",
     password: process.env.DB_PASSWORD || "",
+    options: `-c TimeZone=${zonaHoraria}`,
   };
 }
 
@@ -52,8 +61,14 @@ module.exports = {
   // Node environment (development, production, test)
   nodeEnv: process.env.NODE_ENV || "development",
 
+  // Dirección pública del API: se usa para completar la URL de las imágenes que se suben (/uploads/...)
+  publicUrl: (process.env.PUBLIC_URL || `http://localhost:${Number(process.env.PORT) || 5000}`).replace(/\/+$/, ""),
+
   // Configuración de conexión a PostgreSQL
   db: dbConfig,
+
+  // Zona horaria con que trabajan las consultas (ver más arriba)
+  zonaHoraria,
 
   // Configuración de JWT (tokens de sesión)
   jwt: {
