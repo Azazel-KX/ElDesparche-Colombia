@@ -375,6 +375,8 @@ function tarifaWompi(subtotal) {
 /* Cupos que le quedan a un evento: los disponibles menos lo reservado en este
    navegador (sin contar las canceladas). Con el API, el backend da el número real. */
 function cuposLibres(evento) {
+  if (USAR_API) return Math.max(evento.disponibles, 0);
+
   var reservadas = obtenerReservas()
     .filter(function (r) { return r.idEvento === evento.id && r.estado !== "Cancelada"; })
     .reduce(function (suma, r) { return suma + Number(r.tickets || 0); }, 0);
@@ -474,10 +476,10 @@ function parametro(nombre) {
   return direccion.get(nombre);
 }
 
-/* Busca un evento por su id */
+/* Busca un evento por su id: un número en los de ejemplo, un código "EVT-2026-0001" con el API */
 function buscarEvento(id) {
   for (var i = 0; i < EVENTOS.length; i++) {
-    if (EVENTOS[i].id === Number(id)) {
+    if (String(EVENTOS[i].id) === String(id)) {
       return EVENTOS[i];
     }
   }
@@ -551,6 +553,62 @@ function obtenerReservas() {
 
 function guardarReservas(reservas) {
   localStorage.setItem("reservas", JSON.stringify(reservas));
+}
+
+/* ===== RESERVAS DEL CLIENTE EN EL API =====
+   Con USAR_API las reservas viven en la base de datos, no en este navegador:
+     GET   /api/reservas/mias                -> { reservas }
+     POST  /api/reservas                     cuerpo { idEvento, entradas, observaciones } -> 201 { reserva }
+     PATCH /api/reservas/:codigo/cancelar    cuerpo { causa, detalle }
+   Se pasan a la misma forma que las de obtenerReservas(), así la confirmación y
+   "Mis reservas" las pintan igual. Lo que la reserva no trae del evento (teatro,
+   ciudad, fecha) sale del catálogo. */
+function cabeceraSesion(usuario) {
+  return { "Content-Type": "application/json", Authorization: "Bearer " + usuario.token };
+}
+
+/* Convierte la respuesta del API en { estado, datos } o lanza un error que se
+   puede mostrar tal cual. Si la sesión venció (401), se cierra en este navegador. */
+function revisarRespuesta(resultado, esperado, textoError) {
+  if (resultado.estado === esperado) return resultado.datos;
+  if (resultado.estado === 401) {
+    borrarUsuario();
+    throw new Error("Tu sesión venció. Vuelve a iniciar sesión.");
+  }
+  throw new Error(resultado.datos.error || textoError);
+}
+
+function reservaDesdeApi(r) {
+  var evento = buscarEvento(r.eventoId) || {};
+  return {
+    codigo: r.codigo,
+    idEvento: r.eventoId,
+    titulo: r.evento,
+    teatro: evento.teatro || "",
+    ciudad: evento.ciudad || "",
+    fechaEvento: evento.fechaInicio || "",
+    titular: r.cliente,
+    tickets: r.entradas,
+    total: r.valor,
+    fechaReserva: new Date(r.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" }),
+    estado: r.estado,
+    usada: r.usada,
+    observaciones: r.observaciones,
+    pago: r.pago
+  };
+}
+
+function reservasDelApi(usuario) {
+  return llamarApi("/reservas/mias", { headers: cabeceraSesion(usuario) }).then(function (resultado) {
+    return revisarRespuesta(resultado, 200, "No se pudieron cargar tus reservas.").reservas.map(reservaDesdeApi);
+  });
+}
+
+/* Una reserva de un evento de pago que todavía no tiene un pago aprobado: no lleva QR.
+   Sin Wompi, queda "Reservada" hasta que un administrador confirme el pago. */
+function esperaPago(reserva) {
+  if (reserva.pago) return reserva.pago.estado === "PENDING";
+  return reserva.estado === "Reservada" && reserva.total > 0;
 }
 
 /* ===== CAUSAS DE CANCELACIÓN =====
@@ -1145,6 +1203,12 @@ function paginaInicio() {
   var botonesParche = document.querySelectorAll(".parche-filtro");
   var parcheElegido = "";
 
+  /* Con el API los países salen de los eventos de la base, no de la lista fija del HTML */
+  if (USAR_API) {
+    pais.innerHTML = '<option value="">País: todos</option>' +
+      Object.keys(DEPARTAMENTOS).sort().map(function (p) { return '<option>' + esc(p) + '</option>'; }).join("");
+  }
+
   /* Filtra por texto, ciudad y tipo de plan, y muestra máximo 8 eventos */
   function actualizar() {
     var texto = busqueda.value.toLowerCase();
@@ -1261,6 +1325,14 @@ function paginaEventos() {
   var busqueda = document.getElementById("busqueda");
   var ciudad = document.getElementById("ciudad");
   var estado = document.getElementById("estado");
+
+  /* Con el API las ciudades salen de los eventos de la base, no de la lista fija del HTML */
+  if (USAR_API) {
+    var ciudades = [];
+    EVENTOS.forEach(function (e) { if (ciudades.indexOf(e.ciudad) === -1) ciudades.push(e.ciudad); });
+    ciudad.innerHTML = '<option>Todas</option>' +
+      ciudades.sort().map(function (c) { return '<option>' + esc(c) + '</option>'; }).join("");
+  }
 
   function actualizar() {
     var texto = busqueda.value.toLowerCase();
@@ -1524,8 +1596,40 @@ function paginaReservar() {
     window.location.href = "confirmacion.html";
   }
 
+  /* Con el API la reserva se crea en la base. El pago con Wompi todavía no está
+     conectado: una reserva de un evento de pago queda "Reservada" hasta que un
+     administrador confirme el pago, y una de un evento gratis queda confirmada. */
+  function reservarEnApi() {
+    botonConfirmar.disabled = true;
+    botonConfirmar.textContent = "Registrando la reserva…";
+
+    llamarApi("/reservas", {
+      method: "POST",
+      headers: cabeceraSesion(usuario),
+      body: JSON.stringify({
+        idEvento: evento.id,
+        entradas: tickets,
+        observaciones: document.getElementById("observaciones").value
+      })
+    }).then(function (resultado) {
+      var datos = revisarRespuesta(resultado, 201, "No se pudo registrar la reserva.");
+      localStorage.setItem("ultimaReserva", datos.reserva.codigo);
+      window.location.href = "confirmacion.html";
+    }).catch(function (error) {
+      botonConfirmar.disabled = false;
+      botonConfirmar.textContent = textoBoton;
+      errorPago.innerHTML = "<strong>Error:</strong> " + esc(error.message);
+      botonConfirmar.focus();
+    });
+  }
+
   botonConfirmar.onclick = function () {
     errorPago.textContent = "";
+
+    if (USAR_API) {
+      reservarEnApi();
+      return;
+    }
 
     /* Evento gratuito: no pasa por Wompi */
     if (evento.precio === 0) {
@@ -1549,7 +1653,7 @@ function paginaReservar() {
     botonConfirmar.disabled = true;
     botonConfirmar.textContent = "Abriendo el pago…";
 
-    var pago = USAR_API ? pagarConWompi(datos) : pasarelaSimulada(datos);
+    var pago = pasarelaSimulada(datos);   /* modo local (con el API se sale antes, en reservarEnApi) */
 
     pago.then(function (resultado) {
       botonConfirmar.disabled = false;
@@ -1590,6 +1694,10 @@ function paginaReservar() {
 
 /* ==========================================================================
    9.b PAGO CON WOMPI
+   - HOY, con USAR_API = true, el backend de Wompi todavía no existe: la reserva se
+     crea con POST /api/reservas (reservarEnApi) y el pago lo confirma un
+     administrador. Cuando exista, reservarEnApi() se cambia por pagarConWompi(),
+     que ya está listo:
    - Con USAR_API = true se abre el widget real de Wompi. El backend crea la
      reserva pendiente, calcula la firma de integridad (SHA-256 de
      referencia + monto en centavos + moneda + secreto de integridad, que
@@ -1794,7 +1902,9 @@ function contenidoQr(codigo, idEvento, token) {
 function leerContenidoQr(texto) {
   var partes = String(texto).trim().split("|");
   if (partes.length !== 4 || partes[0] !== "ELDESPARCHE") return null;
-  return { codigo: partes[1], idEvento: Number(partes[2]), token: partes[3] };
+  /* El id es un número en los eventos de ejemplo y un código ("EVT-2026-0001") en los de la base */
+  var idEvento = /^\d+$/.test(partes[2]) ? Number(partes[2]) : partes[2];
+  return { codigo: partes[1], idEvento: idEvento, token: partes[3] };
 }
 
 /* Dibuja el QR real (SVG) dentro de un elemento */
@@ -1843,6 +1953,28 @@ function paginaConfirmacion() {
   }
 
   var codigo = localStorage.getItem("ultimaReserva");
+
+  /* Con el API la reserva se lee de la base (solo las del cliente que entró) */
+  if (USAR_API) {
+    var usuario = obtenerUsuario();
+    if (!usuario || !codigo) {
+      window.location.href = "index.html";
+      return;
+    }
+    reservasDelApi(usuario).then(function (lista) {
+      var deLaBase = lista.filter(function (r) { return r.codigo === codigo; })[0];
+      if (!deLaBase) {
+        window.location.href = "mis-reservas.html";
+        return;
+      }
+      pintarConfirmacion(deLaBase);
+    }).catch(function (error) {
+      document.getElementById("detalles").innerHTML =
+        '<p class="mensaje error" role="alert"><strong>Error:</strong> ' + esc(error.message) + '</p>';
+    });
+    return;
+  }
+
   var reservas = obtenerReservas();
   var reserva = null;
 
@@ -1858,6 +1990,10 @@ function paginaConfirmacion() {
     return;
   }
 
+  pintarConfirmacion(reserva);
+}
+
+function pintarConfirmacion(reserva) {
   var datos = [
     ["Código de reserva", reserva.codigo],
     ["Evento", reserva.titulo],
@@ -1887,16 +2023,23 @@ function paginaConfirmacion() {
   if (reserva.estado === "Confirmada") {
     pintarQrReal(document.getElementById("qr"), reserva.codigo, reserva.idEvento, reserva.tokenQr);
   } else {
-    document.title = "Pago en proceso - El Desparche";
-    document.querySelector(".titulo-exito").textContent = "Tu pago está en proceso";
-    document.querySelector(".subtitulo-exito").textContent =
-      "Guardamos tu reserva mientras Wompi confirma el pago. Te avisaremos por correo cuando esté listo.";
+    /* Sin pago en Wompi: la reserva se registró y un administrador confirma el pago */
+    var sinWompi = !reserva.pago;
+    document.title = (sinWompi ? "Reserva registrada" : "Pago en proceso") + " - El Desparche";
+    document.querySelector(".titulo-exito").textContent =
+      sinWompi ? "Tu reserva quedó registrada" : "Tu pago está en proceso";
+    document.querySelector(".subtitulo-exito").textContent = sinWompi
+      ? "Apartamos tus entradas. La reserva se confirma cuando registremos tu pago."
+      : "Guardamos tu reserva mientras Wompi confirma el pago. Te avisaremos por correo cuando esté listo.";
 
     var qr = document.getElementById("qr");
     var aviso = document.createElement("p");
     aviso.className = "qr-pendiente";
-    aviso.innerHTML = "<strong>Pago pendiente.</strong> Tu QR aparecerá aquí y en \"Mis reservas\" " +
-      "en cuanto Wompi apruebe el pago (a veces tarda unos minutos con PSE o Nequi).";
+    aviso.innerHTML = sinWompi
+      ? "<strong>Pago por confirmar.</strong> Tu QR aparecerá aquí y en \"Mis reservas\" " +
+        "en cuanto se confirme el pago."
+      : "<strong>Pago pendiente.</strong> Tu QR aparecerá aquí y en \"Mis reservas\" " +
+        "en cuanto Wompi apruebe el pago (a veces tarda unos minutos con PSE o Nequi).";
     qr.parentNode.replaceChild(aviso, qr);
     document.querySelector(".caja-qr .texto-pequeno-claro").textContent = "Código de tu reserva";
   }
@@ -1920,9 +2063,21 @@ function paginaMisReservas() {
   document.getElementById("saludo").innerHTML =
     "Hola, <strong>" + esc(usuario.nombre) + "</strong>. Aquí puedes ver y gestionar tus reservas.";
 
+  /* Con el API la lista sale de la base; si no, de este navegador */
   function pintar() {
-    var reservas = obtenerReservas();
+    if (!USAR_API) {
+      pintarLista(obtenerReservas());
+      return Promise.resolve();
+    }
+    contenedor.setAttribute("aria-busy", "true");
+    return reservasDelApi(usuario).then(pintarLista).catch(function (error) {
+      contenedor.innerHTML = '<p class="mensaje error" role="alert"><strong>Error:</strong> ' + esc(error.message) + '</p>';
+    }).then(function () {
+      contenedor.removeAttribute("aria-busy");
+    });
+  }
 
+  function pintarLista(reservas) {
     if (reservas.length === 0) {
       contenedor.innerHTML =
         '<div class="sin-reservas">' +
@@ -1949,9 +2104,12 @@ function paginaMisReservas() {
 
       if (r.estado === "Cancelada") {
         acciones = '<span class="sin-qr">QR no disponible</span>';
-      } else if (r.pago && r.pago.estado === "PENDING") {
+      } else if (r.usada) {
+        /* La entrada ya se validó en la puerta: ni QR ni cancelación */
+        acciones = '<span class="sin-qr">Entrada usada</span>';
+      } else if (esperaPago(r)) {
         acciones =
-          '<span class="sin-qr">Pago pendiente: el QR aparece al aprobarse</span>' +
+          '<span class="sin-qr">' + (r.pago ? "Pago pendiente: el QR aparece al aprobarse" : "Pago por confirmar: el QR aparece al confirmarse") + '</span>' +
           '<button class="boton-mini boton-cancelar" data-cancelar="' + esc(r.codigo) + '">Cancelar</button>';
       } else {
         acciones =
@@ -1969,7 +2127,7 @@ function paginaMisReservas() {
           '<td data-titulo="Teatro">' + esc(r.teatro || r.lugar) + '</td>' +
           '<td data-titulo="Tickets">' + esc(r.tickets) + '</td>' +
           '<td data-titulo="Total">' + (r.total === 0 ? "Gratis" : pesos(r.total)) + '</td>' +
-          '<td data-titulo="Estado"><span class="etiqueta-reserva ' + claseReserva + '">' + esc(r.estado) + '</span>' +
+          '<td data-titulo="Estado"><span class="etiqueta-reserva ' + claseReserva + '">' + esc(r.usada ? "Usada" : r.estado) + '</span>' +
             (leerCancelacion(r.observaciones)
               ? '<span class="reserva-causa">Causa: ' + esc(causaParaCliente(leerCancelacion(r.observaciones).causa)) + '</span>'
               : '') +
@@ -2045,6 +2203,30 @@ function paginaMisReservas() {
     var datos = datosCancelacion("cancelar");
     if (datos.error) {
       error.innerHTML = "<strong>Error:</strong> " + datos.error;
+      return;
+    }
+
+    /* Con el API la cancela el servidor, que agrega la causa a las observaciones */
+    if (USAR_API) {
+      var botonSi = ventana.querySelector('button[type="submit"]');
+      botonSi.disabled = true;
+      llamarApi("/reservas/" + encodeURIComponent(codigoAbierto) + "/cancelar", {
+        method: "PATCH",
+        headers: cabeceraSesion(usuario),
+        body: JSON.stringify({ causa: datos.causa, detalle: datos.detalle })
+      }).then(function (resultado) {
+        revisarRespuesta(resultado, 200, "No se pudo cancelar la reserva.");
+        var cancelada = codigoAbierto;
+        codigoAbierto = "";
+        ventana.close();
+        return pintar().then(function () {
+          avisoLista.textContent = "La reserva " + cancelada + " quedó cancelada.";
+          avisoLista.focus();
+        });
+      }).catch(function (fallo) {
+        botonSi.disabled = false;
+        error.innerHTML = "<strong>Error:</strong> " + esc(fallo.message);
+      });
       return;
     }
 
@@ -2410,7 +2592,7 @@ var API_URL = window.DESPARCHE_API_URL || "http://localhost:5000/api";
    false = modo local: el API y la base de datos no se usan, y las
            respuestas salen de respuestaLocal() con datos de ejemplo.
    El código del API no se toca: para volver a usarlo basta con poner true. */
-var USAR_API = false;
+var USAR_API = true;
 
 /* Cuentas de prueba para el modo local (solo funcionan con USAR_API = false) */
 var CUENTAS_PRUEBA = [
@@ -3153,18 +3335,89 @@ window.Desparche = {
   eventos: EVENTOS
 };
 
+/* ===== CATÁLOGO DESDE EL API =====
+   Con USAR_API las páginas públicas muestran los eventos publicados de la base
+   (GET /api/eventos, que nunca incluye las solicitudes en revisión) en vez de los
+   de ejemplo. Se piden todas las páginas del catálogo y se reemplaza el contenido
+   de EVENTOS; los paneles (admin.js y agente.js) cargan sus propios datos. */
+var PAGINAS_PUBLICAS = ["inicio", "eventos", "evento", "reservar", "confirmacion", "mis-reservas"];
+
+function cargarCatalogo() {
+  var todos = [];
+
+  function pedir(numero) {
+    return llamarApi("/eventos?limite=100&pagina=" + numero).then(function (resultado) {
+      var datos = revisarRespuesta(resultado, 200, "No se pudieron cargar los eventos.");
+      todos = todos.concat(datos.eventos);
+      return numero < datos.paginacion.paginas ? pedir(numero + 1) : todos;
+    });
+  }
+
+  return pedir(1).then(usarCatalogo);
+}
+
+function usarCatalogo(eventos) {
+  EVENTOS.splice(0, EVENTOS.length);
+  eventos.forEach(function (evento) { EVENTOS.push(evento); });
+
+  /* Carrusel de la portada: los próximos eventos que todavía se pueden reservar */
+  DESTACADOS.splice(0, DESTACADOS.length);
+  EVENTOS.filter(sePuedeReservar).slice(0, 10).forEach(function (evento) { DESTACADOS.push(evento.id); });
+
+  /* Filtros de la portada: los países, departamentos y ciudades que tienen eventos */
+  Object.keys(DEPARTAMENTOS).forEach(function (k) { delete DEPARTAMENTOS[k]; });
+  Object.keys(CIUDADES).forEach(function (k) { delete CIUDADES[k]; });
+  function agregar(lista, valor) {
+    if (valor && lista.indexOf(valor) === -1) lista.push(valor);
+  }
+  EVENTOS.forEach(function (evento) {
+    DEPARTAMENTOS[evento.pais] = DEPARTAMENTOS[evento.pais] || [];
+    agregar(DEPARTAMENTOS[evento.pais], evento.departamento);
+    CIUDADES[evento.departamento] = CIUDADES[evento.departamento] || [];
+    agregar(CIUDADES[evento.departamento], evento.ciudad);
+  });
+  Object.keys(DEPARTAMENTOS).forEach(function (k) { DEPARTAMENTOS[k].sort(); });
+  Object.keys(CIUDADES).forEach(function (k) { CIUDADES[k].sort(); });
+}
+
+/* Si el catálogo no carga, se avisa arriba de la página (las listas quedan vacías) */
+function avisoCatalogo(texto) {
+  var main = document.querySelector("main");
+  if (!main) return;
+  var aviso = document.createElement("p");
+  aviso.className = "mensaje error aviso-catalogo";
+  aviso.setAttribute("role", "alert");
+  aviso.innerHTML = "<strong>Error:</strong> " + esc(texto);
+  main.insertBefore(aviso, main.firstChild);
+}
+
+function arrancarPagina(pagina) {
+  if (pagina === "inicio") {
+    paginaInicio();
+  } else if (pagina === "eventos") {
+    paginaEventos();
+  } else if (pagina === "evento") {
+    paginaEvento();
+  } else if (pagina === "reservar") {
+    paginaReservar();
+  } else if (pagina === "confirmacion") {
+    paginaConfirmacion();
+  } else if (pagina === "mis-reservas") {
+    paginaMisReservas();
+  }
+}
+
 var pagina = document.body.getAttribute("data-pagina");
 
-if (pagina === "inicio") {
-  paginaInicio();
-} else if (pagina === "eventos") {
-  paginaEventos();
-} else if (pagina === "evento") {
-  paginaEvento();
-} else if (pagina === "reservar") {
-  paginaReservar();
-} else if (pagina === "confirmacion") {
-  paginaConfirmacion();
-} else if (pagina === "mis-reservas") {
-  paginaMisReservas();
+if (USAR_API && PAGINAS_PUBLICAS.indexOf(pagina) !== -1) {
+  cargarCatalogo().then(function () {
+    arrancarPagina(pagina);
+  }, function (error) {
+    usarCatalogo([]);
+    avisoCatalogo(error.message);
+    /* Sin catálogo no hay evento que mostrar ni reservar: esas páginas se quedan con el aviso */
+    if (pagina !== "evento" && pagina !== "reservar") arrancarPagina(pagina);
+  });
+} else {
+  arrancarPagina(pagina);
 }
