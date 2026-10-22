@@ -10,12 +10,18 @@ const TIPO_USUARIO = `
        ELSE 'ADMIN'
   END`;
 
+// FECHAS: las columnas DATE y TIMESTAMP no llevan zona horaria. Si dejamos que el driver "pg" las convierta
+// a Date, salen como "1995-03-12T05:00:00.000Z" y, según la zona del servidor, pueden correrse de día u hora.
+// Con to_char devolvemos exactamente lo que se guardó: "1995-03-12" y "2026-10-20T10:32:25".
+const FECHA = (columna) => `to_char(${columna}, 'YYYY-MM-DD')`;
+const FECHA_HORA = (columna) => `to_char(${columna}, 'YYYY-MM-DD"T"HH24:MI:SS')`;
+
 // COLUMNAS_PUBLICAS: campos que SÍ podemos devolver al frontend
 // NUNCA incluye: contrasena_hash, tokens, datos sensibles
 // ¿Por qué separar esto? Para no exponernos a errores si hacemos SELECT *
 const COLUMNAS_PUBLICAS = `
   u.numero_identificacion, u.tipo_identificacion, u.nombre_completo,
-  ${TIPO_USUARIO} AS tipo_usuario, u.correo, u.fecha_registro`;
+  ${TIPO_USUARIO} AS tipo_usuario, u.correo, ${FECHA_HORA("u.fecha_registro")} AS fecha_registro, u.estado_usuario`;
 
 // Función 1: Busca un usuario por correo
 // ¿Cuándo se usa?
@@ -33,6 +39,16 @@ async function buscarPorCorreo(correo) {
     [correo]
   );
   return rows[0] || null; // Retorna el primer usuario o null si no existe
+}
+
+// Función 1.b: Perfil y estado de la cuenta, leídos de la base en cada petición protegida (ver middlewares/auth.js).
+// Así una cuenta suspendida, bloqueada o eliminada pierde el acceso al instante, sin esperar a que caduque su token.
+async function estadoCuenta(numeroIdentificacion) {
+  const { rows } = await db.query(
+    `SELECT ${TIPO_USUARIO} AS tipo_usuario, u.estado_usuario FROM USUARIO u WHERE u.numero_identificacion = $1`,
+    [numeroIdentificacion]
+  );
+  return rows[0] || null;
 }
 
 // Función 2: Obtiene el PERFIL COMPLETO de un usuario
@@ -54,11 +70,11 @@ async function perfilPorId(numeroIdentificacion) {
   const { rows } = await db.query(
     `SELECT ${COLUMNAS_PUBLICAS},
             u.direccion, c.nombre AS ciudad, d.nombre AS departamento, p.nombre AS pais,
-            cl.fecha_nacimiento, cl.alias, cl.foto_perfil, cl.puntos, cl.publicidad,
+            ${FECHA("cl.fecha_nacimiento")} AS fecha_nacimiento, cl.alias, cl.foto_perfil, cl.puntos, cl.publicidad,
             EXTRACT(YEAR FROM AGE(cl.fecha_nacimiento))::int AS edad,
             ag.nit, ag.razon_social, ag.nombre_comercial, ag.descripcion, ag.logo_url,
-            ag.comision, ag.experiencia,
-            ad.horario,
+            ag.comision::float8 AS comision, ag.experiencia,
+            ad.horario, ad.salario::float8 AS salario,
             COALESCE(
               (SELECT ARRAY_AGG(t.telefono ORDER BY t.telefono)
                  FROM USUARIO_TELEFONO t
@@ -94,10 +110,11 @@ async function perfilPorId(numeroIdentificacion) {
 async function insertarUsuarioBase(cliente, d) {
   await cliente.query(
     `INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, nombre_completo,
-                          correo, contrasena_hash, direccion, id_ciudad)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                          correo, contrasena_hash, direccion, id_ciudad, estado_usuario)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    // Un agente que se registra solo queda Pendiente hasta que un administrador lo aprueba
     [d.numero_identificacion, d.tipo_identificacion, `${d.nombre} ${d.apellidos}`,
-     d.correo, d.contrasena_hash, d.direccion, d.id_ciudad]
+     d.correo, d.contrasena_hash, d.direccion, d.id_ciudad, d.tipo_cuenta === "AGENTE" ? "Pendiente" : "Activo"]
   );
 
   // Si hay teléfono, insertarlo
@@ -145,4 +162,4 @@ async function crear(d) {
   });
 }
 
-module.exports = { buscarPorCorreo, perfilPorId, crear };
+module.exports = { buscarPorCorreo, perfilPorId, estadoCuenta, crear, TIPO_USUARIO, FECHA, FECHA_HORA };
