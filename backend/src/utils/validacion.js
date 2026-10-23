@@ -184,4 +184,7 @@ function validarLogin(body) {
   return Object.keys(errores).length ? { errores } : { datos: { correo, contrasena: b.contrasena } };
 }
 
-module.exports = { validarRegistro, validarLogin, normalizarDocumento, texto, LONGITUD_MIN_CONTRASENA };
+module.exports = {
+  validarRegistro, validarLogin, normalizarDocumento, texto, validarContrasena, LONGITUD_MIN_CONTRASENA,
+  TIPOS_IDENTIFICACION, REGLAS_IDENTIFICACION, RE_CORREO, RE_TELEFONO, RE_NIT, RE_FECHA,
+};

@@ -3,6 +3,7 @@ const { db: dbConfig } = require("./env");
 
 // Pool: colección de conexiones reutilizables a PostgreSQL
 // Por defecto mantiene 10 conexiones activas, listas para usar
+// (cada conexión abre con la zona horaria de Colombia: ver zonaHoraria en env.js)
 const pool = new Pool(dbConfig);
 
 // Manejador de errores: si algo falla en una conexión inactiva

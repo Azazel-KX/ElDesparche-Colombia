@@ -41,14 +41,19 @@ function firmarToken(usuario) {
 //
 // ¿Por qué?
 // - Nunca devolvemos TODOS los datos del usuario (seguridad)
-// - Solo devolvemos: ID, nombre completo, correo, tipo
+// - Solo devolvemos lo que la web guarda en la sesión: ID, tipo de documento, nombre completo, correo, tipo
+//   de usuario y, según el perfil, la fecha de nacimiento (CLIENTE) o el NIT (AGENTE)
 // - NO devolvemos: contrasena_hash, tokens, datos sensibles
 function usuarioPublico(u) {
   return {
     numero_identificacion: u.numero_identificacion,
+    tipo_identificacion: u.tipo_identificacion,
     nombre_completo: u.nombre_completo,
     correo: u.correo,
     tipo_usuario: u.tipo_usuario,
+    fecha_nacimiento: u.fecha_nacimiento || null,
+    nit: u.nit || null,
+    estado_usuario: u.estado_usuario,
   };
 }
 
@@ -115,10 +120,19 @@ async function iniciarSesion(req, res) {
     throw new ErrorHttp(401, "Correo o contraseña incorrectos.");
   }
 
+  // Paso 4.b: una cuenta suspendida o bloqueada no entra (la contraseña ya se comprobó, así que decirlo no filtra nada)
+  if (usuario.estado_usuario === "Suspendido" || usuario.estado_usuario === "Bloqueado") {
+    throw new ErrorHttp(403, usuario.estado_usuario === "Bloqueado"
+      ? "Tu cuenta está bloqueada. Comunícate con un administrador."
+      : "Tu cuenta está suspendida. Comunícate con un administrador.");
+  }
+
   // Paso 5: Devolver token + usuario público
+  // El perfil completo trae los datos del subtipo (fecha de nacimiento, NIT) que la sesión de la web necesita
+  const perfil = await usuarioModel.perfilPorId(usuario.numero_identificacion);
   res.json({
-    token: firmarToken(usuario),
-    usuario: usuarioPublico(usuario)
+    token: firmarToken(perfil),
+    usuario: usuarioPublico(perfil)
   });
 }
 

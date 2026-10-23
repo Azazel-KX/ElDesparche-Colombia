@@ -12,7 +12,7 @@
    - PATCH /api/admin/agentes/:nit/estado   cuerpo { estado: "Activo" | "Suspendido" }
    - POST   /api/admin/agentes           registra un agente (USUARIO del representante + AGENTE), con "contrasena"
    - PUT    /api/admin/agentes/:nit      modifica sus datos (el NIT y el documento no cambian)
-   - DELETE /api/admin/agentes/:nit      lo elimina; responde 409 si tiene eventos (EVENTO.id_agente es RESTRICT)
+   - DELETE /api/admin/agentes/:nit      lo elimina; responde 409 si tiene eventos (EVENTO.numero_identificacion (el agente) es RESTRICT)
    - GET   /api/admin/eventos            -> { eventos: [ igual que EVENTOS de script.js, con "agente" ] }
    - POST   /api/admin/eventos           registra un evento (EVENTO + UBICACION) para un agente
    - PUT    /api/admin/eventos/:id       modifica sus datos (el estado se cambia aparte)
@@ -1282,7 +1282,7 @@ function paginaAgentes() {
     var acciones = document.getElementById("detalle-acciones");
     var suyos = eventosDeAgente(a).length;
     if (suyos) {
-      /* EVENTO.id_agente es RESTRICT: un agente con eventos no se puede borrar */
+      /* EVENTO.numero_identificacion (el agente) es RESTRICT: un agente con eventos no se puede borrar */
       acciones.innerHTML =
         '<div class="detalle-confirmar">' +
           '<p id="texto-confirmar"><strong>No se puede eliminar a ' + escapar(a.nombre) + '.</strong> ' +
@@ -4956,15 +4956,22 @@ function paginaValidar(config) {
   var ultimoLeido = "";
   var ultimaVez = 0;
 
-  D.eventos.filter(function (e) {
-    return e.estado !== "Finalizado" && e.estado !== "Cancelado" && esPermitido(e.id);
-  })
-    .forEach(function (e) {
+  /* Eventos de la puerta. En modo local salen de D.eventos; con el API, de las
+     reservas que se cargan más abajo (D.eventos son los de ejemplo en los paneles). */
+  function llenarSelector(eventos) {
+    eventos.forEach(function (e) {
       var opcion = document.createElement("option");
       opcion.value = e.id;
       opcion.textContent = e.titulo;
       selectorEvento.appendChild(opcion);
     });
+  }
+
+  if (!D.usarApi) {
+    llenarSelector(D.eventos.filter(function (e) {
+      return e.estado !== "Finalizado" && e.estado !== "Cancelado" && esPermitido(e.id);
+    }));
+  }
 
   /* Id del evento de un ingreso (los antiguos solo guardaban el título) */
   function eventoDeIngreso(g) {
@@ -4973,8 +4980,19 @@ function paginaValidar(config) {
     return evento ? evento.id : null;
   }
 
+  /* Ingresos registrados: en modo local, los de este navegador; con el API, las
+     reservas que la base ya tiene como usadas (la base no guarda la hora del ingreso) */
+  function ingresosRegistrados() {
+    if (!D.usarApi) return leerIngresos();
+    var deLaBase = {};
+    reservas.filter(function (r) { return r.usada; }).forEach(function (r) {
+      deLaBase[r.codigo] = { fecha: "", eventoId: r.eventoId, evento: r.evento, cliente: r.cliente, entradas: r.entradas };
+    });
+    return deLaBase;
+  }
+
   function pintarIngresos() {
-    var ingresos = leerIngresos();
+    var ingresos = ingresosRegistrados();
     var codigos = Object.keys(ingresos).filter(function (c) {
       return esPermitido(eventoDeIngreso(ingresos[c]));
     }).sort(function (a, b) {
@@ -4990,7 +5008,7 @@ function paginaValidar(config) {
     document.getElementById("lista-ingresos").innerHTML = codigos.slice(0, 15).map(function (c, i) {
       var g = ingresos[c];
       return '<li style="--orden:' + i + '">' +
-        '<span class="actividad-cuando">' + fechaHora(g.fecha) + ' · ' + escapar(c) + '</span>' +
+        '<span class="actividad-cuando">' + (g.fecha ? fechaHora(g.fecha) + ' · ' : '') + escapar(c) + '</span>' +
         '<span>' + escapar(g.cliente) + ' — ' + escapar(g.evento) + ' (' + g.entradas + (g.entradas === 1 ? " persona" : " personas") + ')</span>' +
       '</li>';
     }).join("");
@@ -5041,8 +5059,9 @@ function paginaValidar(config) {
       return;
     }
 
-    var eventoPuerta = Number(selectorEvento.value);
-    if (eventoPuerta && reserva.eventoId !== eventoPuerta) {
+    /* Se comparan como texto: el id es un número en modo local y un código "EVT-..." con el API */
+    var eventoPuerta = selectorEvento.value;
+    if (eventoPuerta && String(reserva.eventoId) !== eventoPuerta) {
       resultado("validar-no", "Es de otro evento",
         "Esta entrada es para otro evento, no para el que estás validando en esta puerta.", reserva);
       return;
@@ -5066,10 +5085,13 @@ function paginaValidar(config) {
       return;
     }
 
-    var usada = leerIngresos()[codigo];
-    if (usada) {
+    /* Con el API lo dice la base (reserva.usada); en modo local, este navegador */
+    var usada = D.usarApi ? null : leerIngresos()[codigo];
+    if (usada || reserva.usada) {
       resultado("validar-usada", "Esta entrada ya se usó",
-        "Ingresó el " + fechaHora(usada.fecha) + (usada.revisadoPor ? ", validada por " + escapar(usada.revisadoPor) : "") +
+        (usada
+          ? "Ingresó el " + fechaHora(usada.fecha) + (usada.revisadoPor ? ", validada por " + escapar(usada.revisadoPor) : "")
+          : "Ya se registró el ingreso con esta entrada") +
         ". Si la persona insiste, revisa su documento.", reserva);
       return;
     }
@@ -5088,6 +5110,7 @@ function paginaValidar(config) {
     boton.disabled = true;
 
     registrarIngreso(reserva, admin.nombre, config.rutaIngreso).then(function () {
+      reserva.usada = true;   /* si vuelven a mostrar el mismo QR, ya sale como usada */
       resultado("validar-si", "Ingreso registrado",
         "Bienvenidos. La entrada quedó marcada como usada y no servirá otra vez.", reserva);
       pintarIngresos();
@@ -5159,7 +5182,15 @@ function paginaValidar(config) {
 
   (config.obtenerReservas || obtenerReservasAdmin)().then(function (lista) {
     reservas = lista;
-    if (!D.usarApi) {
+    if (D.usarApi) {
+      /* Los eventos de la puerta son los que tienen reservas vigentes */
+      var vistos = {};
+      llenarSelector(lista.filter(function (r) {
+        if (r.estado === "Cancelada" || !esPermitido(r.eventoId) || vistos[r.eventoId]) return false;
+        vistos[r.eventoId] = true;
+        return true;
+      }).map(function (r) { return { id: r.eventoId, titulo: r.evento }; }));
+    } else {
       aviso.textContent = permitidos
         ? "Modo local: se validan las reservas de ejemplo de tus eventos. Los ingresos se guardan en este navegador."
         : "Modo local: se validan las reservas de ejemplo y las hechas en este navegador. Los ingresos se guardan en este navegador.";
@@ -5172,7 +5203,8 @@ function paginaValidar(config) {
 
 /* ===== PÁGINA: REPORTES ===== */
 
-var ANIO_REPORTES = 2026;
+/* El año en curso (el backend también usa el año actual si no se le pide otro) */
+var ANIO_REPORTES = new Date().getFullYear();
 var NOMBRES_MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",
   "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 

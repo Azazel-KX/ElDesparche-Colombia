@@ -50,11 +50,15 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 ## Decisiones del diseño
 
 - **PK de `USUARIO`:** `numero_identificacion`, blindada: número normalizado (mayúsculas y dígitos), formato válido según el tipo de documento, no editable salvo corrección explícita y `ON UPDATE CASCADE` en las FK. Un mismo número no puede registrarse dos veces aunque cambie el tipo.
+- **Estado de la cuenta (`USUARIO.estado_usuario`):** `Activo`, `Pendiente` (agente que se registró solo y espera aprobación), `Suspendido` (agentes) o `Bloqueado` (clientes). Las dos últimas impiden iniciar sesión.
+- **Revisión de eventos:** un evento que registra un agente queda `En revisión`; el administrador lo aprueba (pasa a `Programado` y se publica) o lo rechaza (`Rechazado`). Es la misma fila de `EVENTO`: solo cambia el estado. El motivo del rechazo se agrega a `observaciones` (`Rechazado por el administrador. Motivo: ...`).
+- **Código de evento:** `EVT-AAAA-NNNN`; el número sale de la secuencia `evento_numero_seq` (el seed la deja en el último código cargado). Nunca se repite, aunque se borre un evento.
+- **Entrada usada:** `RESERVA.estado` = `Usada` cuando la entrada se valida en la puerta del evento.
 - **Sin `tipo_usuario`:** el perfil lo define la generalización. Cada subtipo (`ADMIN`, `CLIENTE`, `AGENTE`) usa como PK y FK el `numero_identificacion` de `USUARIO`; para saber el perfil se busca en qué subtipo está la fila.
 - **Herencia total y disjunta:** un trigger diferido exige que todo usuario esté en exactamente un subtipo (ni ninguno ni dos).
 - **Nombre:** `USUARIO.nombre_completo` guarda nombres y apellidos en una sola columna.
 - **Llaves foráneas hacia el usuario:** se llaman `numero_identificacion`, igual que la PK a la que apuntan (`EVENTO` → agente, `RESERVA` y `METODO_PAGO` → cliente).
-- **Cancelaciones:** la causa se guarda en `observaciones` de `EVENTO` o `RESERVA`, con el formato que escribe la web: `Cancelada por el cliente. Causa: No puede asistir. Detalle: ...`.
+- **Cancelaciones:** la causa se agrega a `observaciones` de `EVENTO` o `RESERVA`, en una línea nueva, con el formato que escribe la web: `Cancelada por el cliente. Causa: No puede asistir. Detalle: ...`. Si no hay cancelación ni rechazo, `observaciones` solo tiene las notas del evento o la reserva (o `NULL`).
 - **Teatro:** `EVENTO.teatro` es el teatro o sitio del evento; la dirección exacta está en `UBICACION`.
 - **Derivado no almacenado:** `edad` (de `fecha_nacimiento`).
 - **Multivalorado:** `telefono` vive en `USUARIO_TELEFONO` (PK compuesta).
@@ -79,8 +83,29 @@ Contraseña de todas: `Desparche2026!`
 | `admin@eldesparche.test` | ADMIN |
 | `cliente1@eldesparche.test`, `cliente2@eldesparche.test` | CLIENTE |
 | `agente1@eldesparche.test`, `agente2@eldesparche.test` | AGENTE |
+| `agente3@eldesparche.test` | AGENTE pendiente de aprobación |
+| `cliente3@eldesparche.test` | CLIENTE bloqueado (no puede entrar) |
+
+El seed también trae un evento `En revisión` (`EVT-2026-0006`) y uno `Rechazado` con su motivo (`EVT-2026-0007`).
+Las fechas de los eventos son relativas al día en que se carga el seed (`CURRENT_DATE + días`), así sus eventos están
+siempre en el futuro; si la base se cargó hace meses, recárgala para que los eventos vuelvan a estar vigentes.
 
 ## Probar las reglas
+
+`pruebas_bd.sql` comprueba en 100 pruebas la estructura, los datos del seed, la tarifa de Wompi y que cada restricción
+y trigger acepte lo válido y rechace lo inválido (herencia, documento, edad mínima, cupo, valor, pagos, borrados en
+cascada o restringidos, ubicaciones). Corre en una transacción que termina en `ROLLBACK` y no usa `nextval`, así que no
+deja cambios. Termina con error si alguna prueba falla. Desde `backend/` (PowerShell, cmd o Git Bash):
+
+```bash
+npm run test:bd
+```
+
+O directamente desde la raíz del repo (Git Bash o cmd; PowerShell no admite `<`):
+
+```bash
+docker exec -i desparche_db_container psql -U postgres -d desparche_db -v ON_ERROR_STOP=1 < database/pruebas_bd.sql
+```
 
 Algunos ejemplos que la base debe rechazar:
 

@@ -1,16 +1,23 @@
-// Validación de datos de EVENTOS (crear, editar y cambiar de estado)
+// Validación de datos de EVENTOS (crear, editar, cambiar de estado, decidir una solicitud y filtros del catálogo)
 //
 // Sigue el mismo patrón que validacion.js:
 // - Cada función recibe el body de la petición.
 // - Devuelve { datos } si todo está bien, o { errores: { campo: "mensaje" } } si algo falla.
-// - Las reglas espejan los CHECK de la tabla EVENTO en database/schema_ElDesparche.sql.
+// - Los campos se llaman como los manda la web (frontend/js/agente.js, datosFormulario): nombre, inicio, fin, ciudad,
+//   teatro, capacidad, edad... Las reglas espejan los CHECK de EVENTO y UBICACION en database/schema_ElDesparche.sql.
 //   La base de datos sigue siendo la última barrera.
 
 const { texto } = require("./validacion");
+const { RE_CANCELACION } = require("./formato");
 
-// Mismos valores que el CHECK de categoria y el ENUM estado_evento_t del esquema
+// Mismos valores que el CHECK de categoria y los ENUM estado_evento_t / estado_reserva_t del esquema
 const CATEGORIAS = ["musica", "teatro", "danza", "circo", "comedia"];
-const ESTADOS = ["Programado", "En Boletería", "En Vivo", "Finalizado", "Cancelado"];
+const ESTADOS = ["En revisión", "Rechazado", "Programado", "En Boletería", "En Vivo", "Finalizado", "Cancelado"];
+// Los estados de un evento ya publicado. "En revisión" y "Rechazado" son de las solicitudes de los agentes.
+const ESTADOS_OPERATIVOS = ["Programado", "En Boletería", "En Vivo", "Finalizado", "Cancelado"];
+const ESTADOS_SOLICITUD = ["En revisión", "Rechazado"];
+// Estados en los que todavía se pueden vender entradas (igual que la web: todo menos Finalizado y Cancelado)
+const ESTADOS_RESERVABLES = ["Programado", "En Boletería", "En Vivo"];
 
 // Máquina de estados: desde cada estado, a cuáles se puede pasar.
 // "Finalizado" y "Cancelado" son estados finales: de ahí no se sale.
@@ -21,6 +28,17 @@ const TRANSICIONES = {
   "Finalizado": [],
   "Cancelado": [],
 };
+
+// Causas de cancelación de un evento y de una reserva: las mismas listas de CAUSAS_CANCELACION en frontend/js/script.js.
+// No hay tabla de causas; se valida contra estas listas para que los reportes puedan agrupar por causa.
+const CAUSAS_EVENTO = [
+  "Baja venta de entradas", "Fuerza mayor o clima", "Problemas técnicos o logísticos",
+  "Cambio de fecha del evento", "Otra causa",
+];
+const CAUSAS_RESERVA = [
+  "No puede asistir", "Error en el evento o en la cantidad", "Pago no realizado a tiempo",
+  "Cambio de fecha del evento", "Otra causa",
+];
 
 // Acepta "2026-11-15T19:00", "2026-11-15 19:00" o con segundos. Sin zona horaria: la BD usa TIMESTAMP
 // (hora local de Colombia), así que no convertimos nada.
@@ -38,145 +56,128 @@ function leerFechaHora(valor) {
   return coincide ? { fecha, texto: `${a}-${mes}-${d} ${h}:${min}:${s}` } : null;
 }
 
-// Valida el objeto "ubicacion" que viene dentro del evento: { direccion, latitud, longitud, id_ciudad }
-// Los rangos de latitud/longitud son los mismos CHECK de la tabla UBICACION (territorio colombiano).
-function validarUbicacion(u, errores) {
-  const b = u && typeof u === "object" ? u : null;
-  if (!b) {
-    errores.ubicacion = "Envía la ubicación del evento (dirección, latitud, longitud y ciudad).";
-    return null;
-  }
+const vacio = (v) => v === undefined || v === null || v === "";
 
-  const direccion = texto(b.direccion);
-  const latitud = Number(b.latitud);
-  const longitud = Number(b.longitud);
-  const id_ciudad = Number(b.id_ciudad);
-  const detalle = {};
+// Valida un evento tal como lo manda la web (solicitud del agente o formulario del administrador).
+//   exigirFuturo: el inicio debe ser futuro (un agente que envía o corrige una solicitud). El administrador puede
+//                 corregir datos de un evento que ya empezó.
+//   conAgente:    el administrador indica el agente con su "nit"; un agente no (sale de su token).
+//   ahora:        se inyecta para poder probar la función sin depender del reloj.
+function validarEvento(body, { exigirFuturo = true, conAgente = false, ahora = new Date() } = {}) {
+  const b = body && typeof body === "object" ? body : {};
+  const errores = {};
 
-  if (!direccion || direccion.length > 200) detalle.direccion = "Escribe la dirección (máximo 200 caracteres).";
-  if (!Number.isFinite(latitud) || latitud < -4.3 || latitud > 13.6) detalle.latitud = "La latitud debe estar entre -4.3 y 13.6 (Colombia).";
-  if (!Number.isFinite(longitud) || longitud < -82.0 || longitud > -66.8) detalle.longitud = "La longitud debe estar entre -82.0 y -66.8 (Colombia).";
-  if (!Number.isInteger(id_ciudad) || id_ciudad <= 0) detalle.id_ciudad = "Elige una ciudad válida.";
-
-  if (Object.keys(detalle).length) {
-    errores.ubicacion = detalle;
-    return null;
-  }
-  return { direccion, latitud, longitud, id_ciudad };
-}
-
-// Campos que comparten crear y editar. `ahora` se inyecta para poder probar la función sin depender del reloj.
-function validarCamposEvento(b, errores, ahora) {
   const nombre = texto(b.nombre);
   if (!nombre || nombre.length > 150) errores.nombre = "Escribe el nombre del evento (máximo 150 caracteres).";
 
   const categoria = texto(b.categoria).toLowerCase();
   if (!CATEGORIAS.includes(categoria)) errores.categoria = `La categoría debe ser una de: ${CATEGORIAS.join(", ")}.`;
 
-  const inicio = leerFechaHora(b.fecha_hora_inicio);
-  const fin = leerFechaHora(b.fecha_hora_fin);
-  if (!inicio) errores.fecha_hora_inicio = "Escribe la fecha de inicio con formato AAAA-MM-DDTHH:MM.";
-  if (!fin) errores.fecha_hora_fin = "Escribe la fecha de fin con formato AAAA-MM-DDTHH:MM.";
-  if (inicio && fin && fin.fecha <= inicio.fecha) errores.fecha_hora_fin = "El evento debe terminar después de empezar.";
-  if (inicio && inicio.fecha <= ahora) errores.fecha_hora_inicio = "La fecha de inicio debe ser futura.";
+  const inicio = leerFechaHora(b.inicio);
+  const fin = leerFechaHora(b.fin);
+  if (!inicio) errores.inicio = "Escribe la fecha de inicio con formato AAAA-MM-DDTHH:MM.";
+  if (!fin) errores.fin = "Escribe la fecha de fin con formato AAAA-MM-DDTHH:MM.";
+  if (inicio && fin && fin.fecha <= inicio.fecha) errores.fin = "El evento debe terminar después de empezar.";
+  if (exigirFuturo && inicio && inicio.fecha <= ahora) errores.inicio = "La fecha de inicio debe ser futura.";
+
+  // Teatro o sitio donde se hace el evento; la dirección exacta va aparte
+  const teatro = texto(b.teatro);
+  if (!teatro || teatro.length > 150) errores.teatro = "Escribe el teatro o sitio del evento (máximo 150 caracteres).";
+  const direccion = texto(b.direccion);
+  if (!direccion || direccion.length > 200) errores.direccion = "Escribe la dirección (máximo 200 caracteres).";
+
+  // La ciudad llega por su nombre (así la elige el formulario); el servidor la busca en CIUDAD
+  const ciudad = texto(b.ciudad);
+  if (!ciudad) errores.ciudad = "Elige la ciudad.";
 
   // Number("") es 0 y Number(null) es 0: exigimos que lleguen de verdad
-  const capacidad_total = b.capacidad_total === undefined || b.capacidad_total === null || b.capacidad_total === "" ? NaN : Number(b.capacidad_total);
-  if (!Number.isInteger(capacidad_total) || capacidad_total <= 0) errores.capacidad_total = "La capacidad debe ser un número entero mayor que 0.";
+  const capacidad = vacio(b.capacidad) ? NaN : Number(b.capacidad);
+  if (!Number.isInteger(capacidad) || capacidad <= 0) errores.capacidad = "La capacidad debe ser un número entero mayor que 0.";
 
   // El precio puede ser 0 (evento gratuito). Si no llega, queda en 0.
-  const precio = b.precio === undefined || b.precio === null || b.precio === "" ? 0 : Number(b.precio);
+  const precio = vacio(b.precio) ? 0 : Number(b.precio);
   if (!Number.isFinite(precio) || precio < 0) errores.precio = "El precio debe ser un número mayor o igual a 0.";
   else if (Math.abs(precio * 100 - Math.round(precio * 100)) > 1e-6) errores.precio = "El precio admite máximo 2 decimales.";
 
-  const edad_minima = b.edad_minima === undefined || b.edad_minima === null || b.edad_minima === "" ? 0 : Number(b.edad_minima);
-  if (!Number.isInteger(edad_minima) || edad_minima < 0 || edad_minima > 120) errores.edad_minima = "La edad mínima debe ser un entero entre 0 y 120.";
+  const edad = vacio(b.edad) ? 0 : Number(b.edad);
+  if (!Number.isInteger(edad) || edad < 0 || edad > 120) errores.edad = "La edad mínima debe ser un entero entre 0 y 120.";
 
-  // Teatro o sitio donde se hace el evento (obligatorio; la dirección exacta va en la ubicación)
-  const teatro = texto(b.teatro);
-  if (!teatro || teatro.length > 150) errores.teatro = "Escribe el teatro o sitio del evento (máximo 150 caracteres).";
+  // Ubicación en el mapa: dentro de Colombia (mismos CHECK de UBICACION)
+  const lat = Number(b.lat);
+  const lon = Number(b.lon);
+  if (vacio(b.lat) || !Number.isFinite(lat) || lat < -4.3 || lat > 13.6) errores.lat = "La latitud debe estar entre -4.3 y 13.6 (Colombia).";
+  if (vacio(b.lon) || !Number.isFinite(lon) || lon < -82.0 || lon > -66.8) errores.lon = "La longitud debe estar entre -82.0 y -66.8 (Colombia).";
 
-  const url_imagen = texto(b.url_imagen);
-  if (url_imagen.length > 255) errores.url_imagen = "La URL de la imagen no puede superar los 255 caracteres.";
-  else if (url_imagen && !/^https?:\/\//i.test(url_imagen)) errores.url_imagen = "La imagen debe ser una URL que empiece por http:// o https://.";
+  const observaciones = texto(b.observaciones);
+  if (observaciones.length > 1000) errores.observaciones = "Las observaciones no pueden superar los 1000 caracteres.";
 
-  return {
-    nombre,
-    descripcion: texto(b.descripcion) || null,
-    categoria,
-    url_imagen: url_imagen || null,
-    teatro,
-    fecha_hora_inicio: inicio ? inicio.texto : null,
-    fecha_hora_fin: fin ? fin.texto : null,
-    capacidad_total,
-    edad_minima,
-    observaciones: texto(b.observaciones) || null,
-    precio,
+  const descripcion = texto(b.descripcion);
+  if (descripcion.length > 3000) errores.descripcion = "La descripción no puede superar los 3000 caracteres.";
+
+  const datos = {
+    nombre, categoria, descripcion: descripcion || null, inicio: inicio ? inicio.texto : null, fin: fin ? fin.texto : null,
+    ciudad, teatro, direccion, capacidad, precio, edad, observaciones: observaciones || null,
+    imagen: typeof b.imagen === "string" ? b.imagen : null, lat, lon,
   };
-}
 
-// Valida el body para CREAR un evento (POST /api/eventos)
-// El código NO lo envía el cliente: lo genera el servidor (EVT-2026-0001...).
-// El estado inicial siempre es "Programado" y el agente dueño sale del token, no del body.
-function validarEventoNuevo(body, ahora = new Date()) {
-  const b = body || {};
-  const errores = {};
-  const datos = validarCamposEvento(b, errores, ahora);
-  const ubicacion = validarUbicacion(b.ubicacion, errores);
-  if (ubicacion) datos.ubicacion = ubicacion;
-  return Object.keys(errores).length ? { errores } : { datos };
-}
-
-// Valida el body para EDITAR un evento (PUT /api/eventos/:codigo)
-// Es un reemplazo completo de los datos editables (PUT): se envían todos los campos.
-// La ubicación es opcional: si no viene, el evento conserva la que tiene.
-function validarEventoEdicion(body, ahora = new Date()) {
-  const b = body || {};
-  const errores = {};
-  const datos = validarCamposEvento(b, errores, ahora);
-  if (b.ubicacion !== undefined) {
-    const ubicacion = validarUbicacion(b.ubicacion, errores);
-    if (ubicacion) datos.ubicacion = ubicacion;
+  if (conAgente) {
+    const nit = texto(b.nit);
+    if (!/^[0-9]{9}-[0-9]$/.test(nit)) errores.nit = "Elige el agente del evento.";
+    datos.nit = nit;
   }
+
   return Object.keys(errores).length ? { errores } : { datos };
 }
 
-// Valida el body para CAMBIAR EL ESTADO (PATCH /api/eventos/:codigo/estado)
-// Body: { estado, causa?, detalle? }.  La causa es obligatoria solo al cancelar; el detalle es opcional.
-// No hay tabla de causas: el texto se guarda en EVENTO.observaciones (ver textoCancelacion).
+// Valida el cambio de estado de un evento ya publicado: { estado, observaciones? }.
+// Al CANCELAR, "observaciones" lleva el texto completo con la nota de causa (la web ya la arma con agregarNota y
+// notaCancelacion). También se acepta { causa, detalle }: el servidor arma la nota. En los demás estados no se envía.
 function validarCambioEstado(body) {
-  const b = body || {};
+  const b = body && typeof body === "object" ? body : {};
   const errores = {};
 
   const estado = texto(b.estado);
-  if (!ESTADOS.includes(estado)) errores.estado = `El estado debe ser uno de: ${ESTADOS.join(", ")}.`;
+  if (!ESTADOS_OPERATIVOS.includes(estado)) errores.estado = `El estado debe ser uno de: ${ESTADOS_OPERATIVOS.join(", ")}.`;
 
+  let observaciones = null;
   let causa = null;
   let detalle = null;
+
   if (estado === "Cancelado") {
-    causa = texto(b.causa);
-    if (!causa || causa.length > 100) errores.causa = "Para cancelar un evento indica la causa de cancelación (máximo 100 caracteres).";
-    detalle = texto(b.detalle) || null;
-    if (detalle && detalle.length > 300) errores.detalle = "El detalle no puede superar los 300 caracteres.";
-  } else if ((b.causa !== undefined && b.causa !== null && b.causa !== "") ||
-             (b.detalle !== undefined && b.detalle !== null && b.detalle !== "")) {
-    errores.causa = "Solo se envía una causa cuando el estado es Cancelado.";
+    if (typeof b.observaciones === "string" && b.observaciones.trim()) {
+      observaciones = b.observaciones.trim();
+      if (observaciones.length > 2000) errores.observaciones = "Las observaciones no pueden superar los 2000 caracteres.";
+      else if (!RE_CANCELACION.test(observaciones)) errores.observaciones = "Falta la causa de la cancelación (Cancelado por ... Causa: ...).";
+    } else {
+      causa = texto(b.causa);
+      if (!CAUSAS_EVENTO.includes(causa)) errores.causa = `Elige la causa de la cancelación: ${CAUSAS_EVENTO.join(", ")}.`;
+      detalle = texto(b.detalle).replace(/\s+/g, " ") || null;
+      if (detalle && detalle.length > 300) errores.detalle = "El detalle no puede superar los 300 caracteres.";
+      else if (causa === "Otra causa" && !detalle) errores.detalle = "Escribe el detalle de la causa.";
+      if (!errores.causa && !errores.detalle) observaciones = null; // el controlador arma la nota con causa y detalle
+    }
+  } else if (!vacio(b.observaciones) || !vacio(b.causa) || !vacio(b.detalle)) {
+    errores.observaciones = "Solo se envía una causa cuando el estado es Cancelado.";
   }
 
-  return Object.keys(errores).length ? { errores } : { datos: { estado, causa, detalle } };
+  return Object.keys(errores).length ? { errores } : { datos: { estado, observaciones, causa, detalle } };
 }
 
-// Arma el texto que se guarda en EVENTO.observaciones al cancelar, con el formato que escribe la web:
-// "Cancelado por el agente. Causa: Fuerza mayor o clima. Detalle: tormenta eléctrica."
-// "quien" sale del rol del token: un administrador cancela "por el administrador", un agente "por el agente".
-function textoCancelacion(rol, { causa, detalle }) {
-  const quien = rol === "ADMIN" ? "el administrador" : "el agente";
-  const final = (t) => (/[.!?]$/.test(t) ? t : t + ".");
-  return `Cancelado por ${quien}. Causa: ${final(causa)}` + (detalle ? ` Detalle: ${final(detalle)}` : "");
+// Valida la decisión del administrador sobre una solicitud: { estado: "Aprobado" | "Rechazado", motivo }
+function validarDecision(body) {
+  const b = body && typeof body === "object" ? body : {};
+  const errores = {};
+  const estado = texto(b.estado);
+  if (!["Aprobado", "Rechazado"].includes(estado)) errores.estado = "La decisión debe ser Aprobado o Rechazado.";
+  const motivo = texto(b.motivo).replace(/\s+/g, " ");
+  if (estado === "Rechazado" && !motivo) errores.motivo = "Escribe el motivo del rechazo.";
+  if (motivo.length > 300) errores.motivo = "El motivo no puede superar los 300 caracteres.";
+  return Object.keys(errores).length ? { errores } : { datos: { estado, motivo: estado === "Rechazado" ? motivo : null } };
 }
 
-// Valida los filtros del listado (GET /api/eventos?ciudad=1&categoria=teatro&estado=Programado&limite=20&pagina=1)
+// Valida los filtros del catálogo (GET /api/eventos?ciudad=1&categoria=teatro&estado=Programado&limite=20&pagina=1)
 // Todos son opcionales. Los valores inválidos se rechazan (mejor un 400 claro que ignorar el filtro en silencio).
+// Un evento "En revisión" o "Rechazado" nunca se muestra al público, así que no se puede filtrar por ellos.
 function validarFiltros(query) {
   const q = query || {};
   const errores = {};
@@ -194,7 +195,7 @@ function validarFiltros(query) {
   }
   if (q.estado !== undefined) {
     const estado = texto(q.estado);
-    if (!ESTADOS.includes(estado)) errores.estado = `El estado debe ser uno de: ${ESTADOS.join(", ")}.`;
+    if (!ESTADOS_OPERATIVOS.includes(estado)) errores.estado = `El estado debe ser uno de: ${ESTADOS_OPERATIVOS.join(", ")}.`;
     else filtros.estado = estado;
   }
 
@@ -210,6 +211,6 @@ function validarFiltros(query) {
 }
 
 module.exports = {
-  CATEGORIAS, ESTADOS, TRANSICIONES,
-  validarEventoNuevo, validarEventoEdicion, validarCambioEstado, validarFiltros, textoCancelacion,
+  CATEGORIAS, ESTADOS, ESTADOS_OPERATIVOS, ESTADOS_SOLICITUD, ESTADOS_RESERVABLES, TRANSICIONES, CAUSAS_EVENTO, CAUSAS_RESERVA,
+  validarEvento, validarCambioEstado, validarDecision, validarFiltros,
 };

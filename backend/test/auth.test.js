@@ -135,6 +135,9 @@ test("registro de cliente devuelve token y /me muestra su perfil", async () => {
   assert.ok(Number.isInteger(u.edad) && u.edad >= 20, "la edad se deriva de la fecha de nacimiento");
   assert.equal(u.nit, null, "un cliente no tiene datos de agente");
   assert.equal(u.contrasena_hash, undefined);
+  // Las fechas salen tal como se guardaron, sin desfase de zona horaria ni "T...Z" en las DATE
+  assert.equal(u.fecha_nacimiento, "1999-04-20");
+  assert.match(u.fecha_registro, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
 });
 
 test("registro de agente guarda los datos de su empresa", async () => {
@@ -248,11 +251,11 @@ test("un cliente recién registrado ya puede reservar (no hay verificación de c
   assert.equal((await registrar(datos)).estado, 201);
   const { rows } = await pool.query(
     `INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento)
-     VALUES (1, $1, 'EVT-2026-0001') RETURNING valor_total::float8 AS valor_total`,
+     VALUES (1, $1, 'EVT-2026-0004') RETURNING valor_total::float8 AS valor_total`,
     [datos.numero_identificacion]
   );
-  // 1 entrada de $50.000 + tarifa de Wompi (2,65 % + $700, más IVA) = $52.410
-  assert.equal(rows[0].valor_total, 52410);
+  // 1 entrada de $20.000 + tarifa de Wompi (2,65 % + $700, más IVA) = $21.464
+  assert.equal(rows[0].valor_total, 21464);
 });
 
 test("la base exige que todo usuario esté en exactamente un subtipo", async () => {
@@ -313,6 +316,32 @@ test("login correcto con cada perfil del seed", async () => {
     assert.equal(me.estado, 200);
     assert.equal(me.json.usuario.correo, correo);
   }
+});
+
+test("el login devuelve los datos que la web guarda en la sesión (documento, nacimiento, NIT)", async () => {
+  const entrar = (correo) =>
+    llamar("/api/auth/login", { metodo: "POST", cuerpo: { correo, contrasena: "Desparche2026!" } });
+
+  const cliente = (await entrar("cliente1@eldesparche.test")).json.usuario;
+  assert.equal(cliente.tipo_identificacion, "CC");
+  assert.equal(cliente.fecha_nacimiento, "1995-03-12");
+  assert.equal(cliente.nit, null);
+
+  const agente = (await entrar("agente1@eldesparche.test")).json.usuario;
+  assert.equal(agente.tipo_identificacion, "NIT");
+  assert.equal(agente.nit, "900111222-1");
+  assert.equal(agente.fecha_nacimiento, null);
+  assert.equal(agente.contrasena_hash, undefined);
+});
+
+test("el perfil devuelve la comisión y el salario como números", async () => {
+  const entrar = async (correo) =>
+    (await llamar("/api/auth/login", { metodo: "POST", cuerpo: { correo, contrasena: "Desparche2026!" } })).json.token;
+
+  const agente = (await llamar("/api/auth/me", { token: await entrar("agente1@eldesparche.test") })).json.usuario;
+  assert.equal(agente.comision, 10);
+  const admin = (await llamar("/api/auth/me", { token: await entrar("admin@eldesparche.test") })).json.usuario;
+  assert.equal(admin.salario, 4500000);
 });
 
 test("el perfil del administrador del seed incluye su horario", async () => {
