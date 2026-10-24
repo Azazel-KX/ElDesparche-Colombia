@@ -2585,7 +2585,7 @@ function mostrarCamposDelTipo() {
 /* ===== COMUNICACIÓN CON EL BACKEND =====
    La dirección del API se puede cambiar definiendo window.DESPARCHE_API_URL
    antes de cargar este archivo. */
-var API_URL = window.DESPARCHE_API_URL || "http://localhost:5000/api";
+var API_URL = window.DESPARCHE_API_URL || "/api";
 
 /* INTERRUPTOR DE LA BASE DE DATOS
    true  = todo pasa por el API y PostgreSQL.
