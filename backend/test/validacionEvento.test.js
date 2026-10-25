@@ -89,12 +89,14 @@ test("evento: el administrador puede corregir un evento que ya empezó (exigirFu
   assert.equal(validar(pasado, { exigirFuturo: false }).errores, undefined);
 });
 
-test("evento: el punto del mapa es obligatorio y debe estar en Colombia", () => {
+test("evento: el punto del mapa es obligatorio, en cualquier país, y debe ser una coordenada posible", () => {
   assert.ok(validar({ lat: undefined }).errores.lat);
   assert.ok(validar({ lon: "" }).errores.lon);
-  const enMadrid = validar({ lat: 40.4, lon: -3.7 }).errores;
-  assert.ok(enMadrid.lat);
-  assert.ok(enMadrid.lon);
+  assert.equal(validar({ lat: 40.4, lon: -3.7 }).errores, undefined, "Madrid es válido");
+  assert.equal(validar({ lat: -34.6, lon: -58.4 }).errores, undefined, "Buenos Aires es válido");
+  const imposible = validar({ lat: 95, lon: 190 }).errores;
+  assert.ok(imposible.lat);
+  assert.ok(imposible.lon);
 });
 
 test("evento: el administrador debe indicar el agente por su NIT", () => {

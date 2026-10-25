@@ -386,3 +386,27 @@ test("/me exige token válido", async () => {
   assert.equal((await llamar("/api/auth/me")).estado, 401);
   assert.equal((await llamar("/api/auth/me", { token: "abc.def.ghi" })).estado, 401);
 });
+
+test("PATCH /api/auth/contrasena: cambia la contraseña con la actual; con otra actual o una nueva débil 400; sin token 401", async () => {
+  const datos = clienteBase(30);
+  creados.push(datos.numero_identificacion);
+  const reg = await llamar("/api/auth/register", { metodo: "POST", cuerpo: datos });
+  assert.equal(reg.estado, 201);
+  const token = reg.json.token;
+  const cambiar = (cuerpo, tk = token) => llamar("/api/auth/contrasena", { metodo: "PATCH", token: tk, cuerpo });
+
+  assert.equal((await cambiar({ actual: datos.contrasena, nueva: "Otra-clave-456" }, "")).estado, 401);
+  const mala = await cambiar({ actual: "no-es-esa", nueva: "Otra-clave-456" });
+  assert.equal(mala.estado, 400);
+  assert.ok(mala.json.detalles.actual);
+  assert.ok((await cambiar({ actual: datos.contrasena, nueva: "corta" })).json.detalles.nueva);
+  assert.ok((await cambiar({ actual: datos.contrasena, nueva: datos.contrasena })).json.detalles.nueva, "debe ser distinta");
+  assert.ok((await cambiar({ nueva: "Otra-clave-456" })).json.detalles.actual);
+
+  const ok = await cambiar({ actual: datos.contrasena, nueva: "Otra-clave-456" });
+  assert.equal(ok.estado, 200);
+  const viejo = await llamar("/api/auth/login", { metodo: "POST", cuerpo: { correo: datos.correo, contrasena: datos.contrasena } });
+  assert.equal(viejo.estado, 401, "la contraseña vieja ya no sirve");
+  const nuevo = await llamar("/api/auth/login", { metodo: "POST", cuerpo: { correo: datos.correo, contrasena: "Otra-clave-456" } });
+  assert.equal(nuevo.estado, 200);
+});

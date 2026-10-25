@@ -7,6 +7,7 @@ import { escapar, normalizar, numero, pesos, pesosCompacto } from "../../lib/for
 import { esMiCuenta } from "../../modelos/personaModelo.js";
 import { fechaLarga } from "../../lib/fechas.js";
 import { pintarTarjetasResumen } from "../graficasVista.js";
+import { ocultarPaginacion, paginarTabla } from "../paginacionVista.js";
 
 export function pintarResumenAdministradores(administradores) {
   var nomina = administradores.reduce(function (s, a) { return s + a.salario; }, 0);
@@ -42,12 +43,13 @@ export function pintarTablaAdministradores(administradores) {
     : "Mostrando " + lista.length + " de " + administradores.length + " administradores.";
 
   if (lista.length === 0) {
+    ocultarPaginacion("cuerpo-administradores");
     cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="5" class="tabla-vacia">' +
       'No hay administradores que coincidan con la búsqueda. Prueba con otros filtros.</td></tr>';
     return;
   }
 
-  cuerpo.innerHTML = lista.map(function (a) {
+  cuerpo.innerHTML = paginarTabla("cuerpo-administradores", lista, function () { pintarTablaAdministradores(administradores); }).map(function (a) {
     return '<tr role="row">' +
       '<th scope="row" role="rowheader">' +
         '<span class="agente-celda">' +
@@ -70,6 +72,7 @@ export function pintarTablaAdministradores(administradores) {
 
 export function botonesAdministrador() {
   return '<button type="button" class="admin-boton-sec" data-accion="editar">Editar datos</button>' +
+    '<button type="button" class="admin-boton-sec" data-accion="restablecer">Restablecer contraseña</button>' +
     '<button type="button" class="admin-boton admin-boton-peligro" data-accion="eliminar">Eliminar administrador</button>';
 }
 

@@ -17,6 +17,7 @@ import { mapaSolicitud } from "../eventoVista.js";
 import { htmlFormulario } from "../formularioVista.js";
 import { barraOcupacion, pintarTarjetasResumen } from "../graficasVista.js";
 import { crearMapaEvento } from "../mapaVista.js";
+import { ocultarPaginacion, paginarTabla } from "../paginacionVista.js";
 
 export function pintarResumenEventos(eventos) {
   var tarjetas = [{ titulo: "Eventos", valor: eventos.length, formato: numero.format }];
@@ -49,12 +50,13 @@ export function pintarTablaEventos(lista, total) {
     : "Mostrando " + lista.length + " de " + total + " eventos.";
 
   if (lista.length === 0) {
+    ocultarPaginacion("cuerpo-eventos");
     cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="6" class="tabla-vacia">' +
       'No hay eventos que coincidan con la búsqueda. Prueba con otros filtros.</td></tr>';
     return;
   }
 
-  cuerpo.innerHTML = lista.map(function (e) {
+  cuerpo.innerHTML = paginarTabla("cuerpo-eventos", lista, function () { pintarTablaEventos(lista, total); }).map(function (e) {
     return '<tr role="row">' +
       '<th scope="row" role="rowheader">' +
         '<span class="agente-celda">' +

@@ -2564,3 +2564,27 @@
     align-items: start;
   }
 }
+
+/* ===== PAGINACIÓN DE LAS TABLAS ===== */
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.paginacion[hidden] {
+  display: none;
+}
+
+.paginacion-texto {
+  color: var(--gris-texto);
+  font-size: calc(14px * var(--escala-texto));
+}
+
+.paginacion button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

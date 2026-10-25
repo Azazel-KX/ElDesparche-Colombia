@@ -143,7 +143,7 @@ SELECT pg_temp.igual('seed', 'valor_total de las reservas (entradas × precio)',
 SELECT pg_temp.igual('seed', 'la secuencia de códigos va por delante del código más alto',
   $$SELECT (CASE WHEN is_called THEN last_value + 1 ELSE last_value END)
           > (SELECT MAX(SUBSTRING(codigo FROM '[0-9]+$')::int) FROM EVENTO) FROM evento_numero_seq$$, 'true');
-SELECT pg_temp.igual('seed', 'ubicaciones dentro de Colombia y con ciudad',
+SELECT pg_temp.igual('seed', 'ubicaciones con ciudad',
   $$SELECT count(*) FROM UBICACION u JOIN CIUDAD c USING (id_ciudad)$$, '5');
 
 -- ==================================================================================================================
@@ -256,8 +256,12 @@ SELECT pg_temp.acepta('eventos', 'capacidad igual a lo reservado',
   $$UPDATE EVENTO SET capacidad_total = 2 WHERE codigo = 'EVT-2026-0001'$$);
 SELECT pg_temp.acepta('eventos', 'las reservas canceladas no cuentan para la capacidad',
   $$UPDATE EVENTO SET capacidad_total = 1 WHERE codigo = 'EVT-2026-0004'$$);
-SELECT pg_temp.rechaza('eventos', 'ubicación fuera de Colombia',
-  $$INSERT INTO UBICACION (direccion, latitud, longitud, id_ciudad) VALUES ('Madrid', 40.4, -3.7, 1)$$, 'check');
+SELECT pg_temp.acepta('eventos', 'ubicación en otro país (Madrid)',
+  $$INSERT INTO UBICACION (direccion, latitud, longitud, id_ciudad) VALUES ('Puerta del Sol', 40.4168, -3.7038, 1)$$);
+SELECT pg_temp.rechaza('eventos', 'latitud imposible (fuera de -90 a 90)',
+  $$INSERT INTO UBICACION (direccion, latitud, longitud, id_ciudad) VALUES ('Imposible', 95, -3.7, 1)$$, 'check');
+SELECT pg_temp.rechaza('eventos', 'longitud imposible (fuera de -180 a 180)',
+  $$INSERT INTO UBICACION (direccion, latitud, longitud, id_ciudad) VALUES ('Imposible', 40.4, 190, 1)$$, 'check');
 SELECT pg_temp.acepta('eventos', 'aprobar una solicitud: En revisión → Programado',
   $$UPDATE EVENTO SET estado = 'Programado' WHERE codigo = 'EVT-2026-0006'$$);
 

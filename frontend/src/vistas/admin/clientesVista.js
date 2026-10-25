@@ -10,6 +10,7 @@ import { graficaVentas } from "../graficasVista.js";
 import { animarAlVer } from "../../lib/dom.js";
 import { pintarTarjetasResumen } from "../graficasVista.js";
 import { EVENTOS } from "../../modelos/eventoModelo.js";
+import { ocultarPaginacion, paginarTabla } from "../paginacionVista.js";
 
 export function pintarResumenClientes(clientes) {
   var cuantos = function (prueba) { return clientes.filter(prueba).length; };
@@ -48,12 +49,13 @@ export function pintarTablaClientes(clientes) {
     : "Mostrando " + lista.length + " de " + clientes.length + " clientes.";
 
   if (lista.length === 0) {
+    ocultarPaginacion("cuerpo-clientes");
     cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="6" class="tabla-vacia">' +
       'No hay clientes que coincidan con la búsqueda. Prueba con otros filtros.</td></tr>';
     return;
   }
 
-  cuerpo.innerHTML = lista.map(function (c) {
+  cuerpo.innerHTML = paginarTabla("cuerpo-clientes", lista, function () { pintarTablaClientes(clientes); }).map(function (c) {
     return '<tr role="row" class="' + (c.cuenta === "Bloqueada" ? "fila-bloqueada" : "") + '">' +
       '<th scope="row" role="rowheader">' +
         '<span class="agente-celda">' +
@@ -81,6 +83,7 @@ export function botonesCliente(c) {
     (c.cuenta === "Bloqueada"
       ? '<button type="button" class="admin-boton" data-accion="Activa">Desbloquear cuenta</button>'
       : '<button type="button" class="admin-boton-sec" data-accion="confirmar">Bloquear cuenta</button>') +
+    '<button type="button" class="admin-boton-sec" data-accion="restablecer">Restablecer contraseña</button>' +
     '<button type="button" class="admin-boton admin-boton-peligro" data-accion="eliminar">Eliminar cliente</button>';
 }
 

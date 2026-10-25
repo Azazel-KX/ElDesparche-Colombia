@@ -321,6 +321,23 @@ async function actualizar(codigo, datos, verificar, estadoNuevo) {
   });
 }
 
+// Función 4.b: el AGENTE edita lo que no toca a las reservas de un evento ya publicado: descripción, observaciones e
+// imagen. (Fechas, precio, capacidad y lugar los cambia un administrador.) Devuelve false si el evento no existe.
+// imagen null = se conserva; "" = se quita; data URL o URL = se guarda.
+async function editarPublicado(codigo, { descripcion, observaciones, imagen }, verificar) {
+  const url = imagen === null ? undefined : guardarImagen(imagen, "eventos", "evento");
+  return db.conTransaccion(async (cliente) => {
+    const actual = await bloquearEvento(cliente, codigo);
+    if (!actual) return false;
+    verificar(actual);
+    await cliente.query(
+      `UPDATE EVENTO SET descripcion = $2, observaciones = $3, url_imagen = $4 WHERE codigo = $1`,
+      [codigo, descripcion, mezclar(observaciones, actual.observaciones), url === undefined ? actual.url_imagen : url]
+    );
+    return true;
+  });
+}
+
 // Función 5: CAMBIAR EL ESTADO de un evento publicado. Devuelve false si no existe.
 // Misma idea que actualizar(): "verificar" corre dentro de la transacción con el evento bloqueado.
 //   observaciones: el texto completo (con la nota de cancelación ya agregada); null si el estado no es Cancelado.
@@ -392,5 +409,5 @@ async function docAgentePorNit(nit) {
 
 module.exports = {
   docAgentePorNit, aFormaWeb, aFormaSolicitud, listarPublicos, obtenerFila, obtenerPublico, listarPublicados, listarSolicitudes,
-  crear, actualizar, cambiarEstado, decidirSolicitud, eliminar,
+  crear, actualizar, editarPublicado, cambiarEstado, decidirSolicitud, eliminar,
 };

@@ -4,7 +4,7 @@
    ciudades que se eligen al registrarse.
    ========================================================================== */
 
-import { llamarApi, sesionVencida } from "./clienteApi.js";
+import { enviarCrud, llamarApi, sesionVencida } from "./clienteApi.js";
 
 /* Los dos devuelven { estado, datos }: el controlador decide qué hacer con los errores del API */
 export function iniciarSesion(correo, contrasena) {
@@ -39,4 +39,9 @@ export function obtenerCiudadesRegistro() {
     }
     return resultado.datos.ciudades;
   });
+}
+
+/* Cambia la contraseña de quien tiene la sesión abierta. Si algo falla lanza un Error con el mensaje del servidor. */
+export function cambiarContrasena(actual, nueva) {
+  return enviarCrud("/auth/contrasena", "PATCH", { actual: actual, nueva: nueva }, "No se pudo cambiar la contraseña.");
 }

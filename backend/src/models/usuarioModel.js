@@ -162,4 +162,15 @@ async function crear(d) {
   });
 }
 
-module.exports = { buscarPorCorreo, perfilPorId, estadoCuenta, crear, TIPO_USUARIO, FECHA, FECHA_HORA };
+// Función 1.c: el hash de la contraseña actual (para comprobarla antes de cambiarla) y su cambio
+async function hashDeContrasena(numeroIdentificacion) {
+  const { rows } = await db.query("SELECT contrasena_hash FROM USUARIO WHERE numero_identificacion = $1", [numeroIdentificacion]);
+  return rows[0] ? rows[0].contrasena_hash : null;
+}
+
+async function cambiarContrasena(numeroIdentificacion, hash) {
+  const { rowCount } = await db.query("UPDATE USUARIO SET contrasena_hash = $2 WHERE numero_identificacion = $1", [numeroIdentificacion, hash]);
+  return rowCount > 0;
+}
+
+module.exports = { buscarPorCorreo, perfilPorId, estadoCuenta, hashDeContrasena, cambiarContrasena, crear, TIPO_USUARIO, FECHA, FECHA_HORA };

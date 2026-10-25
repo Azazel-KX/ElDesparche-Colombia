@@ -11,6 +11,7 @@ import { animarAlVer } from "../../lib/dom.js";
 import { pintarTarjetasResumen } from "../graficasVista.js";
 import { EVENTOS } from "../../modelos/eventoModelo.js";
 import { etiquetaEstado } from "../etiquetasVista.js";
+import { ocultarPaginacion, paginarTabla } from "../paginacionVista.js";
 
 export function pintarResumenAgentes(agentes) {
   var contar = function (estado) { return agentes.filter(function (a) { return a.estado === estado; }).length; };
@@ -51,12 +52,13 @@ export function pintarTablaAgentes(agentes) {
     : "Mostrando " + lista.length + " de " + agentes.length + " agentes.";
 
   if (lista.length === 0) {
+    ocultarPaginacion("cuerpo-agentes");
     cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="7" class="tabla-vacia">' +
       'No hay agentes que coincidan con la búsqueda. Prueba con otros filtros.</td></tr>';
     return;
   }
 
-  cuerpo.innerHTML = lista.map(function (a) {
+  cuerpo.innerHTML = paginarTabla("cuerpo-agentes", lista, function () { pintarTablaAgentes(agentes); }).map(function (a) {
     var accion = a.estado === "Pendiente" ? "Revisar" : "Ver detalle";
     return '<tr role="row" class="' + (a.estado === "Pendiente" ? "fila-pendiente" : "") + '">' +
       '<th scope="row" role="rowheader">' +
@@ -90,6 +92,7 @@ export function botonesAgente(a) {
     estado = '<button type="button" class="admin-boton-sec" data-accion="confirmar">Suspender agente</button>';
   }
   return '<button type="button" class="admin-boton-sec" data-accion="editar">Editar datos</button>' + estado +
+    '<button type="button" class="admin-boton-sec" data-accion="restablecer">Restablecer contraseña</button>' +
     '<button type="button" class="admin-boton admin-boton-peligro" data-accion="eliminar">Eliminar agente</button>';
 }
 

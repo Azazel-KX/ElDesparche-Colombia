@@ -6,8 +6,8 @@
 import { escapar } from "../lib/formato.js";
 import { abrirAcceso } from "./accesoVista.js";
 
-/* usuario = la sesión (o null); alSalir = qué hacer al pulsar "Cerrar sesión" */
-export function pintarSesion(usuario, alSalir) {
+/* usuario = la sesión (o null); alSalir = qué hacer al pulsar "Cerrar sesión"; alCambiarClave = al pulsar "Contraseña" */
+export function pintarSesion(usuario, alSalir, alCambiarClave) {
   var caja = document.getElementById("sesion");
   if (!caja) return;
 
@@ -26,20 +26,33 @@ export function pintarSesion(usuario, alSalir) {
        lado, así que se oculta al lector con aria-hidden para que no lea
        la letra suelta antes del nombre. */
     caja.innerHTML =
-      '<div class="usuario">' +
-        '<span class="usuario-inicial" aria-hidden="true">' +
-          escapar(usuario.nombre.charAt(0).toUpperCase()) +
-        '</span>' +
-        '<span class="usuario-nombre">' +
-          '<span class="oculto">Sesión iniciada como </span>' + escapar(usuario.nombre) +
-        '</span>' +
-        marca +
-        '<button type="button" id="salir">' +
-          'Cerrar sesión<span class="oculto"> de ' + escapar(usuario.nombre) + '</span>' +
-        '</button>' +
+      '<div class="usuario-menu">' +
+        '<div class="usuario">' +
+          '<span class="usuario-inicial" aria-hidden="true">' +
+            escapar(usuario.nombre.charAt(0).toUpperCase()) +
+          '</span>' +
+          '<span class="usuario-nombre">' +
+            '<span class="oculto">Sesión iniciada como </span>' + escapar(usuario.nombre) +
+          '</span>' +
+          marca +
+          '<button type="button" class="boton-menu-usuario" id="abrir-menu-usuario" aria-expanded="false" ' +
+            'aria-controls="panel-usuario">' +
+            'Mi cuenta<span class="oculto"> de ' + escapar(usuario.nombre) + '</span>' +
+            '<span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>' +
+          '</button>' +
+        '</div>' +
+        '<div class="panel-usuario" id="panel-usuario" hidden>' +
+          '<button type="button" id="cambiar-clave">Cambiar contraseña</button>' +
+          '<button type="button" id="salir" class="salir">Cerrar sesión</button>' +
+        '</div>' +
       '</div>';
 
     document.getElementById("salir").onclick = alSalir;
+    document.getElementById("cambiar-clave").onclick = function () {
+      cerrarMenuUsuario();
+      alCambiarClave();
+    };
+    prepararMenuUsuario();
   } else {
     /* Sin sesión: los dos botones abren la ventana emergente */
     caja.innerHTML =
@@ -68,4 +81,46 @@ function agregarEnlacePanel(href, texto, prefijo) {
   elemento.innerHTML = '<a href="' + href + '" data-panel="' + prefijo + '"' +
     (enPanel ? ' class="activo" aria-current="page"' : '') + '>' + texto + '</a>';
   lista.appendChild(elemento);
+}
+
+/* ----- Menú desplegable de la cuenta (mismo patrón que el panel de accesibilidad) -----
+   Un botón con aria-expanded abre y cierra el panel; Escape y un clic fuera lo cierran, y si el foco sale
+   del menú con el tabulador también se cierra. */
+function cerrarMenuUsuario() {
+  var boton = document.getElementById("abrir-menu-usuario");
+  var panel = document.getElementById("panel-usuario");
+  if (!boton || !panel) return;
+  boton.setAttribute("aria-expanded", "false");
+  panel.hidden = true;
+}
+
+function prepararMenuUsuario() {
+  var boton = document.getElementById("abrir-menu-usuario");
+  var panel = document.getElementById("panel-usuario");
+  if (!boton || !panel) return;
+
+  function abierto() { return boton.getAttribute("aria-expanded") === "true"; }
+  function dentro(elemento) { return panel.contains(elemento) || boton.contains(elemento); }
+
+  boton.onclick = function () {
+    var abrir = !abierto();
+    boton.setAttribute("aria-expanded", abrir ? "true" : "false");
+    panel.hidden = !abrir;
+    if (abrir) panel.querySelector("button").focus();
+  };
+
+  document.addEventListener("keydown", function (evento) {
+    if (evento.key === "Escape" && abierto() && document.contains(boton)) {
+      /* Si el foco estaba dentro del menú, vuelve al botón para no perderse (WCAG 2.4.3) */
+      var estabaDentro = panel.contains(document.activeElement);
+      cerrarMenuUsuario();
+      if (estabaDentro) boton.focus();
+    }
+  });
+  document.addEventListener("click", function (evento) {
+    if (abierto() && document.contains(boton) && !dentro(evento.target)) cerrarMenuUsuario();
+  });
+  document.addEventListener("focusin", function (evento) {
+    if (abierto() && document.contains(boton) && !dentro(evento.target)) cerrarMenuUsuario();
+  });
 }

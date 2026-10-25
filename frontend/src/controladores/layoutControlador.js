@@ -12,6 +12,10 @@ import { abrirAcceso, crearModalAcceso, mostrarError } from "../vistas/accesoVis
 import { prepararMenuMovil } from "../vistas/menuVista.js";
 import { pintarSesion } from "../vistas/sesionVista.js";
 import { cargarCiudadesRegistro, entrar, registrar } from "./accesoControlador.js";
+import { campoDialogo, pedirDatos } from "../vistas/dialogoVista.js";
+import { errorContrasena } from "../lib/validacion.js";
+import { cambiarContrasena } from "../modelos/authModelo.js";
+import { confirmar } from "../vistas/confirmarVista.js";
 
 /* Mueve el tamaño un paso arriba o abajo dentro de la lista */
 function cambiarEscala(paso) {
@@ -52,13 +56,44 @@ function prepararTamanoTexto() {
   aplicarEscala(obtenerEscala(), false);
 }
 
+/* "Contraseña" en la cabecera: la persona cambia la suya pidiendo la actual */
+function pedirCambioDeContrasena() {
+  pedirDatos({
+    titulo: "Cambiar mi contraseña",
+    texto: "Escribe la contraseña de ahora y la nueva (de 8 a 72 caracteres).",
+    campos:
+      campoDialogo("clave-actual", "Contraseña actual", "password", { max: 72, autocompletar: "current-password" }) +
+      campoDialogo("clave-nueva", "Contraseña nueva", "password", { max: 72, autocompletar: "new-password" }) +
+      campoDialogo("clave-repetida", "Repite la contraseña nueva", "password", { max: 72, autocompletar: "new-password" }),
+    textoSi: "Cambiar contraseña",
+    leer: function (caja) {
+      var actual = caja.querySelector("#clave-actual").value;
+      var nueva = caja.querySelector("#clave-nueva").value;
+      var repetida = caja.querySelector("#clave-repetida").value;
+      if (!actual) return { error: "Escribe tu contraseña actual.", campo: "clave-actual" };
+      var problema = errorContrasena(nueva);
+      if (problema) return { error: problema, campo: "clave-nueva" };
+      if (nueva === actual) return { error: "La contraseña nueva debe ser distinta de la actual.", campo: "clave-nueva" };
+      if (nueva !== repetida) return { error: "Las dos contraseñas nuevas no coinciden.", campo: "clave-repetida" };
+      return { datos: { actual: actual, nueva: nueva } };
+    },
+    enviar: function (d) { return cambiarContrasena(d.actual, d.nueva); }
+  }).then(function (hecho) {
+    if (hecho) {
+      var aviso = document.getElementById("admin-aviso");
+      if (aviso) aviso.textContent = "Tu contraseña se cambió.";
+      confirmar("Contraseña cambiada", "Ya puedes entrar con tu contraseña nueva.", "Entendido");
+    }
+  });
+}
+
 /* Lo primero que hace cada página */
 export function iniciarLayout() {
   crearModalAcceso({ alEntrar: entrar, alRegistrar: registrar, alAbrirRegistro: cargarCiudadesRegistro });
   pintarSesion(obtenerUsuario(), function () {
     borrarUsuario();
     window.location.href = "index.html";
-  });
+  }, pedirCambioDeContrasena);
   prepararMenuMovil();
   prepararPanelAccesibilidad();
   prepararTamanoTexto();

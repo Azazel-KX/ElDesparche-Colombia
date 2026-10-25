@@ -95,6 +95,13 @@ export function tarjetaPublicado(e) {
       etiquetaEstado(e.estado, false) +
       '<p class="agente-evento-cifras">' + cifras + '</p>' +
       barraOcupacion(e) +
+      (e.estado === "Cancelado" || e.estado === "Finalizado" ? "" :
+        '<div class="agente-evento-acciones">' +
+          '<button type="button" class="admin-boton-sec" data-editar-publicado="' + escapar(e.id) + '">Editar' +
+            '<span class="oculto"> ' + escapar(e.titulo) + '</span></button>' +
+          '<button type="button" class="admin-boton-sec agente-retirar" data-cancelar-evento="' + escapar(e.id) + '">Cancelar evento' +
+            '<span class="oculto"> ' + escapar(e.titulo) + '</span></button>' +
+        '</div>') +
     '</div>' +
   '</li>';
 }

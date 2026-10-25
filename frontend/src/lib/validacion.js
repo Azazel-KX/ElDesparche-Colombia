@@ -73,21 +73,19 @@ export function errorFechaNacimiento(fecha) {
   return "";
 }
 
-/* Ubicación del evento: dentro de Colombia, igual que los CHECK de UBICACION en la base */
-export var LIMITES_COLOMBIA = { latMin: -4.3, latMax: 13.6, lonMin: -82, lonMax: -66.8 };
-
+/* Ubicación del evento: cualquier punto del planeta, igual que los CHECK de UBICACION en la base */
 export function errorLatitud(valor) {
   var lat = Number(String(valor).replace(",", "."));
-  if (String(valor).trim() === "" || isNaN(lat) || lat < LIMITES_COLOMBIA.latMin || lat > LIMITES_COLOMBIA.latMax) {
-    return "Marca el punto en el mapa o escribe una latitud de Colombia (entre -4,3 y 13,6).";
+  if (String(valor).trim() === "" || isNaN(lat) || lat < -90 || lat > 90) {
+    return "Marca el punto en el mapa o escribe una latitud entre -90 y 90.";
   }
   return "";
 }
 
 export function errorLongitud(valor) {
   var lon = Number(String(valor).replace(",", "."));
-  if (String(valor).trim() === "" || isNaN(lon) || lon < LIMITES_COLOMBIA.lonMin || lon > LIMITES_COLOMBIA.lonMax) {
-    return "Marca el punto en el mapa o escribe una longitud de Colombia (entre -82 y -66,8).";
+  if (String(valor).trim() === "" || isNaN(lon) || lon < -180 || lon > 180) {
+    return "Marca el punto en el mapa o escribe una longitud entre -180 y 180.";
   }
   return "";
 }

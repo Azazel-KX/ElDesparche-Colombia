@@ -10,7 +10,7 @@ gestiona todo y consulta los reportes. Funciona al estilo de Tuboleta, Eventbrit
 
 | Carpeta | Qué contiene | Más información |
 |---|---|---|
-| `database/` | Esquema PostgreSQL (13 tablas, 3FN, triggers de reglas de negocio), datos de prueba y pruebas del esquema | [`database/README.md`](database/README.md) |
+| `database/` | Esquema PostgreSQL (11 tablas, 3FN, triggers de reglas de negocio), datos de prueba y pruebas del esquema | [`database/README.md`](database/README.md) |
 | `backend/` | API REST en Node.js + Express (MVC), con JWT, validaciones, reportes y pruebas | [`backend/README.md`](backend/README.md) |
 | `frontend/` | Sitio web (HTML5, CSS3 y JavaScript con Vite) para clientes, agentes y administradores | [`frontend/README.md`](frontend/README.md) |
 | `documents/` | Documentos del proyecto: diagrama entidad-relación, diccionario de datos, avances y cronogramas | |
@@ -27,7 +27,11 @@ Necesitas Node.js 20 o superior y Docker.
 docker compose up -d database
 docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql
 docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql
+# Opcional, para ver la web con mucho contenido (8 países, 68 eventos, unas 280 reservas):
+docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed_demo.sql
 ```
+
+Para correr las pruebas carga solo el esquema y `seed.sql` (de preferencia en una base aparte): ver [`database/README.md`](database/README.md).
 
 ```bash
 # 2. API en http://localhost:5000
@@ -48,7 +52,7 @@ Si la base ya tiene las tablas, no hace falta repetir el paso de carga. Para usa
 
 ### Cuentas de prueba
 
-El seed crea un administrador, clientes y agentes (`admin@eldesparche.test`, `cliente1@eldesparche.test`,
+El seed crea un administrador, clientes y agentes (y `seed_demo.sql`, muchos más) (`admin@eldesparche.test`, `cliente1@eldesparche.test`,
 `agente1@eldesparche.test`…). Su contraseña y la lista completa están en [`database/README.md`](database/README.md).
 **Son solo para desarrollo:** antes de publicar la web en internet hay que borrarlas o cambiarles la contraseña.
 

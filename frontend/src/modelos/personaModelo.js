@@ -231,3 +231,11 @@ export function errorDePerfil(v) {
   if (!/^\d+$/.test(v.experiencia) || Number(v.experiencia) > 80) return ["experiencia", "Los años de experiencia deben ser un número entre 0 y 80."];
   return null;
 }
+
+/* ----- Restablecer la contraseña (el administrador, cuando alguien la olvidó) ----- */
+
+/* tipo = "clientes" | "agentes" | "administradores"; clave = documento (o NIT para un agente) */
+export function restablecerContrasena(tipo, clave, contrasena) {
+  return enviarCrud("/admin/" + tipo + "/" + encodeURIComponent(clave) + "/contrasena", "PATCH", { contrasena: contrasena },
+    "No se pudo restablecer la contraseña.");
+}

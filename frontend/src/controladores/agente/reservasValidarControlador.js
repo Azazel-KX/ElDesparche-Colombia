@@ -6,7 +6,7 @@
 
 import { escapar } from "../../lib/formato.js";
 import { obtenerEventosDelAgente } from "../../modelos/eventoModelo.js";
-import { cancelarReservaAgente, obtenerReservasAgente } from "../../modelos/reservaModelo.js";
+import { aprobarReservaAgente, cancelarReservaAgente, obtenerReservasAgente } from "../../modelos/reservaModelo.js";
 import { pintarEstadoCuenta } from "../../vistas/agenteVista.js";
 import { paginaReservasAdmin } from "../admin/reservasControlador.js";
 import { paginaValidar } from "../admin/validarControlador.js";
@@ -41,6 +41,7 @@ export function paginaReservasAgente() {
       eventos: datos.eventos.map(function (e) { return e.id; }),
       obtenerReservas: obtenerReservasAgente,
       cancelar: cancelarReservaAgente,
+      aprobar: aprobarReservaAgente,
       quien: "el agente",
       notaDevolucion: " La reserva ya estaba aprobada: el equipo de El Desparche le devolverá el dinero al cliente."
     });

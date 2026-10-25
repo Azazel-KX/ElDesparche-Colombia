@@ -201,7 +201,7 @@ export function validarEvento(v, actual) {
   if (!v.teatro) errores.teatro = "Escribe el nombre del teatro o del sitio del evento.";
   if (!v.direccion) errores.direccion = "Escribe la dirección.";
 
-  /* Mismos límites que UBICACION en la base de datos (dentro de Colombia) */
+  /* Mismos límites que UBICACION en la base de datos (cualquier punto del planeta) */
   var errorLat = errorLatitud(v.lat);
   var errorLon = errorLongitud(v.lon);
   if (errorLat) errores.lat = errorLat;
@@ -410,8 +410,30 @@ export function errorDeSolicitud(v) {
   if (v.precio === "" || isNaN(Number(v.precio)) || Number(v.precio) < 0) return ["precio", "El precio debe ser 0 (gratis) o mayor."];
   if (!entero(v.edad) || Number(v.edad) > 21) return ["edad", "La edad mínima debe ser un número entre 0 y 21."];
   if (v.lat === "" || v.lon === "") return ["lat", "Marca en el mapa dónde es el evento (o escribe la latitud y la longitud)."];
-  /* Mismos límites que el administrador y la base de datos: dentro de Colombia */
+  /* Mismos límites que el administrador y la base de datos */
   if (errorLatitud(v.lat)) return ["lat", errorLatitud(v.lat)];
   if (errorLongitud(v.lon)) return ["lon", errorLongitud(v.lon)];
   return null;
+}
+
+/* ----- Eventos ya publicados del agente ----- */
+
+/* Lo que no toca a las reservas: descripción, observaciones e imagen (null = se conserva). Devuelve el evento. */
+export function editarEventoPublicado(id, datos) {
+  return enviarCrud("/agente/eventos/" + encodeURIComponent(id) + "/publicado", "PUT", datos, "No se pudo guardar el evento.")
+    .then(function (resultado) { return resultado.evento; });
+}
+
+/* Cancela un evento publicado suyo (y sus reservas). Devuelve el evento con el estado y las observaciones nuevas. */
+export function cancelarEventoAgente(id, causa, detalle) {
+  return enviarCrud("/agente/eventos/" + encodeURIComponent(id) + "/cancelar", "PATCH", { causa: causa, detalle: detalle }, "No se pudo cancelar el evento.")
+    .then(function (resultado) { return resultado.evento; });
+}
+
+/* Revisa la descripción de un evento publicado (misma regla del servidor). Devuelve el error o "". */
+export function errorDeEdicionPublicada(descripcion, observaciones) {
+  if (descripcion.length < 30) return "La descripción debe tener al menos 30 caracteres.";
+  if (descripcion.length > 3000) return "La descripción no puede superar los 3000 caracteres.";
+  if (observaciones.length > 1000) return "Las observaciones no pueden superar los 1000 caracteres.";
+  return "";
 }

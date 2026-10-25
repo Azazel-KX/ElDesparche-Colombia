@@ -204,7 +204,7 @@ test("POST /api/admin/eventos: el primer código después del seed es el 0008", 
 });
 
 test("POST /api/admin/eventos: datos inválidos → 400 con el detalle de cada campo", async () => {
-  const { estado, json } = await crearEvento({ nombre: "", capacidad: 0, categoria: "x", teatro: "", lat: 40 });
+  const { estado, json } = await crearEvento({ nombre: "", capacidad: 0, categoria: "x", teatro: "", lat: 95 });
   assert.equal(estado, 400);
   for (const campo of ["nombre", "capacidad", "categoria", "teatro", "lat"]) assert.ok(json.detalles[campo], campo);
 });

@@ -773,6 +773,95 @@ main:focus-visible {
   text-decoration: underline;
 }
 
+/* Menú de la cuenta: el botón "Mi cuenta" despliega "Cambiar contraseña" y "Cerrar sesión" */
+.usuario-menu {
+  position: relative;
+}
+
+.usuario .boton-menu-usuario {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--blanco);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(13px * var(--escala-texto));
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.usuario .boton-menu-usuario:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--blanco);
+  text-decoration: none;
+}
+
+.usuario .boton-menu-usuario[aria-expanded="true"] {
+  background: var(--blanco);
+  color: var(--oscuro);
+  border-color: var(--blanco);
+}
+
+.usuario .boton-menu-usuario[aria-expanded="true"] .flecha-accesibilidad {
+  transform: rotate(180deg);
+}
+
+/* Flota por encima, igual que el panel de accesibilidad: no empuja nada de la página */
+.panel-usuario {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: auto;
+  z-index: 120;
+  min-width: 230px;
+  max-width: calc(100vw - 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(19, 10, 43, 0.35);
+}
+
+.panel-usuario[hidden] {
+  display: none;
+}
+
+.panel-usuario button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--texto);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(14px * var(--escala-texto));
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.panel-usuario button:hover {
+  background: var(--morado-claro);
+  color: var(--morado);
+}
+
+.panel-usuario .salir {
+  color: var(--rojo-texto);
+}
+
+.panel-usuario .salir:hover {
+  background: var(--rojo-claro);
+  color: var(--rojo-texto);
+}
+
 /* ==========================================================================
    ESTRUCTURA GENERAL
    ========================================================================== */
@@ -3154,9 +3243,16 @@ iframe {
 
   /* ESCRITORIO: el botón está pegado al borde derecho, así que el
      panel se despliega hacia la IZQUIERDA (al revés que en móvil). */
-  .panel-accesibilidad {
+  .panel-accesibilidad,
+  .panel-usuario {
     left: auto;
     right: 0;
+  }
+
+  /* En el panel lateral (agente y administrador) el menú sigue saliendo hacia la derecha */
+  .lateral-cuenta .panel-usuario {
+    left: 0;
+    right: auto;
   }
 
   .seccion,

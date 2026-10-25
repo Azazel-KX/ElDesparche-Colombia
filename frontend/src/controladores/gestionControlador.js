@@ -7,6 +7,8 @@ import { enfocarSiExiste } from "../lib/dom.js";
 import { escapar } from "../lib/formato.js";
 import { obtenerCiudadesLista } from "../modelos/ubicacionModelo.js";
 import { htmlFormulario, leerFormulario, mostrarErroresFormulario } from "../vistas/formularioVista.js";
+import { campoDialogo, pedirDatos } from "../vistas/dialogoVista.js";
+import { errorContrasena } from "../lib/validacion.js";
 
 /* ===== GESTIÓN DE PERSONAS (agentes, clientes y administradores) =====
    Las tres páginas se comportan igual: una tabla con filtros, una ventana con el detalle, un formulario para
@@ -186,6 +188,28 @@ export function crearGestion(cfg) {
     });
   }
 
+  /* ----- Restablecer la contraseña ----- */
+
+  function pedirRestablecimiento() {
+    var e = g.abierto;
+    var boton = acciones().querySelector('[data-accion="restablecer"]');
+    pedirDatos({
+      titulo: "Restablecer la contraseña de " + e.nombre,
+      texto: "Escribe una contraseña nueva y entrégasela por tu cuenta (en persona o por teléfono). Dile que la cambie al entrar.",
+      campos: campoDialogo("clave-nueva", "Contraseña nueva", "text", { max: 72 }),
+      textoSi: "Restablecer contraseña",
+      leer: function (caja) {
+        var clave = caja.querySelector("#clave-nueva").value;
+        var problema = errorContrasena(clave);
+        return problema ? { error: problema, campo: "clave-nueva" } : { datos: clave };
+      },
+      enviar: function (clave) { return cfg.restablecer(cfg.id(e), clave); }
+    }).then(function (hecho) {
+      if (!hecho) { if (boton && document.contains(boton)) boton.focus(); return; }
+      mostrarCambio(e, "La contraseña de " + e.nombre + " quedó restablecida.");
+    });
+  }
+
   /* ----- Botones del detalle ----- */
 
   contenido.addEventListener("click", function (evento) {
@@ -214,6 +238,8 @@ export function crearGestion(cfg) {
     } else if (accion === "cancelar") {
       acciones().innerHTML = cfg.botones(g.abierto);
       acciones().querySelector("button").focus();
+    } else if (accion === "restablecer" && cfg.restablecer) {
+      pedirRestablecimiento();
     } else if (cfg.accion) {
       cfg.accion(accion, g.abierto, ayuda);
     }

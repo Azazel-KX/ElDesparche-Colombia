@@ -10,6 +10,7 @@ import { escapar } from "../../lib/formato.js";
 import { camposAdministrador } from "../../vistas/camposVista.js";
 import { documentoNormalizado } from "../../lib/validacion.js";
 import { botonesAdministrador, pintarDetalleAdministrador, pintarResumenAdministradores, pintarTablaAdministradores } from "../../vistas/admin/administradoresVista.js";
+import { restablecerContrasena } from "../../modelos/personaModelo.js";
 
 export function paginaAdministradores() {
   if (!entrarComoAdmin()) return;
@@ -50,6 +51,7 @@ export function paginaAdministradores() {
       };
     },
     guardar: guardarAdministrador,
+    restablecer: function (documento, clave) { return restablecerContrasena("administradores", documento, clave); },
     eliminar: eliminarAdministrador,
     eliminacion: function (a, administradores) {
       if (esMiCuenta(a)) {

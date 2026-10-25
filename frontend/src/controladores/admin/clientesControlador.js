@@ -5,7 +5,7 @@
 
 import { entrarComoAdmin } from "../adminControlador.js";
 import { crearGestion } from "../gestionControlador.js";
-import { cambiarCuentaCliente, conNombre, eliminarCliente, guardarCliente, obtenerClientes, validarCliente } from "../../modelos/personaModelo.js";
+import { restablecerContrasena, cambiarCuentaCliente, conNombre, eliminarCliente, guardarCliente, obtenerClientes, validarCliente } from "../../modelos/personaModelo.js";
 import { escapar } from "../../lib/formato.js";
 import { camposCliente } from "../../vistas/camposVista.js";
 import { documentoNormalizado } from "../../lib/validacion.js";
@@ -52,6 +52,7 @@ export function paginaClientes() {
       };
     },
     guardar: guardarCliente,
+    restablecer: function (documento, clave) { return restablecerContrasena("clientes", documento, clave); },
     eliminar: eliminarCliente,
     eliminacion: function (c) {
       var cuantas = c.reservas.length;

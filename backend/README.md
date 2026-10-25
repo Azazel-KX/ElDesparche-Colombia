@@ -1,7 +1,7 @@
 # Backend de ElDesparche
 
 API REST en Node.js + Express con PostgreSQL, organizada en MVC. Trabaja sobre el esquema de
-`database/schema_ElDesparche.sql` (13 tablas; ver `database/README.md`). Las respuestas tienen la misma forma que
+`database/schema_ElDesparche.sql` (11 tablas; ver `database/README.md`). Las respuestas tienen la misma forma que
 la que espera la web (`frontend/src/modelos/`). El frontend ya no trae datos de ejemplo:
 todo sale de este API.
 
@@ -24,17 +24,22 @@ backend/
 ## Puesta en marcha
 
 1. Base de datos (Docker): `docker compose up -d` desde la raíz del repo.
-2. Cargar esquema y datos de prueba sobre una base **vacía** (el esquema primero):
+2. Cargar los datos sobre una base **vacía**, en este orden (detalle en `database/README.md`):
    ```bash
-   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql
-   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql
+   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql   # 1. esquema (obligatorio)
+   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql                # 2. datos básicos (obligatorio)
+   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed_demo.sql           # 3. demostración (opcional)
    ```
+   Para **trabajar con la web** conviene cargar los tres (más eventos, ciudades, clientes y reservas). Para **correr las
+   pruebas** carga solo el 1 y el 2, de preferencia en una base aparte (ver "Pruebas").
 3. `cp .env.example .env` y completa `JWT_SECRET` (mínimo 32 caracteres) y los datos de la base. `CORS_ORIGIN` debe
    incluir la dirección donde corre la web, y `PUBLIC_URL` la del API si no es `http://localhost:5000`.
 4. `npm install`, luego `npm run dev` (puerto 5000) o `npm test`.
 
-Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente2@`, `agente1@`, `agente2@`,
+Cuentas de `seed.sql` (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente2@`, `agente1@`, `agente2@`,
 `agente3@` (agente pendiente de aprobación) y `cliente3@` (cliente bloqueado) `eldesparche.test`.
+Cuentas que suma `seed_demo.sql` (misma contraseña): `admin2@`, `agente4@` a `agente10@` (el 9 suspendido y el 10 pendiente) y
+`cliente04@` a `cliente33@` (el `cliente20@` bloqueado) `eldesparche.test`.
 
 ## Seguridad y reglas generales
 
@@ -67,6 +72,7 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 | POST | `/api/auth/register` | Registro de CLIENTE o AGENTE; devuelve `token` y `usuario` |
 | POST | `/api/auth/login` | Inicio de sesión; devuelve `token` y `usuario` |
 | GET | `/api/auth/me` | Perfil del usuario autenticado |
+| PATCH | `/api/auth/contrasena` | `{ actual, nueva }`: cambia la contraseña de quien tiene la sesión abierta (400 si la actual no es correcta) |
 
 ### Cliente (`/api/reservas`, solo CLIENTE)
 
@@ -85,7 +91,10 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 | POST | `/api/agente/eventos` | Envía una solicitud (campos de `datosFormulario()`); queda `En revisión`. Un agente `Pendiente` recibe 403 |
 | PUT | `/api/agente/eventos/:id` | Corrige una solicitud en revisión o rechazada; vuelve a `En revisión` y se quita el motivo anterior |
 | DELETE | `/api/agente/eventos/:id` | Retira una solicitud que todavía no se publica |
+| PUT | `/api/agente/eventos/:id/publicado` | `{ descripcion, observaciones, imagen }`: edita lo que no toca a las reservas de un evento ya publicado suyo |
+| PATCH | `/api/agente/eventos/:id/cancelar` | `{ causa, detalle }`: cancela un evento publicado suyo y sus reservas |
 | GET | `/api/agente/reservas` | Las reservas de sus eventos |
+| PATCH | `/api/agente/reservas/:codigo/confirmar` | Aprueba la reserva (y el pago) de un evento suyo: `Reservada` → `Confirmada`. 403 si es de otro organizador |
 | PATCH | `/api/agente/reservas/:codigo/estado` | `{ estado: "Cancelada", observaciones }` (con la nota de causa). 403 si la reserva es de otro organizador |
 | POST | `/api/agente/entradas/:codigo/ingreso` | Valida la entrada en la puerta (201). 403 si es de otro organizador |
 | PUT | `/api/agente/perfil` | `{ nombre, descripcion, logo, correo, telefono, ciudad, experiencia }`. El NIT, la razón social y la comisión no cambian aquí |
@@ -99,6 +108,7 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 | GET, POST | `/api/admin/agentes` | Lista (forma de `AGENTES_DEMO`) y alta (USUARIO + AGENTE, con `contrasena`) |
 | PUT, DELETE | `/api/admin/agentes/:nit` | Modifica (el NIT y el documento no cambian) o elimina (409 si tiene eventos) |
 | PATCH | `/api/admin/agentes/:nit/estado` | `{ estado: "Activo" \| "Pendiente" \| "Suspendido" }` |
+| PATCH | `/api/admin/{agentes/:nit, clientes/:documento, administradores/:documento}/contrasena` | `{ contrasena }`: restablece la contraseña de quien la olvidó (solo queda su hash) |
 | GET, POST | `/api/admin/clientes` | Lista (forma de `CLIENTES_DEMO`) y alta |
 | PUT, DELETE | `/api/admin/clientes/:documento` | Modifica o elimina (sus reservas se borran) |
 | PATCH | `/api/admin/clientes/:documento/estado` | `{ estado: "Activa" \| "Bloqueada" }` |
@@ -147,7 +157,7 @@ salen como se guardaron (`AAAA-MM-DD` y `AAAA-MM-DDTHH:MM:SS`, sin zona horaria)
 
 ## Pruebas
 
-`npm test` ejecuta todo `test/`, un archivo detrás de otro (`--test-concurrency=1`): las pruebas de integración
+`npm test` ejecuta todos los `test/*.test.js`, un archivo detrás de otro (`--test-concurrency=1`): las pruebas de integración
 comparten una sola base y en paralelo se pisarían. `npm run test:cobertura` hace lo mismo con el informe de cobertura
 de `src/`, y `npm run test:bd` corre las pruebas de la base (`database/pruebas_bd.sql`) dentro del contenedor de
 Docker. Los tres funcionan en PowerShell, cmd y Git Bash.
@@ -155,11 +165,19 @@ Docker. Los tres funcionan en PowerShell, cmd y Git Bash.
 - Unitarias (no necesitan base): `validacion.test.js` (registro, login y roles), `validacionEvento.test.js`
   (eventos, estados, decisiones, filtros y utilidades de formato) y `errores.test.js` (traducción de errores de
   PostgreSQL, el 500 genérico, imágenes y validación de personas de los paneles).
-- Integración (necesitan el esquema y el seed cargados y el `.env`; limpian lo que crean): `auth.test.js`,
+- Integración (necesitan el esquema y `seed.sql` cargados, **sin** `seed_demo.sql`, y el `.env`; limpian lo que crean): `auth.test.js`,
   `eventos.test.js` (catálogo y administración de eventos y solicitudes), `personas.test.js` (agentes, clientes,
   administradores y estado de la cuenta), `reservas.test.js` (cliente, administrador y validación de entradas),
   `agente.test.js` (panel del agente y flujo completo de revisión) y `panel.test.js` (ubicaciones, resumen y reportes).
   `ayudas.js` reúne lo que comparten.
+
+Qué cargar para probar: el esquema y `seed.sql`, nada más. Las pruebas cuentan con datos exactos del seed (por ejemplo, 5
+reservas o los valores de `DES-1001`), así que con `seed_demo.sql` encima fallan varias. Lo más cómodo es usar una base aparte
+y apuntar a ella con `DB_NAME` (los pasos están en `database/README.md`, "Una base aparte para las pruebas"):
+
+```bash
+DB_NAME=desparche_prueba npm test          # PowerShell: $env:DB_NAME="desparche_prueba"; npm test
+```
 
 ## Pendiente
 

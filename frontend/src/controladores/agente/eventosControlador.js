@@ -7,13 +7,15 @@
 import { reducirImagen } from "../../lib/dom.js";
 import { ahoraLocal } from "../../lib/fechas.js";
 import { escapar } from "../../lib/formato.js";
-import { enviarSolicitud, errorDeSolicitud, filtrarMisEventos, obtenerEventosDelAgente, retirarSolicitud } from "../../modelos/eventoModelo.js";
+import { cancelarEventoAgente, editarEventoPublicado, enviarSolicitud, errorDeEdicionPublicada, errorDeSolicitud, filtrarMisEventos, obtenerEventosDelAgente, retirarSolicitud } from "../../modelos/eventoModelo.js";
 import {
   camposSolicitud, datosDeSolicitud, leerCamposSolicitud, mostrarErrorEnFormulario, pintarEstadoCuenta, pintarMisEventos
 } from "../../vistas/agenteVista.js";
 import { confirmar } from "../../vistas/confirmarVista.js";
 import { crearMapaEvento } from "../../vistas/mapaVista.js";
 import { cargarCiudadesAgente, entrarComoAgente } from "../agenteControlador.js";
+import { campoDialogo, pedirDatos } from "../../vistas/dialogoVista.js";
+import { camposCancelacion, datosCancelacion } from "../../vistas/cancelacionVista.js";
 
 export function paginaEventosAgente() {
   var usuario = entrarComoAgente();
@@ -70,7 +72,67 @@ export function paginaEventosAgente() {
     evento.preventDefault();
   });
 
+  /* Un evento ya publicado: solo se cambia lo que no toca a las reservas, o se cancela */
+  function editarPublicado(id, boton) {
+    var evento = datos.eventos.filter(function (e) { return e.id === id; })[0];
+    if (!evento) return;
+    pedirDatos({
+      titulo: "Editar «" + evento.titulo + "»",
+      texto: "Fechas, precio, capacidad y lugar los cambia un administrador. Aquí puedes ajustar la descripción, las observaciones y la foto.",
+      campos:
+        campoDialogo("pub-descripcion", "Descripción", "textarea", { filas: 5, max: 3000, valor: evento.descripcion }) +
+        campoDialogo("pub-observaciones", "Observaciones", "textarea", {
+          filas: 3, max: 1000, opcional: true, valor: evento.observaciones === "Sin observaciones." ? "" : evento.observaciones
+        }) +
+        campoDialogo("pub-imagen", "Foto nueva", "file", { opcional: true, ayuda: "Si no eliges una, se queda la actual." }),
+      textoSi: "Guardar cambios",
+      leer: function (caja) {
+        var descripcion = caja.querySelector("#pub-descripcion").value.trim();
+        var observaciones = caja.querySelector("#pub-observaciones").value.trim();
+        var problema = errorDeEdicionPublicada(descripcion, observaciones);
+        if (problema) return { error: problema, campo: descripcion.length < 30 || descripcion.length > 3000 ? "pub-descripcion" : "pub-observaciones" };
+        return { datos: { descripcion: descripcion, observaciones: observaciones, archivo: caja.querySelector("#pub-imagen").files[0] || null } };
+      },
+      enviar: function (d) {
+        var imagen = d.archivo ? reducirImagen(d.archivo, 1000) : Promise.resolve(null);
+        return imagen.then(function (url) {
+          return editarEventoPublicado(id, { descripcion: d.descripcion, observaciones: d.observaciones, imagen: url });
+        });
+      }
+    }).then(function (guardado) {
+      if (!guardado) return;
+      exito.textContent = "Guardaste los cambios de «" + evento.titulo + "».";
+      return cargar().then(function () { buscar.focus(); });
+    });
+  }
+
+  function cancelarPublicado(id) {
+    var evento = datos.eventos.filter(function (e) { return e.id === id; })[0];
+    if (!evento) return;
+    pedirDatos({
+      titulo: "¿Cancelar «" + evento.titulo + "»?",
+      texto: "Las reservas del evento quedarán canceladas y este cambio no se puede deshacer.",
+      campos: camposCancelacion("evento", "cancelar-evento"),
+      textoSi: "Sí, cancelar el evento",
+      peligro: true,
+      leer: function () {
+        var lectura = datosCancelacion("cancelar-evento");
+        return lectura.error ? { error: lectura.error, campo: "cancelar-evento-causa" } : { datos: lectura };
+      },
+      enviar: function (d) { return cancelarEventoAgente(id, d.causa, d.detalle); }
+    }).then(function (cancelado) {
+      if (!cancelado) return;
+      exito.textContent = "Cancelaste «" + evento.titulo + "». Sus reservas quedaron canceladas.";
+      return cargar().then(function () { buscar.focus(); });
+    });
+  }
+
   lista.addEventListener("click", function (evento) {
+    var publicadoEditar = evento.target.closest("[data-editar-publicado]");
+    var publicadoCancelar = evento.target.closest("[data-cancelar-evento]");
+    if (publicadoEditar) return editarPublicado(publicadoEditar.getAttribute("data-editar-publicado"));
+    if (publicadoCancelar) return cancelarPublicado(publicadoCancelar.getAttribute("data-cancelar-evento"));
+
     var editar = evento.target.closest("[data-editar]");
     var retirar = evento.target.closest("[data-retirar]");
 

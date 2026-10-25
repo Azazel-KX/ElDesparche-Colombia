@@ -11,6 +11,7 @@ import { cambiarEstadoAgente, eliminarAgente, guardarAgente, obtenerAgentes, val
 import { documentoNormalizado } from "../../lib/validacion.js";
 import { cargarEventosAdmin, eventosDeAgente } from "../../modelos/eventoModelo.js";
 import { botonesAgente, llenarFiltroCiudades, pintarDetalleAgente, pintarResumenAgentes, pintarTablaAgentes } from "../../vistas/admin/agentesVista.js";
+import { restablecerContrasena } from "../../modelos/personaModelo.js";
 
 export function paginaAgentes() {
   if (!entrarComoAdmin()) return;
@@ -55,6 +56,7 @@ export function paginaAgentes() {
       return datos;
     },
     guardar: guardarAgente,
+    restablecer: function (nit, clave) { return restablecerContrasena("agentes", nit, clave); },
     eliminar: eliminarAgente,
     eliminacion: function (a) {
       var suyos = eventosDeAgente(a).length;

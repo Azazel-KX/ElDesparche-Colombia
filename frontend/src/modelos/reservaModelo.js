@@ -335,3 +335,14 @@ export function erroresDeReserva(v, ctx) {
   }
   return errores;
 }
+
+/* El agente aprueba la reserva (y el pago) de un evento suyo: pasa a Confirmada. Devuelve la reserva. */
+export function aprobarReservaAgente(codigo) {
+  return enviarCrud("/agente/reservas/" + encodeURIComponent(codigo) + "/confirmar", "PATCH", null, "No se pudo aprobar la reserva.")
+    .then(function (datos) { return datos.reserva; });
+}
+
+/* El administrador aprueba la reserva (y el pago): la pasa a Confirmada. Devuelve la reserva. */
+export function aprobarReservaAdmin(codigo) {
+  return guardarReserva({ estado: "Confirmada" }, codigo);
+}

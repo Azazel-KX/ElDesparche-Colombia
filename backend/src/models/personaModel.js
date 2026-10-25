@@ -77,6 +77,16 @@ async function borrarUsuario(tabla, columna, valor) {
   return rowCount > 0;
 }
 
+// Cambia la contraseña de un usuario (el administrador la restablece). "tabla" es ADMIN, CLIENTE o AGENTE y "columna"
+// por qué se busca (numero_identificacion o nit). Devuelve false si no existe.
+async function cambiarContrasenaDe(tabla, columna, valor, hash) {
+  const { rowCount } = await db.query(
+    `UPDATE USUARIO u SET contrasena_hash = $2 FROM ${tabla} s WHERE s.${columna} = $1 AND u.numero_identificacion = s.numero_identificacion`,
+    [valor, hash]
+  );
+  return rowCount > 0;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Ventas por mes: de un agente (sus eventos) o de un cliente (sus compras)
 // ---------------------------------------------------------------------------------------------
@@ -344,7 +354,7 @@ async function eliminarAdministrador(documento, documentoQuienBorra) {
 }
 
 module.exports = {
-  aPersona, estadoWeb, ventasPorAgente,
+  aPersona, estadoWeb, ventasPorAgente, cambiarContrasenaDe,
   listarAgentes, obtenerAgente, obtenerAgentePorDocumento, crearAgente, actualizarAgente, actualizarPerfilAgente,
   cambiarEstadoAgente, eliminarAgente,
   listarClientes, obtenerCliente, crearCliente, actualizarCliente, cambiarEstadoCliente, eliminarCliente,

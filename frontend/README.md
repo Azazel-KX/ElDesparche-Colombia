@@ -2,7 +2,7 @@
 
 Sitio web de eventos y reservas hecho con **HTML5, CSS3 y JavaScript**, empaquetado con **Vite**.
 El CSS está escrito **mobile first** y no usa Bootstrap ni otros frameworks. Todos los datos salen de la API del
-backend (`/api`); la web no trae eventos, cuentas ni reservas de ejemplo.
+backend (`/api`).
 
 ## Cómo ejecutarlo
 
@@ -114,8 +114,12 @@ administrador limitándolas a sus eventos.
   confirmación de eliminar. Cada página solo define lo suyo: columnas, campos, reglas y acciones propias (suspender un
   agente, bloquear un cliente).
 - **Validaciones:** `src/lib/validacion.js` tiene las reglas (documento según su tipo, correo, teléfono, NIT, fecha de nacimiento,
-  contraseña de 8 a 72 caracteres y ubicación dentro de Colombia). El registro, el perfil del agente y los formularios de
+  contraseña de 8 a 72 caracteres y ubicación con coordenadas válidas del planeta). El registro, el perfil del agente y los formularios de
   los paneles usan las mismas, y el servidor las vuelve a revisar.
+- **Paginación:** las tablas de reservas, eventos, agentes, clientes y administradores muestran 10 filas por página
+  (`lib/paginacion.js` y `vistas/paginacionVista.js`); al buscar, filtrar u ordenar se vuelve a la primera página.
+- **Agente:** además de enviar solicitudes, aprueba (confirma) las reservas de sus eventos, y en un evento ya publicado
+  puede editar la descripción, las observaciones y la foto, o cancelarlo con su causa.
 - **Accesibilidad:** enlace de salto, textos alternativos, errores con icono y `aria-invalid`, tamaño de texto ajustable,
   foco visible, `prefers-reduced-motion` y diálogos `<dialog>` que atrapan el foco.
 
@@ -140,12 +144,9 @@ administrador limitándolas a sus eventos.
 
 ## Lo que falta
 
-- **Bootstrap y TypeScript:** el enunciado los pide para el frontend, y esta versión no los tiene (el código ya está
-  separado en modelo, vista y controlador). Vite permite pasar los archivos a TypeScript de forma gradual.
-- **Pagos en línea:** la web no tiene pasarela de pago. La reserva de un evento de pago queda "Reservada" hasta que un administrador la confirme.
 - **Redes sociales del pie de página:** los iconos son decorativos hasta que existan las cuentas reales.
-- **El agente no puede confirmar reservas ni cancelar o editar un evento ya publicado;** el cliente no puede cambiar ni
-  recuperar su contraseña. Los dos necesitan rutas nuevas en el backend.
-- Las tablas de los paneles no tienen paginación.
+- **Recuperar la contraseña por correo:** no hay envío de correos. Quien la olvida pide a un administrador que se la
+  restablezca (botón en el detalle de agentes, clientes y administradores); cada persona puede cambiar la suya con
+  "Contraseña" en la cabecera.
 
 © 2026 El Desparche - Proyecto integrador. Tuluá, Colombia.

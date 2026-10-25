@@ -30,6 +30,7 @@ router.post("/agentes", asincrono(personas.crearAgente));
 router.put("/agentes/:nit", asincrono(personas.actualizarAgente));
 router.delete("/agentes/:nit", asincrono(personas.eliminarAgente));
 router.patch("/agentes/:nit/estado", asincrono(personas.estadoAgente));
+router.patch("/agentes/:nit/contrasena", asincrono(personas.restablecerAgente));
 
 // ---- Clientes (clave: documento) ----
 router.get("/clientes", asincrono(personas.listarClientes));
@@ -37,12 +38,14 @@ router.post("/clientes", asincrono(personas.crearCliente));
 router.put("/clientes/:documento", asincrono(personas.actualizarCliente));
 router.delete("/clientes/:documento", asincrono(personas.eliminarCliente));
 router.patch("/clientes/:documento/estado", asincrono(personas.estadoCliente));
+router.patch("/clientes/:documento/contrasena", asincrono(personas.restablecerCliente));
 
 // ---- Administradores (clave: documento) ----
 router.get("/administradores", asincrono(personas.listarAdministradores));
 router.post("/administradores", asincrono(personas.crearAdministrador));
 router.put("/administradores/:documento", asincrono(personas.actualizarAdministrador));
 router.delete("/administradores/:documento", asincrono(personas.eliminarAdministrador));
+router.patch("/administradores/:documento/contrasena", asincrono(personas.restablecerAdministrador));
 
 // ---- Reservas y validación de entradas ----
 router.get("/reservas", asincrono(reservas.listar));

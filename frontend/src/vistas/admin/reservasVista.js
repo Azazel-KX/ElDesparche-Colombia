@@ -15,6 +15,7 @@ import { CLASE_RESERVA, COLOR_RESERVA, etiqueta, etiquetaAprobacion } from "../e
 import { htmlFormulario } from "../formularioVista.js";
 import { graficaAnillo, pintarTarjetasResumen } from "../graficasVista.js";
 import { pintarQrReal } from "../qrVista.js";
+import { ocultarPaginacion, paginarTabla } from "../paginacionVista.js";
 
 export function pintarResumenReservas(reservas) {
   pintarTarjetasResumen([
@@ -78,12 +79,13 @@ export function pintarTablaReservas(lista, total) {
     : "Mostrando " + lista.length + " de " + total + " reservas.";
 
   if (lista.length === 0) {
+    ocultarPaginacion("cuerpo-reservas");
     cuerpo.innerHTML = '<tr role="row"><td role="cell" colspan="7" class="tabla-vacia">' +
       'No hay reservas que coincidan con la búsqueda. Prueba con otros filtros.</td></tr>';
     return;
   }
 
-  cuerpo.innerHTML = lista.map(function (r) {
+  cuerpo.innerHTML = paginarTabla("cuerpo-reservas", lista, function () { pintarTablaReservas(lista, total); }).map(function (r) {
     return '<tr role="row" class="' + (r.estado === "Cancelada" ? "fila-bloqueada" : "") + '">' +
       '<th scope="row" role="rowheader">' +
         '<span class="agente-nombre">' + escapar(r.codigo) + '</span>' +
@@ -111,7 +113,7 @@ function notaAprobacion(r) {
 }
 
 export function botonesReserva(r, conCrud) {
-  var aprobar = conCrud && r.estado === "Reservada" && r.valor > 0
+  var aprobar = r.estado === "Reservada" && r.valor > 0
     ? '<button type="button" class="admin-boton" data-accion="aprobar">Aprobar reserva y pago</button>'
     : '';
   var eliminar = conCrud

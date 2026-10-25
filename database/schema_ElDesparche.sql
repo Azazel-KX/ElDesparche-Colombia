@@ -62,8 +62,8 @@ CREATE TABLE CIUDAD (
 CREATE TABLE UBICACION (
     id_ubicacion SERIAL PRIMARY KEY,
     direccion    VARCHAR(200) NOT NULL,
-    latitud      NUMERIC(9,6) NOT NULL CHECK (latitud  BETWEEN -4.3  AND 13.6),
-    longitud     NUMERIC(9,6) NOT NULL CHECK (longitud BETWEEN -82.0 AND -66.8),
+    latitud      NUMERIC(9,6) NOT NULL CHECK (latitud  BETWEEN -90  AND 90),     -- coordenadas del planeta: hay eventos en varios países
+    longitud     NUMERIC(9,6) NOT NULL CHECK (longitud BETWEEN -180 AND 180),
     id_ciudad    INTEGER NOT NULL REFERENCES CIUDAD(id_ciudad) ON DELETE RESTRICT
 );
 

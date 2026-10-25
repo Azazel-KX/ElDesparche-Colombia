@@ -15,7 +15,7 @@ export function obtenerCiudadesLista() {
     return ((resultado.datos && resultado.datos.ciudades) || [])
       .slice()
       .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); })
-      .map(function (c) { return [c.nombre, c.nombre + " (" + c.departamento + ")"]; });
+      .map(function (c) { return [c.nombre, c.nombre + " (" + c.departamento + (c.pais && c.pais !== "Colombia" ? ", " + c.pais : "") + ")"]; });
   });
 }
 
@@ -102,7 +102,8 @@ export function ciudadesPorDepartamento() {
     var ciudades = (resultado.datos && resultado.datos.ciudades) || [];
     var grupos = {};
     ciudades.forEach(function (c) {
-      (grupos[c.departamento] = grupos[c.departamento] || []).push(c.nombre);
+      var grupo = c.departamento + (c.pais && c.pais !== "Colombia" ? " (" + c.pais + ")" : "");
+      (grupos[grupo] = grupos[grupo] || []).push(c.nombre);
     });
     return grupos;
   });

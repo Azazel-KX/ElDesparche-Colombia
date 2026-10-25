@@ -11,7 +11,7 @@ import { agregarNota, notaCancelacion } from "../../modelos/cancelacionModelo.js
 import { cargarEventosAdmin } from "../../modelos/eventoModelo.js";
 import { obtenerClientes } from "../../modelos/personaModelo.js";
 import {
-  cancelarReservaAdmin, eliminarReserva, erroresDeReserva, eventoPorId, filtrarReservas, guardarReserva, obtenerReservasAdmin
+  aprobarReservaAdmin, cancelarReservaAdmin, eliminarReserva, erroresDeReserva, eventoPorId, filtrarReservas, guardarReserva, obtenerReservasAdmin
 } from "../../modelos/reservaModelo.js";
 import { camposReserva } from "../../vistas/camposVista.js";
 import { datosCancelacion } from "../../vistas/cancelacionVista.js";
@@ -27,6 +27,7 @@ export function paginaReservasAdmin(config) {
   config = config || {};
   var obtener = config.obtenerReservas || obtenerReservasAdmin;
   var cancelar = config.cancelar || cancelarReservaAdmin;
+  var aprobar = config.aprobar || aprobarReservaAdmin;   /* el agente aprueba por su propia ruta */
   var quien = config.quien || "el administrador";   /* quién cancela, para la nota */
   var notaDevolucion = config.notaDevolucion ||
     " El pago ya fue aprobado: recuerda devolverle el dinero al cliente.";
@@ -159,8 +160,8 @@ export function paginaReservasAdmin(config) {
     } else if (accion === "aprobar") {
       var porAprobar = abierto;
       acciones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
-      guardarReserva({ estado: "Confirmada" }, porAprobar.codigo).then(function (guardada) {
-        Object.assign(porAprobar, guardada);
+      aprobar(porAprobar.codigo).then(function (guardada) {
+        Object.assign(porAprobar, guardada || { estado: "Confirmada" });
         var mensaje = "Aprobaste la reserva " + porAprobar.codigo + " y su pago.";
         aviso.textContent = mensaje;
         pintarResumenReservas(reservas);
