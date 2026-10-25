@@ -27,8 +27,8 @@ const reservar = (token, idEvento, entradas = 1, extra = {}) =>
 
 const admin = (ruta, metodo = "GET", cuerpo) => llamar(`/api/admin${ruta}`, { metodo, token: tokenAdmin, cuerpo });
 
-// Cantidad de pesos de una reserva: entradas × precio + tarifa de Wompi (2,65 % + $700, más IVA)
-const conTarifa = (subtotal) => subtotal + Math.round((subtotal * 0.0265 + 700) * 1.19);
+// Pesos de una reserva: entradas × precio
+const valorDe = (subtotal) => subtotal;
 
 // Inserta una reserva (y, si se pide, su pago) directo en la base para probar un estado concreto
 async function reservaSql(codigoEvento, { doc = "1000000002", estado = "Confirmada", pago = null, entradas = 1 } = {}) {
@@ -47,7 +47,7 @@ async function reservaSql(codigoEvento, { doc = "1000000002", estado = "Confirma
 // Cliente: reservar
 // ---------------------------------------------------------------------------------------------
 
-test("POST /api/reservas: un cliente reserva en un evento de pago; queda Reservada con valor = entradas × precio + tarifa", async () => {
+test("POST /api/reservas: un cliente reserva en un evento de pago; queda Reservada con valor = entradas × precio", async () => {
   const ev = await crearEventoAdmin({ precio: 50000 });
   const { estado, json } = await reservar(tokenCliente2, ev.id, 2, { observaciones: "Cerca del escenario" });
   assert.equal(estado, 201, JSON.stringify(json));
@@ -57,7 +57,7 @@ test("POST /api/reservas: un cliente reserva en un evento de pago; queda Reserva
   assert.equal(r.usada, false);
   assert.equal(r.entradas, 2);
   assert.equal(r.precio, 50000);
-  assert.equal(r.valor, conTarifa(100000), "el trigger de la base suma la tarifa de Wompi");
+  assert.equal(r.valor, valorDe(100000), "el trigger de la base calcula entradas × precio");
   assert.equal(r.cliente, "Laura Gómez Prueba");
   assert.equal(r.documento, "CC 1000000003");
   assert.equal(r.eventoId, ev.id);
@@ -164,7 +164,7 @@ test("/api/admin/reservas: sin token 401; cliente o agente 403", async () => {
   assert.equal((await llamar("/api/admin/reservas", { token: tokenAgente })).estado, 403);
 });
 
-test("GET /api/admin/reservas: la forma de reservasLocales() con el pago estilo Wompi", async () => {
+test("GET /api/admin/reservas: la forma de reservasLocales() con el pago", async () => {
   const { estado, json } = await admin("/reservas");
   assert.equal(estado, 200);
 
@@ -177,8 +177,8 @@ test("GET /api/admin/reservas: la forma de reservasLocales() con el pago estilo 
   assert.equal(r1.evento, "Concierto Música Colombiana");
   assert.equal(r1.entradas, 2);
   assert.equal(r1.precio, 50000);
-  assert.equal(r1.valor, 103987);
-  assert.deepEqual(r1.pago, { id: "TX-2026-000001", metodo: "CARD", estado: "APPROVED", montoCentavos: 10398700, moneda: "COP" });
+  assert.equal(r1.valor, 100000);
+  assert.deepEqual(r1.pago, { id: "TX-2026-000001", metodo: "CARD", estado: "APPROVED", montoCentavos: 10000000, moneda: "COP" });
 
   assert.equal(json.reservas.find((r) => r.codigo === "DES-1002").pago, null, "una reserva sin pago");
   assert.equal(json.reservas.find((r) => r.codigo === "DES-1003").pago.metodo, "NEQUI");
@@ -199,7 +199,7 @@ test("POST /api/admin/reservas: registra una reserva (venta en taquilla) e ignor
   });
   assert.equal(estado, 201, JSON.stringify(json));
   assert.notEqual(json.reserva.codigo, "DES-1");
-  assert.equal(json.reserva.valor, conTarifa(80000));
+  assert.equal(json.reserva.valor, valorDe(80000));
   assert.equal(json.reserva.estado, "Confirmada");
   assert.equal(json.reserva.cliente, "Laura Gómez Prueba");
   assert.notEqual(json.reserva.fecha, "2000-01-01T00:00:00");
@@ -224,13 +224,13 @@ test("PUT /api/admin/reservas/:codigo: cambia entradas y estado (el valor se rec
   const ev = await crearEventoAdmin({ precio: 20000 });
   const { json } = await reservar(tokenCliente2, ev.id, 2);
   const codigo = json.reserva.codigo;
-  assert.equal(json.reserva.valor, conTarifa(40000));
+  assert.equal(json.reserva.valor, valorDe(40000));
 
   const ok = await admin(`/reservas/${codigo}`, "PUT", { entradas: 3, estado: "Confirmada", observaciones: "Corregida", valor: 1 });
   assert.equal(ok.estado, 200, JSON.stringify(ok.json));
   assert.equal(ok.json.reserva.entradas, 3);
   assert.equal(ok.json.reserva.estado, "Confirmada");
-  assert.equal(ok.json.reserva.valor, conTarifa(60000), "se conserva el precio con que se reservó");
+  assert.equal(ok.json.reserva.valor, valorDe(60000), "se conserva el precio con que se reservó");
   assert.equal(ok.json.reserva.observaciones, "Corregida");
 
   assert.equal((await admin(`/reservas/${codigo}`, "PUT", { entradas: 99 })).estado, 400);

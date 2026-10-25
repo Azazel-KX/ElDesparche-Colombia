@@ -69,7 +69,7 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 - Todo `USUARIO` está en exactamente una de `ADMIN`, `CLIENTE` o `AGENTE` (se valida al COMMIT). Cambiar de perfil es válido si el borrado y el nuevo insert van en la misma transacción.
 - Solo los agentes registran eventos y solo los clientes reservan o tienen métodos de pago (lo garantizan las FK hacia `AGENTE` y `CLIENTE`).
 - Para reservar: el cliente debe cumplir la edad mínima del evento y tiene que haber cupo.
-- `RESERVA.valor_total` = `numero_entradas` × precio del evento vigente al reservar + tarifa de Wompi (`fn_tarifa_wompi`: 2,65 % + $700, más IVA; una vez por pago y 0 si el evento es gratis). Es la misma cuenta que `tarifaWompi()` de la web.
+- `RESERVA.valor_total` = `numero_entradas` × precio del evento vigente al reservar (0 si el evento es gratis).
 - El método de pago de un `PAGO` pertenece al cliente de la reserva.
 - `capacidad_total` no puede bajar de las entradas ya reservadas.
 - El documento de identidad no se edita; para corregirlo: `BEGIN; SET LOCAL app.corregir_documento = 'on'; UPDATE USUARIO SET numero_identificacion = '...' WHERE ...; COMMIT;`
@@ -92,7 +92,7 @@ siempre en el futuro; si la base se cargó hace meses, recárgala para que los e
 
 ## Probar las reglas
 
-`pruebas_bd.sql` comprueba en 100 pruebas la estructura, los datos del seed, la tarifa de Wompi y que cada restricción
+`pruebas_bd.sql` comprueba en 97 pruebas la estructura, los datos del seed y que cada restricción
 y trigger acepte lo válido y rechace lo inválido (herencia, documento, edad mínima, cupo, valor, pagos, borrados en
 cascada o restringidos, ubicaciones). Corre en una transacción que termina en `ROLLBACK` y no usa `nextval`, así que no
 deja cambios. Termina con error si alguna prueba falla. Desde `backend/` (PowerShell, cmd o Git Bash):
@@ -113,7 +113,7 @@ Algunos ejemplos que la base debe rechazar:
 -- cliente menor de la edad mínima (cliente2 nació en 1998, pero se prueba con un evento para mayores de 30)
 UPDATE EVENTO SET edad_minima = 30 WHERE codigo = 'EVT-2026-0004';
 INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1, '1000000003', 'EVT-2026-0004');
--- valor_total que no es entradas × precio + tarifa de Wompi
+-- valor_total que no es entradas × precio
 INSERT INTO RESERVA (numero_entradas, valor_total, numero_identificacion, codigo_evento) VALUES (1, 20000, '1000000002', 'EVT-2026-0004');
 -- reserva que supera la capacidad
 INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1000, '1000000002', 'EVT-2026-0004');

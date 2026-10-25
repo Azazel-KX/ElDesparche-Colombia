@@ -2,6 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-dX4Mtb6IXElLnooZS2ozsaD9aR5ZBDmJiamK/sG1EeI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://nominatim.openstreetmap.org; frame-src https://www.openstreetmap.org; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mi panel de agente - El Desparche</title>
     <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
@@ -30,68 +31,7 @@
     <a class="salto-contenido" href="#contenido-principal">Saltar al contenido principal</a>
 
     <!-- ===== CABECERA ===== -->
-    <header class="cabecera">
-      <button type="button" class="boton-menu" id="boton-menu"
-              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
-        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
-        <span>Menú</span>
-      </button>
-
-      <div class="cabecera-izquierda">
-        <a class="logo" href="index.html">
-          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
-        </a>
-
-        <nav class="menu" id="menu-principal">
-          <ul>
-            <li><a href="index.html">Inicio</a></li>
-            <li><a href="eventos.html">Eventos</a></li>
-            <li><a href="mis-reservas.html">Mis reservas</a></li>
-          </ul>
-        </nav>
-      </div>
-
-      <div class="cabecera-derecha" id="menu-cuenta">
-        <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
-
-        <div class="accesibilidad">
-          <button type="button" class="boton-accesibilidad" id="abrir-accesibilidad"
-                  aria-expanded="false" aria-controls="panel-accesibilidad">
-            <span>Accesibilidad</span>
-            <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
-          </button>
-
-          <div class="panel-accesibilidad" id="panel-accesibilidad" hidden>
-            <h2 class="panel-titulo" id="titulo-panel-acc">Opciones de accesibilidad</h2>
-
-            <div class="tamano-texto" role="group" aria-labelledby="titulo-tamano">
-              <span class="oculto" id="titulo-tamano">Tamaño del texto</span>
-
-              <button type="button" class="tamano-menor" id="texto-menos"
-                      aria-label="Disminuir el tamaño del texto">
-                A<span aria-hidden="true">&minus;</span>
-              </button>
-
-              <span class="tamano-valor" id="texto-valor" aria-hidden="true">100%</span>
-
-              <button type="button" class="tamano-mayor" id="texto-mas"
-                      aria-label="Aumentar el tamaño del texto">
-                A<span aria-hidden="true">+</span>
-              </button>
-
-              <button type="button" class="tamano-reinicio" id="texto-normal"
-                      aria-label="Restablecer el tamaño normal del texto">
-                Normal
-              </button>
-            </div>
-
-            <p class="panel-ayuda">Se guarda en este navegador para tus próximas visitas.</p>
-          </div>
-        </div>
-
-        <p class="oculto" id="aviso-tamano" role="status" aria-live="polite"></p>
-      </div>
-    </header>
+    <!--@incluir cabecera-->
 
     <main class="admin admin-agente" id="contenido-principal" tabindex="-1">
       <!-- Sin sesión de agente -->
@@ -360,7 +300,7 @@
           <div class="recuadro-titulo admin-cabecera">
             <div>
               <h1>Reservas</h1>
-              <p>Todas las reservas de tus eventos y el estado de su pago con Wompi. Desde el detalle puedes cancelar una reserva.</p>
+              <p>Todas las reservas de tus eventos y el estado de su pago. Desde el detalle puedes cancelar una reserva.</p>
             </div>
           </div>
 
@@ -617,22 +557,8 @@
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
-    <footer class="pie">
-      <div class="pie-columnas">
-        <div class="pie-marca">
-          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
-          <p>
-            Conectando la cultura urbana de Colombia con planes que vale la pena
-            vivir.
-          </p>
-        </div>
-      </div>
-      <p class="pie-final">
-        <span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span>
-      </p>
-    </footer>
+    <!--@incluir pie-panel-->
 
-    <script type="module" src="js/script.js"></script>
-    <script type="module" src="js/agente.js"></script>
+    <script type="module" src="src/paginas/agente.js"></script>
   </body>
 </html>

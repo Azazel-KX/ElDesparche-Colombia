@@ -136,9 +136,9 @@ SELECT pg_temp.igual('seed', 'el evento rechazado guarda su motivo en observacio
   $$SELECT observaciones LIKE '%Rechazado por el administrador. Motivo: %' FROM EVENTO WHERE codigo = 'EVT-2026-0007'$$, 'true');
 SELECT pg_temp.igual('seed', '5 reservas y 2 pagos',
   $$SELECT (SELECT count(*) FROM RESERVA) || '/' || (SELECT count(*) FROM PAGO)$$, '5/2');
-SELECT pg_temp.igual('seed', 'valor_total de las reservas (entradas × precio + tarifa)',
+SELECT pg_temp.igual('seed', 'valor_total de las reservas (entradas × precio)',
   $$SELECT string_agg(valor_total::bigint::text, ',' ORDER BY id_reserva) FROM RESERVA$$,
-  '103987,47252,31779,21464,73040');
+  '100000,45000,30000,20000,70000');
 SELECT pg_temp.igual('seed', 'cada pago es igual al valor_total de su reserva',
   $$SELECT count(*) FROM PAGO p JOIN RESERVA r USING (id_reserva) WHERE p.monto <> r.valor_total$$, '0');
 SELECT pg_temp.igual('seed', 'cada pago usa un método del mismo cliente de la reserva',
@@ -152,15 +152,7 @@ SELECT pg_temp.igual('seed', 'ubicaciones dentro de Colombia y con ciudad',
   $$SELECT count(*) FROM UBICACION u JOIN CIUDAD c USING (id_ciudad)$$, '5');
 
 -- ==================================================================================================================
--- 3. TARIFA DE WOMPI (misma cuenta que tarifaWompi() de la web)
--- ==================================================================================================================
-
-SELECT pg_temp.igual('tarifa', 'evento gratis: tarifa 0',            $$SELECT fn_tarifa_wompi(0)$$, '0');
-SELECT pg_temp.igual('tarifa', '100.000 → 3.987',                     $$SELECT fn_tarifa_wompi(100000)$$, '3987');
-SELECT pg_temp.igual('tarifa', '30.000 → 1.779',                      $$SELECT fn_tarifa_wompi(30000)$$, '1779');
-
--- ==================================================================================================================
--- 4. USUARIOS: documento, correo, teléfono, herencia
+-- 3. USUARIOS: documento, correo, teléfono, herencia
 -- ==================================================================================================================
 
 SELECT pg_temp.acepta('usuarios', 'alta de un cliente completo (USUARIO + CLIENTE)',
@@ -224,7 +216,7 @@ SELECT pg_temp.acepta('usuarios', 'corrección explícita del documento se propa
        AND (SELECT count(*) FROM USUARIO_TELEFONO WHERE numero_identificacion = '1000000099') = 2$$);
 
 -- ==================================================================================================================
--- 5. CLIENTES Y AGENTES
+-- 4. CLIENTES Y AGENTES
 -- ==================================================================================================================
 
 SELECT pg_temp.rechaza('subtipos', 'cliente con fecha de nacimiento futura',
@@ -241,7 +233,7 @@ SELECT pg_temp.rechaza('subtipos', 'salario negativo',
   $$UPDATE ADMIN SET salario = -1 WHERE numero_identificacion = '1000000001'$$, 'salario');
 
 -- ==================================================================================================================
--- 6. EVENTOS
+-- 5. EVENTOS
 -- ==================================================================================================================
 
 SELECT pg_temp.acepta('eventos', 'un agente registra un evento En revisión',
@@ -276,7 +268,7 @@ SELECT pg_temp.acepta('eventos', 'aprobar una solicitud: En revisión → Progra
   $$UPDATE EVENTO SET estado = 'Programado' WHERE codigo = 'EVT-2026-0006'$$);
 
 -- ==================================================================================================================
--- 7. RESERVAS: edad, cupo, valor y estados
+-- 6. RESERVAS: edad, cupo, valor y estados
 -- ==================================================================================================================
 
 -- Las fechas del seed son relativas al día de carga: la edad de cliente2 (1000000003) el día de EVT-2026-0004 se calcula
@@ -291,12 +283,12 @@ SELECT pg_temp.rechaza('reservas', 'menor que la edad mínima (un año más)',
     INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1, '1000000003', 'EVT-2026-0004')$$, 'edad mínima');
 SELECT pg_temp.acepta('reservas', 'valor_total lo calcula el trigger',
   $$INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (2, '1000000002', 'EVT-2026-0004')$$,
-  $$SELECT valor_total = 40000 + fn_tarifa_wompi(40000) FROM RESERVA ORDER BY id_reserva DESC LIMIT 1$$);
+  $$SELECT valor_total = 40000 FROM RESERVA ORDER BY id_reserva DESC LIMIT 1$$);
 SELECT pg_temp.acepta('reservas', 'valor_total correcto enviado a mano',
-  $$INSERT INTO RESERVA (numero_entradas, valor_total, numero_identificacion, codigo_evento) VALUES (1, 21464, '1000000002', 'EVT-2026-0004')$$);
+  $$INSERT INTO RESERVA (numero_entradas, valor_total, numero_identificacion, codigo_evento) VALUES (1, 20000, '1000000002', 'EVT-2026-0004')$$);
 SELECT pg_temp.rechaza('reservas', 'valor_total incorrecto',
-  $$INSERT INTO RESERVA (numero_entradas, valor_total, numero_identificacion, codigo_evento) VALUES (1, 20000, '1000000002', 'EVT-2026-0004')$$, 'valor_total debe ser');
-SELECT pg_temp.acepta('reservas', 'evento gratis: valor_total 0 (sin tarifa)',
+  $$INSERT INTO RESERVA (numero_entradas, valor_total, numero_identificacion, codigo_evento) VALUES (1, 21000, '1000000002', 'EVT-2026-0004')$$, 'valor_total debe ser');
+SELECT pg_temp.acepta('reservas', 'evento gratis: valor_total 0',
   $$UPDATE EVENTO SET precio = 0 WHERE codigo = 'EVT-2026-0004';
     INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (3, '1000000002', 'EVT-2026-0004')$$,
   $$SELECT valor_total = 0 FROM RESERVA ORDER BY id_reserva DESC LIMIT 1$$);
@@ -311,7 +303,7 @@ SELECT pg_temp.rechaza('reservas', 'reactivar una cancelada sin cupo',
 SELECT pg_temp.acepta('reservas', 'cambiar entradas conserva el precio con que se reservó',
   $$UPDATE EVENTO SET precio = 99999 WHERE codigo = 'EVT-2026-0001';
     UPDATE RESERVA SET numero_entradas = 3 WHERE id_reserva = 1$$,
-  $$SELECT valor_total = 150000 + fn_tarifa_wompi(150000) FROM RESERVA WHERE id_reserva = 1$$);
+  $$SELECT valor_total = 150000 FROM RESERVA WHERE id_reserva = 1$$);
 SELECT pg_temp.acepta('reservas', 'marcar una entrada como Usada',
   $$UPDATE RESERVA SET estado = 'Usada' WHERE id_reserva = 1$$);
 SELECT pg_temp.rechaza('reservas', '0 entradas',
@@ -322,7 +314,7 @@ SELECT pg_temp.igual('reservas', 'cada reserva tiene un código QR único',
   $$SELECT count(DISTINCT codigo_qr) = count(*) FROM RESERVA$$, 'true');
 
 -- ==================================================================================================================
--- 8. PAGOS
+-- 7. PAGOS
 -- ==================================================================================================================
 
 SELECT pg_temp.acepta('pagos', 'pago con un método del mismo cliente',
@@ -341,7 +333,7 @@ SELECT pg_temp.rechaza('pagos', 'referencia visible que no son 4 dígitos',
   $$UPDATE METODO_PAGO SET referencia_visible = '12AB' WHERE id_metodo = 1$$, 'referencia_visible');
 
 -- ==================================================================================================================
--- 9. BORRADOS: RESTRICT y CASCADE
+-- 8. BORRADOS: RESTRICT y CASCADE
 -- ==================================================================================================================
 
 SELECT pg_temp.rechaza('borrados', 'borrar una reserva que tiene un pago',
@@ -373,7 +365,7 @@ SELECT pg_temp.rechaza('borrados', 'borrar un método de pago usado',
   $$DELETE FROM METODO_PAGO WHERE id_metodo = 1$$, 'pago_id_metodo_fkey');
 
 -- ==================================================================================================================
--- 10. UBICACIONES (nombres únicos en su nivel)
+-- 9. UBICACIONES (nombres únicos en su nivel)
 -- ==================================================================================================================
 
 SELECT pg_temp.rechaza('ubicaciones', 'país repetido',

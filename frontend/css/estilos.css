@@ -2997,7 +2997,8 @@ iframe {
 /* El enlace de cada red social es solo un icono: su nombre accesible
    viene del aria-label del <a>. Se le da tamaño de 44x44 px para que
    sea fácil de pulsar en pantalla táctil (WCAG 2.5.8 Tamaño del área). */
-.redes a {
+.redes a,
+.redes .red {
   display: inline-flex;
   align-items: center;
   justify-content: center;

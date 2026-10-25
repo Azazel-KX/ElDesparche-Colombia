@@ -117,7 +117,7 @@ test("GET /api/admin/resumen: la forma de resumenLocal() con los datos del seed"
   const i = json.indicadores;
   assert.ok(i.eventosActivos >= 4, "Programado ×3 y En Boletería; las solicitudes y los cancelados no cuentan");
   assert.ok(i.reservas >= 2, "las reservas válidas (pagadas) de los últimos meses");
-  assert.ok(i.ingresos >= 103987 + 31779);
+  assert.ok(i.ingresos >= 100000 + 30000);
   assert.ok(i.agentes >= 2, "el agente pendiente no cuenta");
   assert.ok(i.clientes >= 2, "el cliente bloqueado no cuenta");
   assert.ok(i.eventosPorRevisar >= 1);
@@ -132,7 +132,7 @@ test("GET /api/admin/resumen: la forma de resumenLocal() con los datos del seed"
   assert.ok(json.categorias.length >= 3);
   assert.ok(json.categorias.some((c) => c.categoria === "Música"));
   assert.equal(json.agentes[0].nombre, "Pacífico Producciones");
-  assert.ok(json.agentes[0].ingresos >= 103987 && json.agentes[0].entradas >= 2 && json.agentes[0].eventos >= 2);
+  assert.ok(json.agentes[0].ingresos >= 100000 && json.agentes[0].entradas >= 2 && json.agentes[0].eventos >= 2);
   assert.ok(json.agentes.length <= 5);
   assert.ok(json.actividad.length >= 1);
   assert.ok(json.actividad.every((a) => typeof a.cuando === "string" && typeof a.texto === "string"));
@@ -163,11 +163,11 @@ test("GET /api/admin/reportes: la forma de reportesLocal() con los datos del see
   assert.ok(json.promedios.porAgente > 0 && json.promedios.porCliente > 0);
 
   const pacifico = json.ingresosPorAgente.find((a) => a.nombre === "Pacífico Producciones");
-  assert.ok(pacifico.ingresos >= 103987);
+  assert.ok(pacifico.ingresos >= 100000);
   assert.equal(json.ingresosPorAgente.find((a) => a.nombre === "Luna Llena Teatro").ingresos, 0, "un agente sin ventas aparece con 0");
-  assert.equal(json.ingresosPorCliente.find((c) => c.nombre === "Camilo Rojas Prueba").ingresos >= 103987, true);
+  assert.equal(json.ingresosPorCliente.find((c) => c.nombre === "Camilo Rojas Prueba").ingresos >= 100000, true);
   assert.equal(json.ingresosPorMes.length, 12);
-  assert.ok(json.ingresosPorMes[new Date().getMonth()] >= 103987 + 31779);
+  assert.ok(json.ingresosPorMes[new Date().getMonth()] >= 100000 + 30000);
 
   const conciertos = json.reservasPorEventoMes.find((e) => e.evento === "Concierto Música Colombiana");
   assert.equal(conciertos.meses.length, 12);
@@ -181,7 +181,7 @@ test("GET /api/admin/reportes: la forma de reportesLocal() con los datos del see
 
   const r = json.reservas.find((x) => x.codigo === "DES-1001");
   assert.deepEqual(Object.keys(r), ["codigo", "fecha", "cliente", "documento", "evento", "entradas", "valor", "estado", "observaciones"]);
-  assert.equal(r.valor, 103987);
+  assert.equal(r.valor, 100000);
   assert.equal(json.reservas.find((x) => x.codigo === "DES-1004").observaciones, "Cancelada por el cliente. Causa: No puede asistir.");
   const cancelado = json.eventosCancelados.find((e) => e.evento === "Noche de Comedia en Medellín");
   assert.equal(cancelado.ciudad, "Medellín");
@@ -211,14 +211,14 @@ test("GET /api/agente/resumen: la forma de resumenAgenteLocal() de ESE agente", 
   const i = json.indicadores;
   assert.ok(i.eventosActivos >= 2);
   assert.ok(i.entradas >= 2);
-  assert.ok(i.ingresos >= 103987);
+  assert.ok(i.ingresos >= 100000);
   assert.equal(i.ganancia, Math.round(i.ingresos * 0.9), "ingresos menos la comisión del 10 %");
   assert.ok(Number.isInteger(i.ocupacion) && i.ocupacion >= 0 && i.ocupacion <= 100);
   assert.equal(typeof i.pagosPendientes, "number");
 
   assert.equal(json.meses.length, 6);
   assert.ok(json.meses[5].reservas >= 2, "entradas vendidas este mes");
-  assert.ok(json.meses[5].ingresos >= 103987);
+  assert.ok(json.meses[5].ingresos >= 100000);
   assert.deepEqual(json.estados.map((e) => e.estado), ["Programado", "En Boletería", "En Vivo", "Finalizado", "Cancelado"]);
   assert.ok(json.eventos.every((e) => e.nitAgente === "900111222-1"), "solo sus eventos");
   assert.ok(json.eventos.some((e) => e.id === "EVT-2026-0001"));

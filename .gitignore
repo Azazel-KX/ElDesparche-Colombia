@@ -166,3 +166,6 @@ backend/uploads/
 
 # Respaldos locales de la base de datos
 database/respaldos/
+
+# Archivos locales de Visual Studio
+.vs/

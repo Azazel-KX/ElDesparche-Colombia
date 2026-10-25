@@ -90,7 +90,7 @@ test("GET agentes: la forma de AGENTES_DEMO con sus eventos, entradas e ingresos
   assert.ok(a.eventos.includes("EVT-2026-0001") && a.eventos.includes("EVT-2026-0003"));
   assert.ok(!a.eventos.includes("EVT-2026-0006"), "la solicitud en revisión no cuenta");
   assert.ok(a.entradas >= 2, "solo cuentan las entradas válidas: la reserva 2 no está pagada");
-  assert.ok(a.ingresos >= 103987);
+  assert.ok(a.ingresos >= 100000);
   assert.equal(a.ventas.length, 6);
   assert.ok(a.ventas[5] >= 2, "las entradas vendidas son de este mes");
   assert.equal(typeof a.nombres, "string");

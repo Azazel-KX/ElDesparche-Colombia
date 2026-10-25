@@ -254,8 +254,8 @@ test("un cliente recién registrado ya puede reservar (no hay verificación de c
      VALUES (1, $1, 'EVT-2026-0004') RETURNING valor_total::float8 AS valor_total`,
     [datos.numero_identificacion]
   );
-  // 1 entrada de $20.000 + tarifa de Wompi (2,65 % + $700, más IVA) = $21.464
-  assert.equal(rows[0].valor_total, 21464);
+  // 1 entrada de $20.000 = $20.000
+  assert.equal(rows[0].valor_total, 20000);
 });
 
 test("la base exige que todo usuario esté en exactamente un subtipo", async () => {

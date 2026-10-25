@@ -2,8 +2,8 @@
 
 API REST en Node.js + Express con PostgreSQL, organizada en MVC. Trabaja sobre el esquema de
 `database/schema_ElDesparche.sql` (13 tablas; ver `database/README.md`). Las respuestas tienen la misma forma que
-los datos de ejemplo de la web (`frontend/js/script.js`, `admin.js` y `agente.js`), así que el frontend pasa del
-modo local al API cambiando `USAR_API` a `true`.
+la que espera la web (`frontend/src/modelos/`). El frontend ya no trae datos de ejemplo:
+todo sale de este API.
 
 ```
 backend/
@@ -109,7 +109,7 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 | PATCH | `/api/admin/eventos/:id/estado` | `{ estado, observaciones }`. Programado → En Boletería → En Vivo → Finalizado; Cancelado desde cualquiera. Al cancelar, sus reservas se cancelan |
 | GET | `/api/admin/eventos/solicitudes` | Las solicitudes `En revisión` |
 | PATCH | `/api/admin/eventos/solicitudes/:id` | `{ estado: "Aprobado" \| "Rechazado", motivo }`. Aprobar la publica como `Programado` |
-| GET, POST | `/api/admin/reservas` | Lista (forma de `reservasLocales()`, con el pago estilo Wompi) y alta para un cliente (venta en taquilla) |
+| GET, POST | `/api/admin/reservas` | Lista (con su pago) y alta para un cliente (venta en taquilla) |
 | PUT, DELETE | `/api/admin/reservas/:codigo` | Modifica entradas, estado u observaciones (con pago, solo observaciones) o elimina (409 si tiene pago) |
 | PATCH | `/api/admin/reservas/:codigo/estado` | `{ estado: "Cancelada", observaciones }` |
 | POST | `/api/admin/entradas/:codigo/ingreso` | Valida la entrada (201). Rechaza (409) si está usada, cancelada, sin pagar, con el pago no aprobado o si el evento terminó |
@@ -163,12 +163,9 @@ Docker. Los tres funcionan en PowerShell, cmd y Git Bash.
 
 ## Pendiente
 
-- **Pago con Wompi** (`POST /api/pagos/wompi/iniciar`, firma de integridad, webhook `transaction.updated` y
-  `GET /api/pagos/wompi/transacciones/:id`). Hoy una reserva de un evento de pago queda `Reservada` hasta que un
-  administrador la confirme. El estado del pago en la base tiene 3 valores (Pendiente, Aprobado, Rechazado); Wompi
-  tiene más. La web ya está lista para conectarlo: en `frontend/js/script.js` basta con cambiar `reservarEnApi()` por
-  `pagarConWompi()` en la página de reserva.
+- **Pagos en línea:** no hay pasarela de pago. Una reserva de un evento de pago queda `Reservada` hasta que un
+  administrador la confirme. El estado del pago en la base tiene 3 valores (Pendiente, Aprobado, Rechazado).
 
-Con `USAR_API = true` la web pública ya usa el API: el catálogo, el detalle y los filtros salen de `GET /api/eventos`
+La web pública usa el API: el catálogo, el detalle y los filtros salen de `GET /api/eventos`
 (incluye `pais` para los filtros de ubicación), la reserva se crea con `POST /api/reservas`, y "Mis reservas", la
 confirmación y la cancelación usan `GET /api/reservas/mias` y `PATCH /api/reservas/:codigo/cancelar`.

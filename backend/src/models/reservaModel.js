@@ -6,7 +6,7 @@ const { codigoReserva, idDeCodigoReserva, agregarNota, notaCancelacion } = requi
 
 // Modelo de RESERVAS (y del PAGO que cada una puede tener). Aquí vive el SQL de las reservas de los tres perfiles:
 // el cliente (las suyas), el agente (las de sus eventos) y el administrador (todas).
-// Las reglas de negocio (edad mínima, cupo, valor_total = entradas × precio + tarifa de Wompi) las hace cumplir la base
+// Las reglas de negocio (edad mínima, cupo, valor_total = entradas × precio) las hace cumplir la base
 // con el trigger fn_reserva_reglas; aquí solo se comprueban las que dan un mensaje mejor que el del trigger.
 
 // Consulta base: una reserva con su cliente, su evento y el último pago (si lo hay).
@@ -30,9 +30,9 @@ const SELECT_RESERVA = `
 // Formas que ve la web
 // ---------------------------------------------------------------------------------------------
 
-// La web identifica el medio de pago como lo hace Wompi (CARD, NEQUI, PSE, BANCOLOMBIA_TRANSFER) y la base guarda un
+// La web identifica el medio de pago con un código (CARD, NEQUI, PSE, BANCOLOMBIA_TRANSFER) y la base guarda un
 // tipo y un proveedor del método de pago del cliente. Se traduce de uno a otro.
-function metodoWompi(tipo, proveedor) {
+function metodoDePago(tipo, proveedor) {
   if (/nequi/i.test(proveedor)) return "NEQUI";
   if (/pse/i.test(proveedor)) return "PSE";
   if (/bancolombia/i.test(proveedor)) return "BANCOLOMBIA_TRANSFER";
@@ -40,8 +40,8 @@ function metodoWompi(tipo, proveedor) {
   return "CARD";
 }
 
-// El estado del PAGO en la base tiene 3 valores; Wompi tiene más (DECLINED, VOIDED, ERROR se guardan como Rechazado)
-const ESTADO_WOMPI = { Aprobado: "APPROVED", Pendiente: "PENDING", Rechazado: "DECLINED" };
+// El estado del PAGO en la base tiene 3 valores; la web los ve como APPROVED, PENDING y DECLINED
+const ESTADO_PAGO = { Aprobado: "APPROVED", Pendiente: "PENDING", Rechazado: "DECLINED" };
 
 // "Usada" es un estado interno de la reserva (la entrada ya se validó en la puerta): la web solo conoce Reservada,
 // Confirmada y Cancelada, así que una Usada se ve Confirmada y se marca con usada: true.
@@ -63,8 +63,8 @@ function aFormaWeb(f) {
     pago: f.id_pago
       ? {
         id: f.referencia_transaccion,
-        metodo: metodoWompi(f.tipo_metodo, f.proveedor),
-        estado: ESTADO_WOMPI[f.estado_pago],
+        metodo: metodoDePago(f.tipo_metodo, f.proveedor),
+        estado: ESTADO_PAGO[f.estado_pago],
         montoCentavos: Math.round(f.monto * 100),
         moneda: "COP",
       }
@@ -106,7 +106,7 @@ const obtener = async (codigo) => {
 
 // Crea una reserva y devuelve su código. Comprueba lo que da un mensaje mejor que el trigger: que el cliente exista y
 // esté activo, y que el evento exista y todavía se puedan comprar entradas (no Finalizado, Cancelado ni una solicitud).
-// El valor_total lo calcula el trigger (entradas × precio + tarifa de Wompi); la edad mínima y el cupo también.
+// El valor_total lo calcula el trigger (entradas × precio); la edad mínima y el cupo también.
 //   estado: "Reservada" o "Confirmada". Un evento gratis siempre queda Confirmada (no hay nada que pagar).
 async function crear({ docCliente, codigoEvento, entradas, estado, observaciones }) {
   return db.conTransaccion(async (cliente) => {
@@ -223,6 +223,6 @@ async function registrarIngreso(codigo, { docAgente, revisor }) {
 }
 
 module.exports = {
-  aFormaWeb, metodoWompi, listar, obtener, obtenerFila, crear, actualizar, cancelar, eliminar, registrarIngreso,
+  aFormaWeb, metodoDePago, listar, obtener, obtenerFila, crear, actualizar, cancelar, eliminar, registrarIngreso,
   agregarNota, notaCancelacion,
 };

@@ -1,8 +1,51 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+
+/* La cabecera y el pie son iguales en todas las páginas: viven en parciales/ y cada HTML los pide con un
+   comentario (<!--@incluir cabecera-->, <!--@incluir pie--> o <!--@incluir pie-panel-->). Se arman al servir
+   la página y al hacer el build, así el HTML final sigue siendo estático (sin parpadeos ni JavaScript extra).
+   En parciales/cabecera.html, {{activo:inicio}} se convierte en la marca del enlace de la página actual. */
+const CARPETA_PARCIALES = resolve(import.meta.dirname, 'parciales');
+
+/* Página (data-pagina del <body>) -> enlace del menú que se marca, y si esa ES la página (aria-current) */
+const MENU_ACTIVO = {
+  inicio: ['inicio', true],
+  eventos: ['eventos', true],
+  evento: ['eventos', false],
+  reservar: ['eventos', false],
+  confirmacion: ['eventos', false],
+  'mis-reservas': ['mis-reservas', true]
+};
+
+function incluirParciales() {
+  return {
+    name: 'incluir-parciales',
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html) {
+        const pagina = (/<body[^>]*data-pagina="([^"]+)"/.exec(html) || [])[1];
+        const [activo, exacta] = MENU_ACTIVO[pagina] || [];
+        return html.replace(/[ \t]*<!--@incluir ([\w-]+)-->/g, (_, nombre) => {
+          const texto = readFileSync(resolve(CARPETA_PARCIALES, nombre + '.html'), 'utf8').replace(/\r\n/g, '\n');
+          return texto.replace(/\{\{activo:([\w-]+)\}\}/g, (__, enlace) =>
+            enlace === activo ? (exacta ? ' class="activo" aria-current="page"' : ' class="activo"') : '');
+        });
+      }
+    },
+    configureServer(servidor) {
+      /* Si se edita un parcial, el navegador recarga la página */
+      servidor.watcher.add(CARPETA_PARCIALES);
+      servidor.watcher.on('change', (archivo) => {
+        if (archivo.startsWith(CARPETA_PARCIALES)) servidor.ws.send({ type: 'full-reload' });
+      });
+    }
+  };
+}
 
 export default defineConfig({
   root: '.',
+  plugins: [incluirParciales()],
   server: {
     // 'true' escucha en IPv4 (0.0.0.0) e IPv6 (::) a la vez.
     // cloudflared resuelve 'localhost' y puede elegir ::1; si Vite solo

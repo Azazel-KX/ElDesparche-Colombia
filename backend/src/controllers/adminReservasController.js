@@ -11,7 +11,7 @@ async function listar(_req, res) {
 }
 
 // POST /api/admin/reservas  { documento: "CC 123", eventoId, entradas, estado, observaciones }
-// Registra una reserva para un cliente, sin pago en Wompi (por ejemplo, una venta en taquilla). El valor, el código y
+// Registra una reserva para un cliente, sin pago (por ejemplo, una venta en taquilla). El valor, el código y
 // la fecha los pone el servidor aunque el formulario los mande.
 async function crear(req, res) {
   const { datos, errores } = validarReservaNueva(req.body);
@@ -24,7 +24,7 @@ async function crear(req, res) {
 }
 
 // PUT /api/admin/reservas/:codigo  { entradas, estado, observaciones }
-// Con un pago en Wompi solo se pueden cambiar las observaciones: el valor pagado y el estado ya no se tocan.
+// Con un pago registrado solo se pueden cambiar las observaciones: el valor pagado y el estado ya no se tocan.
 async function actualizar(req, res) {
   const { datos, errores } = validarReservaEdicion(req.body);
   if (errores) throw new ErrorHttp(400, "Datos de la reserva inválidos.", errores);
@@ -34,7 +34,7 @@ async function actualizar(req, res) {
       throw new ErrorHttp(422, `No se puede modificar una reserva en estado "${actual.estado}".`);
     }
     if (actual.estado_pago && (datos.entradas !== undefined || datos.estado !== undefined)) {
-      throw new ErrorHttp(422, "Ya tiene un pago en Wompi: solo se pueden cambiar las observaciones. Para cambiar las entradas, cancélala y registra otra.");
+      throw new ErrorHttp(422, "Ya tiene un pago registrado: solo se pueden cambiar las observaciones. Para cambiar las entradas, cancélala y registra otra.");
     }
   };
 

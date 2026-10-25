@@ -4,8 +4,8 @@ const { agregarNota, notaCancelacion } = require("../utils/formato");
 const { ErrorHttp } = require("../utils/errores");
 
 // Reservas del CLIENTE autenticado (rutas /api/reservas). Solo ve y toca las suyas.
-// El pago con Wompi (iniciar el pago, firma de integridad y webhook) se conecta aparte: hoy una reserva de un evento
-// de pago queda "Reservada" hasta que se confirme su pago, y una de un evento gratis queda "Confirmada".
+// No hay pasarela de pago: una reserva de un evento de pago queda "Reservada" hasta que se confirme su pago,
+// y una de un evento gratis queda "Confirmada".
 
 // POST /api/reservas  { idEvento, entradas, observaciones }  -> 201 { reserva }
 async function crear(req, res) {

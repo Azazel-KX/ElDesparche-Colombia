@@ -181,7 +181,7 @@ CREATE INDEX idx_evento_ubicacion ON EVENTO(id_ubicacion);
 CREATE TABLE RESERVA (
     id_reserva            SERIAL PRIMARY KEY,
     codigo_qr             UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
-    valor_total           NUMERIC(12,2) NOT NULL CHECK (valor_total >= 0),   -- entradas × precio + tarifa de Wompi (el trigger la calcula si llega NULL)
+    valor_total           NUMERIC(12,2) NOT NULL CHECK (valor_total >= 0),   -- entradas × precio (el trigger la calcula si llega NULL)
     fecha_hora            TIMESTAMP NOT NULL DEFAULT NOW(),
     estado                estado_reserva_t NOT NULL DEFAULT 'Reservada',
     numero_entradas       INTEGER NOT NULL CHECK (numero_entradas > 0),
@@ -263,14 +263,7 @@ CREATE CONSTRAINT TRIGGER trg_agente_subtipo
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION fn_usuario_un_subtipo();
 
--- 2. Tarifa de Wompi por pago en Colombia: 2,65 % + $700, más IVA (19 %). Se cobra una vez por
---    pago (no por entrada) y vale 0 si el evento es gratis. Es la misma cuenta que tarifaWompi()
---    en frontend/js/script.js, así que la web y la base de datos dan el mismo valor_total.
-CREATE OR REPLACE FUNCTION fn_tarifa_wompi(subtotal NUMERIC) RETURNS NUMERIC AS $$
-    SELECT CASE WHEN subtotal <= 0 THEN 0 ELSE ROUND((subtotal * 0.0265 + 700) * 1.19) END;
-$$ LANGUAGE sql IMMUTABLE;
-
--- 3. Reglas de la reserva: edad mínima, cupo y valor_total = entradas × precio + tarifa de Wompi
+-- 2. Reglas de la reserva: edad mínima, cupo y valor_total = entradas × precio
 CREATE OR REPLACE FUNCTION fn_reserva_reglas() RETURNS trigger AS $$
 DECLARE
     ev EVENTO%ROWTYPE;
@@ -288,19 +281,17 @@ BEGIN
         END IF;
 
         IF NEW.valor_total IS NULL THEN                               -- precio vigente al reservar
-            NEW.valor_total := NEW.numero_entradas * ev.precio + fn_tarifa_wompi(NEW.numero_entradas * ev.precio);
-        ELSIF NEW.valor_total <> NEW.numero_entradas * ev.precio + fn_tarifa_wompi(NEW.numero_entradas * ev.precio) THEN
-            RAISE EXCEPTION 'valor_total debe ser numero_entradas × precio del evento + tarifa de Wompi';
+            NEW.valor_total := NEW.numero_entradas * ev.precio;
+        ELSIF NEW.valor_total <> NEW.numero_entradas * ev.precio THEN
+            RAISE EXCEPTION 'valor_total debe ser numero_entradas × precio del evento';
         END IF;
     END IF;
 
     -- Si cambia el número de entradas, se conserva el precio unitario con que se reservó.
-    -- Se despeja del valor anterior: valor = s + (s × 0,0265 + 700) × 1,19, con s = entradas × precio.
     IF TG_OP = 'UPDATE' AND NEW.numero_entradas <> OLD.numero_entradas
        AND NEW.valor_total = OLD.valor_total THEN
-        precio_unitario := CASE WHEN OLD.valor_total = 0 THEN 0
-                                ELSE ROUND((OLD.valor_total - 700 * 1.19) / (1 + 0.0265 * 1.19)) / OLD.numero_entradas END;
-        NEW.valor_total := NEW.numero_entradas * precio_unitario + fn_tarifa_wompi(NEW.numero_entradas * precio_unitario);
+        precio_unitario := OLD.valor_total / OLD.numero_entradas;
+        NEW.valor_total := NEW.numero_entradas * precio_unitario;
     END IF;
 
     IF NEW.estado <> 'Cancelada' THEN

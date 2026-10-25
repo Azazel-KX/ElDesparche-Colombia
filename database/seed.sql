@@ -110,14 +110,14 @@ UPDATE EVENTO SET url_imagen = v.imagen
 SELECT setval('evento_numero_seq', (SELECT MAX(SUBSTRING(codigo FROM '[0-9]+$')::int) FROM EVENTO));
 
 -- ==================================================================================================================
--- RESERVAS  (valor_total lo calcula el trigger: numero_entradas × precio del evento + tarifa de Wompi)
+-- RESERVAS  (valor_total lo calcula el trigger: numero_entradas × precio del evento)
 -- La causa de las canceladas va en observaciones, con el mismo formato que escribe la web.
 -- ==================================================================================================================
 
 INSERT INTO RESERVA (numero_entradas, observaciones, estado, numero_identificacion, codigo_evento) VALUES
-(2, 'Asientos preferidos',  'Confirmada', '1000000002', 'EVT-2026-0001'),   -- 1: 100.000 + 3.987 de tarifa = 103.987
-(3, 'Entrada para familia', 'Reservada',  '1000000002', 'EVT-2026-0003'),   -- 2:  45.000 + 2.252 = 47.252
-(1, 'Entrada estándar',     'Confirmada', '1000000003', 'EVT-2026-0002'),   -- 3:  30.000 + 1.779 = 31.779
+(2, 'Asientos preferidos',  'Confirmada', '1000000002', 'EVT-2026-0001'),   -- 1: 100.000
+(3, 'Entrada para familia', 'Reservada',  '1000000002', 'EVT-2026-0003'),   -- 2:  45.000
+(1, 'Entrada estándar',     'Confirmada', '1000000003', 'EVT-2026-0002'),   -- 3:  30.000
 (1, 'Cancelada por el cliente. Causa: No puede asistir.',
                             'Cancelada',  '1000000002', 'EVT-2026-0004'),   -- 4
 (2, 'Cancelada por el administrador. Causa: Otra causa. Detalle: el evento se canceló.',
@@ -132,7 +132,7 @@ INSERT INTO METODO_PAGO (tipo, proveedor, referencia_visible, token_pasarela, ac
 ('Billetera digital', 'Nequi', NULL, 'tok_test_nequi_0001', TRUE, '1000000003');   -- 2
 
 INSERT INTO PAGO (monto, referencia_transaccion, estado, id_reserva, id_metodo) VALUES
-(103987, 'TX-2026-000001', 'Aprobado', 1, 1),   -- igual al valor_total de la reserva 1
-( 31779, 'TX-2026-000002', 'Aprobado', 3, 2);   -- igual al valor_total de la reserva 3
+(100000, 'TX-2026-000001', 'Aprobado', 1, 1),   -- igual al valor_total de la reserva 1
+( 30000, 'TX-2026-000002', 'Aprobado', 3, 2);   -- igual al valor_total de la reserva 3
 
 COMMIT;
