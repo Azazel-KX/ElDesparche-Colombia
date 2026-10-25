@@ -35,8 +35,6 @@ CREATE TYPE estado_usuario_t       AS ENUM ('Activo', 'Pendiente', 'Suspendido',
 CREATE TYPE estado_evento_t        AS ENUM ('En revisión', 'Rechazado', 'Programado', 'En Boletería', 'En Vivo', 'Finalizado', 'Cancelado');
 -- Usada: la entrada ya se validó en la puerta del evento. La causa de una cancelación va en RESERVA.observaciones.
 CREATE TYPE estado_reserva_t       AS ENUM ('Reservada', 'Confirmada', 'Usada', 'Cancelada');
-CREATE TYPE tipo_metodo_pago_t     AS ENUM ('Tarjeta crédito', 'Tarjeta débito', 'Transferencia bancaria', 'Billetera digital');
-CREATE TYPE estado_pago_t          AS ENUM ('Pendiente', 'Aprobado', 'Rechazado');
 
 -- ==================================================================================================================
 -- GEOGRAFÍA  (Enunciado: País → Departamento → Ciudad)
@@ -175,7 +173,7 @@ CREATE INDEX idx_evento_agente    ON EVENTO(numero_identificacion);
 CREATE INDEX idx_evento_ubicacion ON EVENTO(id_ubicacion);
 
 -- ==================================================================================================================
--- RESERVAS, MÉTODOS DE PAGO Y PAGOS
+-- RESERVAS (un administrador aprueba la reserva y el pago pasándola a Confirmada)
 -- ==================================================================================================================
 
 CREATE TABLE RESERVA (
@@ -194,29 +192,6 @@ CREATE INDEX idx_reserva_cliente ON RESERVA(numero_identificacion);
 CREATE INDEX idx_reserva_evento  ON RESERVA(codigo_evento);
 CREATE INDEX idx_reserva_estado  ON RESERVA(estado);
 CREATE INDEX idx_reserva_fecha   ON RESERVA(fecha_hora);
-
-CREATE TABLE METODO_PAGO (
-    id_metodo             SERIAL PRIMARY KEY,
-    tipo                  tipo_metodo_pago_t NOT NULL,
-    proveedor             VARCHAR(60) NOT NULL,
-    referencia_visible    VARCHAR(4) CHECK (referencia_visible ~ '^[0-9]{4}$'),   -- últimos 4 dígitos
-    token_pasarela        VARCHAR(255) NOT NULL,
-    activo                BOOLEAN NOT NULL DEFAULT TRUE,
-    fecha_registro        TIMESTAMP NOT NULL DEFAULT NOW(),
-    numero_identificacion VARCHAR(20) NOT NULL REFERENCES CLIENTE(numero_identificacion) ON UPDATE CASCADE ON DELETE CASCADE   -- Registra: cliente dueño
-);
-
-CREATE TABLE PAGO (
-    id_pago                SERIAL PRIMARY KEY,
-    monto                  NUMERIC(12,2) NOT NULL CHECK (monto > 0),
-    fecha_hora             TIMESTAMP NOT NULL DEFAULT NOW(),
-    referencia_transaccion VARCHAR(80) NOT NULL UNIQUE,
-    estado                 estado_pago_t NOT NULL DEFAULT 'Pendiente',
-    id_reserva             INTEGER NOT NULL REFERENCES RESERVA(id_reserva) ON DELETE RESTRICT,       -- Genera
-    id_metodo              INTEGER NOT NULL REFERENCES METODO_PAGO(id_metodo) ON DELETE RESTRICT     -- Utiliza
-);
-
-CREATE INDEX idx_pago_reserva ON PAGO(id_reserva);
 
 -- ==================================================================================================================
 -- TRIGGERS: reglas del diagrama que no son DF ni CHECK de una sola fila
@@ -311,21 +286,7 @@ CREATE TRIGGER trg_reserva_reglas
     BEFORE INSERT OR UPDATE OF numero_entradas, estado, codigo_evento ON RESERVA
     FOR EACH ROW EXECUTE FUNCTION fn_reserva_reglas();
 
--- 4. El método de pago de un PAGO debe pertenecer al cliente que hizo la RESERVA
-CREATE OR REPLACE FUNCTION fn_pago_coherente() RETURNS trigger AS $$
-BEGIN
-    IF (SELECT numero_identificacion FROM RESERVA WHERE id_reserva = NEW.id_reserva)
-       IS DISTINCT FROM
-       (SELECT numero_identificacion FROM METODO_PAGO WHERE id_metodo = NEW.id_metodo) THEN
-        RAISE EXCEPTION 'El método de pago % no pertenece al cliente de la reserva %', NEW.id_metodo, NEW.id_reserva;
-    END IF;
-    RETURN NEW;
-END $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_pago_coherente BEFORE INSERT OR UPDATE OF id_reserva, id_metodo ON PAGO
-    FOR EACH ROW EXECUTE FUNCTION fn_pago_coherente();
-
--- 5. La capacidad del evento no puede quedar por debajo de las entradas ya reservadas
+-- 4. La capacidad del evento no puede quedar por debajo de las entradas ya reservadas
 CREATE OR REPLACE FUNCTION fn_evento_capacidad() RETURNS trigger AS $$
 DECLARE ocupadas INTEGER;
 BEGIN

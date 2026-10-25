@@ -300,7 +300,7 @@
           <div class="recuadro-titulo admin-cabecera">
             <div>
               <h1>Reservas</h1>
-              <p>Todas las reservas de tus eventos y el estado de su pago. Desde el detalle puedes cancelar una reserva.</p>
+              <p>Todas las reservas de tus eventos y si un administrador ya las aprobó. Desde el detalle puedes cancelar una reserva.</p>
             </div>
           </div>
 
@@ -308,19 +308,19 @@
           <p class="admin-aviso" id="admin-aviso" role="status"></p>
 
           <section aria-labelledby="titulo-resumen-reservas">
-            <h2 class="oculto" id="titulo-resumen-reservas">Resumen de reservas y pagos</h2>
+            <h2 class="oculto" id="titulo-resumen-reservas">Resumen de reservas</h2>
             <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
           </section>
 
           <div class="admin-graficas">
-            <section class="admin-tarjeta" aria-labelledby="titulo-metodos">
-              <h2 id="titulo-metodos">Ingresos por medio de pago</h2>
-              <div id="grafica-metodos"></div>
+            <section class="admin-tarjeta" aria-labelledby="titulo-ingresos-evento">
+              <h2 id="titulo-ingresos-evento">Ingresos aprobados por evento</h2>
+              <div id="grafica-ingresos-evento"></div>
             </section>
 
-            <section class="admin-tarjeta" aria-labelledby="titulo-estados-pago">
-              <h2 id="titulo-estados-pago">Estado de los pagos</h2>
-              <div id="grafica-estados-pago"></div>
+            <section class="admin-tarjeta" aria-labelledby="titulo-estados-reserva">
+              <h2 id="titulo-estados-reserva">Estado de las reservas</h2>
+              <div id="grafica-estados-reserva"></div>
             </section>
           </div>
 
@@ -339,24 +339,12 @@
                 </select>
               </div>
               <div class="admin-filtro">
-                <label for="filtro-pago">Estado del pago</label>
-                <select id="filtro-pago">
+                <label for="filtro-estado-reserva">Estado</label>
+                <select id="filtro-estado-reserva">
                   <option value="">Todos</option>
-                  <option value="APPROVED">Aprobado</option>
-                  <option value="PENDING">Pendiente</option>
-                  <option value="DECLINED">Rechazado</option>
-                  <option value="VOIDED">Anulado</option>
-                  <option value="ERROR">Error</option>
-                </select>
-              </div>
-              <div class="admin-filtro">
-                <label for="filtro-metodo">Medio de pago</label>
-                <select id="filtro-metodo">
-                  <option value="">Todos</option>
-                  <option value="CARD">Tarjeta</option>
-                  <option value="NEQUI">Nequi</option>
-                  <option value="PSE">PSE</option>
-                  <option value="BANCOLOMBIA_TRANSFER">Botón Bancolombia</option>
+                  <option value="Reservada">Por aprobar (Reservada)</option>
+                  <option value="Confirmada">Aprobada (Confirmada)</option>
+                  <option value="Cancelada">Cancelada</option>
                 </select>
               </div>
               <div class="admin-filtro">
@@ -380,7 +368,7 @@
                   <th scope="col" role="columnheader">Evento</th>
                   <th scope="col" role="columnheader" class="numero">Entradas</th>
                   <th scope="col" role="columnheader" class="numero">Valor</th>
-                  <th scope="col" role="columnheader">Pago</th>
+                  <th scope="col" role="columnheader">Aprobación</th>
                   <th scope="col" role="columnheader">Acciones</th>
                 </tr>
               </thead>

@@ -6,7 +6,6 @@
 import { edadEn, fechaTextoAIso } from "../lib/fechas.js";
 import { enviarCrud, llamarApi, revisarRespuesta } from "./clienteApi.js";
 import { buscarEvento, cuposLibres } from "./eventoModelo.js";
-import { ESTADOS_PAGO } from "./catalogos.js";
 import { normalizar } from "../lib/formato.js";
 import { EVENTOS } from "./eventoModelo.js";
 
@@ -25,8 +24,7 @@ function reservaDesdeApi(r) {
     fechaReserva: new Date(r.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" }),
     estado: r.estado,
     usada: r.usada,
-    observaciones: r.observaciones,
-    pago: r.pago
+    observaciones: r.observaciones
   };
 }
 
@@ -44,7 +42,7 @@ export function reservasDelApi() {
 }
 
 /* Registra la reserva y deja guardado su código como "última reserva" para la página de confirmación.
-   Si el evento es de pago queda "Reservada" hasta que un administrador confirme el pago; si es gratis, confirmada. */
+   Si el evento es de pago queda "Reservada" hasta que un administrador apruebe la reserva y el pago; si es gratis, confirmada. */
 export function crearReserva(idEvento, entradas, observaciones) {
   return llamarApi("/reservas", {
     method: "POST",
@@ -96,11 +94,10 @@ export function motivoBloqueoReserva(usuario, evento) {
   return "";
 }
 
-/* Una reserva de un evento de pago que todavía no tiene un pago aprobado: no lleva QR.
-   Queda "Reservada" hasta que un administrador confirme el pago. */
-export function esperaPago(reserva) {
-  if (reserva.pago) return reserva.pago.estado === "PENDING";
-  return reserva.estado === "Reservada" && reserva.total > 0;
+/* Una reserva de un evento de pago que todavía no aprobó un administrador: no lleva QR.
+   Queda "Reservada" hasta que la apruebe (la pasa a "Confirmada"). */
+export function esperaAprobacion(reserva) {
+  return reserva.estado === "Reservada" && (reserva.total !== undefined ? reserva.total : reserva.valor) > 0;
 }
 
 export function contenidoQr(codigo, idEvento) {
@@ -138,11 +135,10 @@ export function cancelarReservaAdmin(codigo, observaciones) {
 
 /* ===== REGISTRAR, MODIFICAR Y ELIMINAR RESERVAS (solo el administrador) ===== */
 
-/* ¿La entrada sirve para entrar? Pagada, gratis, o confirmada por un administrador
-   (por ejemplo, una reserva que registró él y se pagó en taquilla) */
+/* ¿La entrada sirve para entrar? Gratis, o aprobada (Confirmada) por un administrador:
+   al aprobar la reserva se aprueba también el pago */
 export function entradaValida(r) {
   if (r.estado === "Cancelada") return false;
-  if (r.pago) return r.pago.estado === "APPROVED";
   return r.valor === 0 || r.estado === "Confirmada";
 }
 
@@ -251,15 +247,9 @@ export function evaluarEntrada(codigo, reservas, permitidos, eventoPuerta) {
     return { clase: "validar-no", titulo: "Reserva cancelada", texto: "Esta reserva fue cancelada y la entrada ya no vale.", reserva: reserva };
   }
 
-  if (reserva.pago && reserva.pago.estado !== "APPROVED") {
-    return { clase: "validar-no", titulo: "Pago sin aprobar",
-      texto: "El pago de esta reserva está " + ESTADOS_PAGO[reserva.pago.estado].toLowerCase() +
-        ". No puede entrar hasta que se apruebe.", reserva: reserva };
-  }
-
-  if (!reserva.pago && reserva.valor > 0 && reserva.estado !== "Confirmada") {
-    return { clase: "validar-no", titulo: "Reserva sin pagar",
-      texto: "Esta reserva todavía no está pagada. Puede entrar cuando un administrador la confirme.", reserva: reserva };
+  if (reserva.valor > 0 && reserva.estado !== "Confirmada") {
+    return { clase: "validar-no", titulo: "Reserva por aprobar",
+      texto: "Esta reserva todavía no está aprobada. Puede entrar cuando un administrador la apruebe.", reserva: reserva };
   }
 
   /* Lo dice la base de datos (reserva.usada) */
@@ -275,20 +265,29 @@ export function evaluarEntrada(codigo, reservas, permitidos, eventoPuerta) {
 
 /* ----- Reservas del panel (administrador y agente) ----- */
 
-export function reservasConPago(reservas, estado) {
-  return reservas.filter(function (r) { return r.pago && r.pago.estado === estado; });
+export function reservasConEstado(reservas, estado) {
+  return reservas.filter(function (r) { return r.estado === estado; });
 }
 
-/* filtros = { texto, evento, pago, metodo, orden }; vacío = sin filtrar */
+/* Reservas de eventos de pago que esperan la aprobación de un administrador */
+export function reservasPorAprobar(reservas) {
+  return reservas.filter(esperaAprobacion);
+}
+
+/* Dinero de las reservas aprobadas (Confirmada) o gratis y no canceladas */
+export function ingresosAprobados(reservas) {
+  return reservas.filter(entradaValida).reduce(function (s, r) { return s + r.valor; }, 0);
+}
+
+/* filtros = { texto, evento, estado, orden }; vacío = sin filtrar */
 export function filtrarReservas(reservas, filtros) {
   var texto = normalizar((filtros.texto || "").trim());
   var lista = reservas.filter(function (r) {
     var coincide = texto === "" ||
-      normalizar(r.codigo + " " + r.cliente + " " + r.evento + " " + (r.pago ? r.pago.id : "")).indexOf(texto) !== -1;
+      normalizar(r.codigo + " " + r.cliente + " " + r.evento).indexOf(texto) !== -1;
     return coincide &&
       (!filtros.evento || String(r.eventoId) === filtros.evento) &&
-      (!filtros.pago || (r.pago && r.pago.estado === filtros.pago)) &&
-      (!filtros.metodo || (r.pago && r.pago.metodo === filtros.metodo));
+      (!filtros.estado || r.estado === filtros.estado);
   });
   lista.sort(function (a, b) {
     if (filtros.orden === "valor") return b.valor - a.valor;

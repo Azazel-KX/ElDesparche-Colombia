@@ -4,7 +4,6 @@
    ========================================================================== */
 
 import { escapar, textoPesos } from "../lib/formato.js";
-import { ESTADOS_PAGO, METODOS_PAGO } from "../modelos/catalogos.js";
 import { pintarQrReal } from "./qrVista.js";
 
 export function pintarConfirmacion(reserva) {
@@ -19,12 +18,6 @@ export function pintarConfirmacion(reserva) {
     ["Fecha de reserva", reserva.fechaReserva]
   ];
 
-  var pago = reserva.pago;
-  if (pago) {
-    datos.push(["Pago", ESTADOS_PAGO[pago.estado] + (METODOS_PAGO[pago.metodo] ? " con " + METODOS_PAGO[pago.metodo] : "")]);
-    datos.push(["Transacción", pago.id]);
-  }
-
   var html = "";
   for (var j = 0; j < datos.length; j++) {
     html = html + "<div><dt>" + escapar(datos[j][0]) + "</dt><dd>" + escapar(datos[j][1]) + "</dd></div>";
@@ -33,27 +26,21 @@ export function pintarConfirmacion(reserva) {
   document.getElementById("detalles").innerHTML = html;
   document.getElementById("codigo").textContent = reserva.codigo;
 
-  /* El QR solo sirve cuando el pago está aprobado */
+  /* El QR solo sirve cuando un administrador aprobó la reserva y el pago */
   if (reserva.estado === "Confirmada") {
     pintarQrReal(document.getElementById("qr"), reserva.codigo, reserva.idEvento);
   } else {
-    /* Sin pago registrado: la reserva se registró y un administrador confirma el pago */
-    var sinPago = !reserva.pago;
-    document.title = (sinPago ? "Reserva registrada" : "Pago en proceso") + " - El Desparche";
-    document.querySelector(".titulo-exito").textContent =
-      sinPago ? "Tu reserva quedó registrada" : "Tu pago está en proceso";
-    document.querySelector(".subtitulo-exito").textContent = sinPago
-      ? "Apartamos tus entradas. La reserva se confirma cuando registremos tu pago."
-      : "Guardamos tu reserva mientras se confirma el pago. Te avisaremos por correo cuando esté listo.";
+    /* La reserva quedó registrada y un administrador la aprueba (reserva y pago) */
+    document.title = "Reserva registrada - El Desparche";
+    document.querySelector(".titulo-exito").textContent = "Tu reserva quedó registrada";
+    document.querySelector(".subtitulo-exito").textContent =
+      "Apartamos tus entradas. La reserva se confirma cuando un administrador apruebe la reserva y el pago.";
 
     var qr = document.getElementById("qr");
     var aviso = document.createElement("p");
     aviso.className = "qr-pendiente";
-    aviso.innerHTML = sinPago
-      ? "<strong>Pago por confirmar.</strong> Tu QR aparecerá aquí y en \"Mis reservas\" " +
-        "en cuanto se confirme el pago."
-      : "<strong>Pago pendiente.</strong> Tu QR aparecerá aquí y en \"Mis reservas\" " +
-        "en cuanto se apruebe el pago (a veces tarda unos minutos con PSE o Nequi).";
+    aviso.innerHTML = "<strong>Por aprobar.</strong> Tu QR aparecerá aquí y en \"Mis reservas\" " +
+      "en cuanto un administrador apruebe tu reserva y el pago.";
     qr.parentNode.replaceChild(aviso, qr);
     document.querySelector(".caja-qr .texto-pequeno-claro").textContent = "Código de tu reserva";
   }

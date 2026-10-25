@@ -76,7 +76,7 @@ before(async () => {
 });
 
 after(async () => {
-  // Borrar el USUARIO elimina en cascada su subtipo, teléfonos, reservas y métodos de pago
+  // Borrar el USUARIO elimina en cascada su subtipo, teléfonos, y reservas
   for (const id of creados) {
     await pool.query("DELETE FROM USUARIO WHERE numero_identificacion = $1", [id]);
   }

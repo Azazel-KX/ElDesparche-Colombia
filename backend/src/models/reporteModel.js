@@ -1,14 +1,14 @@
 const db = require("../config/db");
 const eventoModel = require("./eventoModel");
 const personaModel = require("./personaModel");
-const { LATERAL_PAGO, ES_VALIDA } = require("../utils/sql");
+const { ES_VALIDA } = require("../utils/sql");
 const { ultimosMeses, haceCuanto, codigoReserva } = require("../utils/formato");
 
-// Modelo de RESUMEN y REPORTES: solo lee (agrega) lo que ya guardan EVENTO, RESERVA, PAGO y las personas.
+// Modelo de RESUMEN y REPORTES: solo lee (agrega) lo que ya guardan EVENTO, RESERVA y las personas.
 // Las formas son las de resumenLocal() y reportesLocal() en frontend/js/admin.js y resumenAgenteLocal() en agente.js.
 //
-// Qué cuenta como INGRESO: el valor_total de las reservas "válidas" (ES_VALIDA en utils/sql.js): no canceladas y, si
-// tienen pago, aprobado; si no, gratis o confirmadas por un administrador. Igual que entradaValida() en la web.
+// Qué cuenta como INGRESO: el valor_total de las reservas "válidas" (ES_VALIDA en utils/sql.js): no canceladas y
+// gratis o confirmadas por un administrador (que aprueba la reserva y el pago). Igual que entradaValida() en la web.
 
 const ESTADOS_PUBLICADOS = ["Programado", "En Boletería", "En Vivo", "Finalizado", "Cancelado"];
 const NOMBRE_CATEGORIA = { musica: "Música", teatro: "Teatro", danza: "Danza", circo: "Circo", comedia: "Comedia" };
@@ -38,14 +38,14 @@ async function resumenAdmin(cantidad) {
          (SELECT COUNT(*) FROM EVENTO WHERE estado = 'En revisión')::int AS por_revisar`),
     db.query(
       `SELECT to_char(r.fecha_hora, 'YYYY-MM') AS mes, COUNT(*)::int AS reservas, COALESCE(SUM(r.valor_total), 0)::float8 AS ingresos
-         FROM RESERVA r ${LATERAL_PAGO}
+         FROM RESERVA r
         WHERE ${ES_VALIDA} AND r.fecha_hora >= $1::date
         GROUP BY 1`, [inicio]),
     db.query("SELECT estado::text AS estado, COUNT(*)::int AS total FROM EVENTO WHERE estado::text = ANY($1) GROUP BY 1", [ESTADOS_PUBLICADOS]),
     db.query(
       `SELECT e.categoria, COALESCE(SUM(r.valor_total), 0)::float8 AS ingresos
          FROM EVENTO e
-         LEFT JOIN (SELECT r.* FROM RESERVA r ${LATERAL_PAGO} WHERE ${ES_VALIDA} AND r.fecha_hora >= $1::date) r ON r.codigo_evento = e.codigo
+         LEFT JOIN (SELECT r.* FROM RESERVA r WHERE ${ES_VALIDA} AND r.fecha_hora >= $1::date) r ON r.codigo_evento = e.codigo
         WHERE e.estado NOT IN ('En revisión', 'Rechazado')
         GROUP BY 1 ORDER BY 2 DESC, 1`, [inicio]),
     db.query(
@@ -58,7 +58,6 @@ async function resumenAdmin(cantidad) {
          JOIN USUARIO u ON u.numero_identificacion = ag.numero_identificacion AND u.estado_usuario = 'Activo'
          LEFT JOIN EVENTO e ON e.numero_identificacion = ag.numero_identificacion
          LEFT JOIN LATERAL (SELECT r.* FROM RESERVA r WHERE r.codigo_evento = e.codigo AND r.fecha_hora >= $1::date) r ON TRUE
-         LEFT JOIN LATERAL (SELECT pg.id_pago, pg.estado FROM PAGO pg WHERE pg.id_reserva = r.id_reserva ORDER BY pg.id_pago DESC LIMIT 1) p ON TRUE
         GROUP BY ag.numero_identificacion, ag.nombre_comercial, ag.razon_social
         ORDER BY ingresos DESC, nombre LIMIT 5`, [inicio]),
     actividadReciente(null, 6),
@@ -92,12 +91,11 @@ async function actividadReciente(docAgente, limite) {
   const { rows } = await db.query(
     `SELECT * FROM (
        SELECT r.fecha_hora AS cuando, EXTRACT(EPOCH FROM (NOW() - r.fecha_hora))::int AS segundos,
-              CASE WHEN r.estado = 'Cancelada' THEN 'cancelada' WHEN p.estado = 'Pendiente' THEN 'pendiente' ELSE 'compra' END AS tipo,
+              CASE WHEN r.estado = 'Cancelada' THEN 'cancelada' WHEN r.estado = 'Reservada' AND r.valor_total > 0 THEN 'pendiente' ELSE 'compra' END AS tipo,
               split_part(u.nombre_completo, ' ', 1) AS quien, r.numero_entradas AS entradas, e.nombre AS evento
          FROM RESERVA r
          JOIN EVENTO e ON e.codigo = r.codigo_evento
          JOIN USUARIO u ON u.numero_identificacion = r.numero_identificacion
-         ${LATERAL_PAGO}
         WHERE ($1::text IS NULL OR e.numero_identificacion = $1)
        UNION ALL
        SELECT e.fecha_creacion, EXTRACT(EPOCH FROM (NOW() - e.fecha_creacion))::int,
@@ -113,7 +111,7 @@ async function actividadReciente(docAgente, limite) {
     const entradas = f.entradas === 1 ? "1 entrada" : `${f.entradas} entradas`;
     const texto = {
       cancelada: docAgente ? `${f.quien} canceló ${entradas} para ${f.evento}.` : `Se canceló una reserva de ${entradas} para ${f.evento}.`,
-      pendiente: `${f.quien} reservó ${entradas} para ${f.evento} y su pago está pendiente.`,
+      pendiente: `${f.quien} reservó ${entradas} para ${f.evento} y está por aprobar.`,
       compra: docAgente ? `${f.quien} compró ${entradas} para ${f.evento}.` : `Nueva reserva de ${entradas} para ${f.evento}.`,
       solicitud: `${f.quien} envió «${f.evento}» a revisión.`,
       evento: `${f.quien} registró el evento «${f.evento}».`,
@@ -133,8 +131,8 @@ async function resumenAgente(documento) {
   const [eventos, pendientes, actividad] = await Promise.all([
     eventoModel.listarPublicados({ docAgente: documento }),
     db.query(
-      `SELECT COUNT(*)::int AS n FROM RESERVA r JOIN EVENTO e ON e.codigo = r.codigo_evento ${LATERAL_PAGO}
-        WHERE e.numero_identificacion = $1 AND r.estado <> 'Cancelada' AND p.estado = 'Pendiente'`, [documento]),
+      `SELECT COUNT(*)::int AS n FROM RESERVA r JOIN EVENTO e ON e.codigo = r.codigo_evento
+        WHERE e.numero_identificacion = $1 AND r.estado <> 'Cancelada' AND r.estado = 'Reservada' AND r.valor_total > 0`, [documento]),
     actividadReciente(documento, 6),
   ]);
 
@@ -156,7 +154,7 @@ async function resumenAgente(documento) {
       ingresos: ventas.ingresos,
       ganancia: Math.round(ventas.ingresos * (1 - agente.comision / 100)),
       ocupacion: vigentes.length ? Math.round(vigentes.reduce((s, e) => s + ocupacion(e), 0) / vigentes.length) : 0,
-      pagosPendientes: pendientes.rows[0].n,
+      porAprobar: pendientes.rows[0].n,
     },
     // "reservas" de cada mes = entradas vendidas ese mes
     meses: meses.map((m) => {
@@ -183,18 +181,18 @@ async function reportes(anio) {
       `SELECT COALESCE(ag.nombre_comercial, ag.razon_social) AS nombre, COALESCE(v.ingresos, 0)::float8 AS ingresos
          FROM AGENTE ag
          LEFT JOIN (SELECT e.numero_identificacion AS doc, SUM(r.valor_total) AS ingresos
-                      FROM RESERVA r JOIN EVENTO e ON e.codigo = r.codigo_evento ${LATERAL_PAGO}
+                      FROM RESERVA r JOIN EVENTO e ON e.codigo = r.codigo_evento
                      WHERE ${ES_VALIDA} GROUP BY 1) v ON v.doc = ag.numero_identificacion
         ORDER BY ingresos DESC, nombre`),
     db.query(
       `SELECT u.nombre_completo AS nombre, COALESCE(v.ingresos, 0)::float8 AS ingresos
          FROM CLIENTE cl JOIN USUARIO u ON u.numero_identificacion = cl.numero_identificacion
          LEFT JOIN (SELECT r.numero_identificacion AS doc, SUM(r.valor_total) AS ingresos
-                      FROM RESERVA r ${LATERAL_PAGO} WHERE ${ES_VALIDA} GROUP BY 1) v ON v.doc = cl.numero_identificacion
+                      FROM RESERVA r WHERE ${ES_VALIDA} GROUP BY 1) v ON v.doc = cl.numero_identificacion
         ORDER BY ingresos DESC, nombre`),
     db.query(
       `SELECT EXTRACT(MONTH FROM r.fecha_hora)::int AS mes, COALESCE(SUM(r.valor_total), 0)::float8 AS ingresos
-         FROM RESERVA r ${LATERAL_PAGO} WHERE ${ES_VALIDA} AND EXTRACT(YEAR FROM r.fecha_hora) = $1 GROUP BY 1`, [anio]),
+         FROM RESERVA r WHERE ${ES_VALIDA} AND EXTRACT(YEAR FROM r.fecha_hora) = $1 GROUP BY 1`, [anio]),
     db.query(
       `SELECT e.nombre AS evento, EXTRACT(MONTH FROM r.fecha_hora)::int AS mes, COUNT(*)::int AS reservas
          FROM RESERVA r JOIN EVENTO e ON e.codigo = r.codigo_evento

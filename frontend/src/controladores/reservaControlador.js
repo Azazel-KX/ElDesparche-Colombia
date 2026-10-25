@@ -3,8 +3,8 @@
    Lo que hace el cliente con sus reservas: reservar (reservar.html), ver el comprobante
    (confirmacion.html) y ver o cancelar las suyas (mis-reservas.html).
 
-   El pago todavía no está conectado: una reserva de un evento de pago queda "Reservada" hasta que un
-   administrador confirme el pago, y una de un evento gratis queda confirmada.
+   No hay pasarela de pago: una reserva de un evento de pago queda "Reservada" hasta que un administrador
+   apruebe la reserva y el pago (la pasa a "Confirmada"), y una de un evento gratis queda confirmada.
    ========================================================================== */
 
 import { parametro } from "../lib/dom.js";

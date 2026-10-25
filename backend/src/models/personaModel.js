@@ -2,7 +2,7 @@ const db = require("../config/db");
 const { ErrorHttp } = require("../utils/errores");
 const ciudadModel = require("./ciudadModel");
 const { guardarImagen, urlPublica } = require("../utils/imagenes");
-const { LATERAL_PAGO, ES_VALIDA } = require("../utils/sql");
+const { ES_VALIDA } = require("../utils/sql");
 const { separarNombre, unirNombre, CUENTA_DE_ESTADO, ultimosMeses } = require("../utils/formato");
 
 // Modelo de PERSONAS para los paneles: agentes, clientes y administradores (USUARIO + su subtipo).
@@ -66,9 +66,9 @@ async function actualizarUsuario(cliente, documento, d) {
   }
 }
 
-// Borra al usuario (y en cascada su subtipo, teléfonos y métodos de pago). "tabla" es ADMIN, CLIENTE o AGENTE y
+// Borra al usuario (y en cascada su subtipo, teléfonos y reservas). "tabla" es ADMIN, CLIENTE o AGENTE y
 // "columna" por qué se busca (numero_identificacion o nit). Devuelve false si no existe. Si algo todavía lo usa con
-// RESTRICT (eventos de un agente, pagos de un cliente), PostgreSQL lanza 23001 y el controlador lo vuelve un 409.
+// RESTRICT (eventos de un agente), PostgreSQL lanza 23001 y el controlador lo vuelve un 409.
 async function borrarUsuario(tabla, columna, valor) {
   const { rowCount } = await db.query(
     `DELETE FROM USUARIO u USING ${tabla} s WHERE s.${columna} = $1 AND u.numero_identificacion = s.numero_identificacion`,
@@ -82,14 +82,13 @@ async function borrarUsuario(tabla, columna, valor) {
 // ---------------------------------------------------------------------------------------------
 
 // Entradas e ingresos de cada agente: totales y por mes. Una consulta para todos. Cuentan las entradas válidas
-// (ES_VALIDA): pagadas, gratis o confirmadas por un administrador. Devuelve Map(documento -> { entradas, ingresos, porMes }).
+// (ES_VALIDA): gratis o confirmadas por un administrador. Devuelve Map(documento -> { entradas, ingresos, porMes }).
 async function ventasPorAgente() {
   const { rows } = await db.query(
     `SELECT e.numero_identificacion AS doc, to_char(r.fecha_hora, 'YYYY-MM') AS mes,
             SUM(r.numero_entradas)::int AS entradas, SUM(r.valor_total)::float8 AS ingresos
        FROM RESERVA r
        JOIN EVENTO e ON e.codigo = r.codigo_evento
-       ${LATERAL_PAGO}
       WHERE ${ES_VALIDA}
       GROUP BY 1, 2`
   );

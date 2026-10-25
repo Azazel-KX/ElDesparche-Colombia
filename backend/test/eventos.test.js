@@ -318,19 +318,14 @@ test("DELETE /api/admin/eventos/:id: elimina el evento y sus reservas; 404 si no
   assert.equal((await llamar(`/api/admin/eventos/${id}`, { metodo: "DELETE", token: tokenAdmin })).estado, 404);
 });
 
-test("DELETE /api/admin/eventos/:id: 409 si alguna reserva ya tiene un pago (PAGO.id_reserva es RESTRICT)", async () => {
+test("DELETE /api/admin/eventos/:id: sus reservas se borran con él", async () => {
   const { json: creado } = await crearEvento({ precio: 10000 });
   const id = creado.evento.id;
-  const { rows } = await pool.query(
-    "INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1, '1000000002', $1) RETURNING id_reserva", [id]);
-  await pool.query(
-    "INSERT INTO PAGO (monto, referencia_transaccion, estado, id_reserva, id_metodo) VALUES (10000, $1, 'Aprobado', $2, 1)",
-    [`TX-TEST-${Date.now()}`, rows[0].id_reserva]);
+  await pool.query("INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1, '1000000002', $1)", [id]);
 
   const res = await llamar(`/api/admin/eventos/${id}`, { metodo: "DELETE", token: tokenAdmin });
-  assert.equal(res.estado, 409);
-  assert.match(res.json.error, /pagos/);
-  assert.equal((await llamar(`/api/eventos/${id}`)).estado, 200, "el evento sigue ahí");
+  assert.equal(res.estado, 204);
+  assert.equal((await pool.query("SELECT 1 FROM RESERVA WHERE codigo_evento = $1", [id])).rowCount, 0, "sus reservas se borraron");
 });
 
 // ---------------------------------------------------------------------------------------------

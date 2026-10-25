@@ -129,10 +129,10 @@ export function camposAdministrador(nuevo, ciudades) {
   return campos;
 }
 
-/* r = la reserva que se edita (null al registrar). Con un pago registrado, el valor
+/* r = la reserva que se edita (null al registrar). Con la reserva ya aprobada, el valor
    pagado y el estado ya no se cambian desde aquí. */
 export function camposReserva(r, clientes, eventos) {
-  var conPago = !!(r && r.pago);
+  var conPago = !!(r && r.estado === "Confirmada" && r.valor > 0);
   var campos = [];
   if (!r) {
     campos.push(
@@ -142,10 +142,10 @@ export function camposReserva(r, clientes, eventos) {
   }
   campos.push(
     { id: "entradas", etiqueta: "Número de entradas", tipo: "number", min: 1, max: 10, par: true, soloLectura: conPago,
-      ayuda: conPago ? "Ya tiene un pago por este valor: para cambiar las entradas, cancélala y registra otra."
+      ayuda: conPago ? "Ya está aprobada por este valor: para cambiar las entradas, cancélala y registra otra."
         : "De 1 a 10 por reserva." },
     { id: "estado", etiqueta: "Estado", tipo: "select", opciones: ["Reservada", "Confirmada"], par: true, soloLectura: conPago,
-      ayuda: conPago ? "Lo da el pago." : "Confirmada: ya está pagada (por ejemplo, en taquilla) y la entrada sirve." },
+      ayuda: conPago ? "Ya está aprobada." : "Reservada: espera la aprobación. Confirmada: ya está aprobada y pagada (por ejemplo, en taquilla) y la entrada sirve." },
     { tipo: "html", html: '<p class="reserva-total" id="reserva-total" aria-live="polite"></p>' },
     { id: "observaciones", etiqueta: "Observaciones", tipo: "textarea", opcional: true }
   );

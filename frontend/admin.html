@@ -55,7 +55,7 @@
               <li><a href="admin.html?seccion=eventos" data-seccion="eventos">Eventos</a></li>
               <li><a href="admin.html?seccion=clientes" data-seccion="clientes">Clientes</a></li>
               <li><a href="admin.html?seccion=administradores" data-seccion="administradores">Administradores</a></li>
-              <li><a href="admin.html?seccion=reservas" data-seccion="reservas">Reservas y pagos</a></li>
+              <li><a href="admin.html?seccion=reservas" data-seccion="reservas">Reservas</a></li>
               <li><a href="admin.html?seccion=ubicaciones" data-seccion="ubicaciones">Ubicaciones</a></li>
               <li><a href="admin.html?seccion=validar" data-seccion="validar">Validar entradas</a></li>
             </ul>
@@ -160,7 +160,7 @@
           <section class="reporte-grupo" id="grupo-comerciales" aria-labelledby="titulo-comerciales">
             <h2 class="reporte-grupo-titulo" id="titulo-comerciales">Reportes comerciales</h2>
             <p class="reporte-nota">
-              Los ingresos son los pagos aprobados de las reservas que no están canceladas.
+              Los ingresos son el valor de las reservas que un administrador aprobó (o son gratis) y no están canceladas.
             </p>
             <ul class="admin-indicadores admin-indicadores-2" id="reporte-promedios"></ul>
 
@@ -548,12 +548,12 @@
       </dialog>
       </template>
 
-      <template id="seccion-reservas" data-titulo="Reservas y pagos">
+      <template id="seccion-reservas" data-titulo="Reservas">
         <div class="admin-contenido">
           <div class="recuadro-titulo admin-cabecera">
             <div>
-              <h1>Reservas y pagos</h1>
-              <p>Registra, consulta, modifica y elimina reservas, y revisa el estado de cada pago.</p>
+              <h1>Reservas</h1>
+              <p>Registra, consulta, modifica y elimina reservas, y aprueba la reserva y el pago de cada una.</p>
             </div>
             <button type="button" class="admin-boton" id="nueva-reserva">Registrar reserva</button>
           </div>
@@ -561,19 +561,19 @@
           <p class="admin-aviso" id="admin-aviso" role="status"></p>
 
           <section aria-labelledby="titulo-resumen-reservas">
-            <h2 class="oculto" id="titulo-resumen-reservas">Resumen de reservas y pagos</h2>
+            <h2 class="oculto" id="titulo-resumen-reservas">Resumen de reservas</h2>
             <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
           </section>
 
           <div class="admin-graficas">
-            <section class="admin-tarjeta" aria-labelledby="titulo-metodos">
-              <h2 id="titulo-metodos">Ingresos por medio de pago</h2>
-              <div id="grafica-metodos"></div>
+            <section class="admin-tarjeta" aria-labelledby="titulo-ingresos-evento">
+              <h2 id="titulo-ingresos-evento">Ingresos aprobados por evento</h2>
+              <div id="grafica-ingresos-evento"></div>
             </section>
 
-            <section class="admin-tarjeta" aria-labelledby="titulo-estados-pago">
-              <h2 id="titulo-estados-pago">Estado de los pagos</h2>
-              <div id="grafica-estados-pago"></div>
+            <section class="admin-tarjeta" aria-labelledby="titulo-estados-reserva">
+              <h2 id="titulo-estados-reserva">Estado de las reservas</h2>
+              <div id="grafica-estados-reserva"></div>
             </section>
           </div>
 
@@ -583,27 +583,15 @@
             <form class="admin-filtros" role="search" aria-label="Filtrar reservas" id="filtros-reservas">
               <div class="admin-filtro admin-filtro-buscar">
                 <label for="buscar-reserva">Buscar</label>
-                <input type="search" id="buscar-reserva" placeholder="Código, cliente, evento o ID de pago" autocomplete="off" />
+                <input type="search" id="buscar-reserva" placeholder="Código, cliente o evento" autocomplete="off" />
               </div>
               <div class="admin-filtro">
-                <label for="filtro-pago">Estado del pago</label>
-                <select id="filtro-pago">
+                <label for="filtro-estado-reserva">Estado</label>
+                <select id="filtro-estado-reserva">
                   <option value="">Todos</option>
-                  <option value="APPROVED">Aprobado</option>
-                  <option value="PENDING">Pendiente</option>
-                  <option value="DECLINED">Rechazado</option>
-                  <option value="VOIDED">Anulado</option>
-                  <option value="ERROR">Error</option>
-                </select>
-              </div>
-              <div class="admin-filtro">
-                <label for="filtro-metodo">Medio de pago</label>
-                <select id="filtro-metodo">
-                  <option value="">Todos</option>
-                  <option value="CARD">Tarjeta</option>
-                  <option value="NEQUI">Nequi</option>
-                  <option value="PSE">PSE</option>
-                  <option value="BANCOLOMBIA_TRANSFER">Botón Bancolombia</option>
+                  <option value="Reservada">Por aprobar (Reservada)</option>
+                  <option value="Confirmada">Aprobada (Confirmada)</option>
+                  <option value="Cancelada">Cancelada</option>
                 </select>
               </div>
               <div class="admin-filtro">
@@ -619,7 +607,7 @@
             <p class="admin-conteo" id="conteo-reservas" role="status"></p>
 
             <table class="admin-tabla" role="table">
-              <caption class="oculto">Reservas y pagos</caption>
+              <caption class="oculto">Reservas</caption>
               <thead role="rowgroup">
                 <tr role="row">
                   <th scope="col" role="columnheader">Reserva</th>
@@ -627,7 +615,7 @@
                   <th scope="col" role="columnheader">Evento</th>
                   <th scope="col" role="columnheader" class="numero">Entradas</th>
                   <th scope="col" role="columnheader" class="numero">Valor</th>
-                  <th scope="col" role="columnheader">Pago</th>
+                  <th scope="col" role="columnheader">Aprobación</th>
                   <th scope="col" role="columnheader">Acciones</th>
                 </tr>
               </thead>

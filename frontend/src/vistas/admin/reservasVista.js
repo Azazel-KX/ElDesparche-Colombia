@@ -7,55 +7,53 @@
 import { animarAlVer } from "../../lib/dom.js";
 import { fechaHora } from "../../lib/fechas.js";
 import { escapar, numero, pesos, pesosCompacto, textoPrecio } from "../../lib/formato.js";
-import { ESTADOS_PAGO, METODOS_PAGO } from "../../modelos/catalogos.js";
 import { leerCancelacion } from "../../modelos/cancelacionModelo.js";
-import { entradaValida, reservasConPago } from "../../modelos/reservaModelo.js";
+import { entradaValida, ingresosAprobados, reservasConEstado, reservasPorAprobar } from "../../modelos/reservaModelo.js";
 import { camposReserva } from "../camposVista.js";
 import { camposCancelacion } from "../cancelacionVista.js";
-import { CLASE_PAGO, CLASE_RESERVA, COLOR_PAGO, etiqueta, etiquetaPago } from "../etiquetasVista.js";
+import { CLASE_RESERVA, COLOR_RESERVA, etiqueta, etiquetaAprobacion } from "../etiquetasVista.js";
 import { htmlFormulario } from "../formularioVista.js";
 import { graficaAnillo, pintarTarjetasResumen } from "../graficasVista.js";
 import { pintarQrReal } from "../qrVista.js";
 
 export function pintarResumenReservas(reservas) {
-  var aprobados = reservasConPago(reservas, "APPROVED").reduce(function (s, r) { return s + r.valor; }, 0);
   pintarTarjetasResumen([
     { titulo: "Reservas", valor: reservas.length, formato: numero.format },
-    { titulo: "Ingresos aprobados", valor: aprobados, formato: pesosCompacto.format, completo: pesos.format },
-    { titulo: "Pagos pendientes", valor: reservasConPago(reservas, "PENDING").length, formato: numero.format, alerta: true },
-    { titulo: "Pagos rechazados o con error",
-      valor: reservasConPago(reservas, "DECLINED").length + reservasConPago(reservas, "ERROR").length, formato: numero.format }
+    { titulo: "Ingresos aprobados", valor: ingresosAprobados(reservas), formato: pesosCompacto.format, completo: pesos.format },
+    { titulo: "Por aprobar", valor: reservasPorAprobar(reservas).length, formato: numero.format, alerta: true },
+    { titulo: "Canceladas", valor: reservasConEstado(reservas, "Cancelada").length, formato: numero.format }
   ]);
 }
 
 export function pintarGraficasReservas(reservas) {
-  var aprobadas = reservasConPago(reservas, "APPROVED");
-  var porMetodo = Object.keys(METODOS_PAGO).map(function (clave) {
-    return {
-      nombre: METODOS_PAGO[clave],
-      valor: aprobadas.filter(function (r) { return r.pago.metodo === clave; })
-        .reduce(function (s, r) { return s + r.valor; }, 0)
-    };
-  }).sort(function (a, b) { return b.valor - a.valor; });
-  var maximo = Math.max.apply(null, porMetodo.map(function (m) { return m.valor; }).concat([1]));
+  /* Dinero aprobado de cada evento */
+  var porEvento = {};
+  reservas.filter(function (r) { return r.valor > 0 && r.estado === "Confirmada"; }).forEach(function (r) {
+    porEvento[r.evento] = (porEvento[r.evento] || 0) + r.valor;
+  });
+  var lista = Object.keys(porEvento).map(function (nombre) { return { nombre: nombre, valor: porEvento[nombre] }; })
+    .sort(function (a, b) { return b.valor - a.valor; }).slice(0, 5);
+  var maximo = Math.max.apply(null, lista.map(function (m) { return m.valor; }).concat([1]));
 
-  var cajaMetodos = document.getElementById("grafica-metodos");
-  cajaMetodos.innerHTML =
+  var cajaEventos = document.getElementById("grafica-ingresos-evento");
+  cajaEventos.innerHTML =
     '<figure class="admin-figura">' +
-      '<figcaption class="oculto">Dinero de los pagos aprobados según el medio de pago.</figcaption>' +
-      '<ul class="barras">' + porMetodo.map(function (m, i) {
-        return '<li style="--orden:' + i + '">' +
-          '<div class="barra-texto"><span>' + escapar(m.nombre) + '</span><strong>' + pesos.format(m.valor) + '</strong></div>' +
-          '<div class="barra-pista" aria-hidden="true"><span class="barra" style="--ancho:' + (m.valor / maximo * 100).toFixed(1) + '%"></span></div>' +
-        '</li>';
-      }).join("") + '</ul>' +
+      '<figcaption class="oculto">Dinero de las reservas aprobadas en cada evento.</figcaption>' +
+      (lista.length
+        ? '<ul class="barras">' + lista.map(function (m, i) {
+          return '<li style="--orden:' + i + '">' +
+            '<div class="barra-texto"><span>' + escapar(m.nombre) + '</span><strong>' + pesos.format(m.valor) + '</strong></div>' +
+            '<div class="barra-pista" aria-hidden="true"><span class="barra" style="--ancho:' + (m.valor / maximo * 100).toFixed(1) + '%"></span></div>' +
+          '</li>';
+        }).join("") + '</ul>'
+        : '<p class="texto-gris">Todavía no hay reservas aprobadas.</p>') +
     '</figure>';
-  animarAlVer(cajaMetodos.querySelector(".admin-figura"));
+  animarAlVer(cajaEventos.querySelector(".admin-figura"));
 
-  var cajaEstados = document.getElementById("grafica-estados-pago");
-  cajaEstados.innerHTML = graficaAnillo(Object.keys(ESTADOS_PAGO).map(function (clave) {
-    return { nombre: ESTADOS_PAGO[clave], total: reservasConPago(reservas, clave).length, color: COLOR_PAGO[clave] };
-  }), "pagos", "Cantidad de pagos en cada estado.");
+  var cajaEstados = document.getElementById("grafica-estados-reserva");
+  cajaEstados.innerHTML = graficaAnillo(Object.keys(COLOR_RESERVA).map(function (estado) {
+    return { nombre: estado, total: reservasConEstado(reservas, estado).length, color: COLOR_RESERVA[estado] };
+  }), "reservas", "Cantidad de reservas en cada estado.");
   animarAlVer(cajaEstados.querySelector(".admin-figura"));
 }
 
@@ -95,11 +93,7 @@ export function pintarTablaReservas(lista, total) {
       '<td role="cell" data-etiqueta="Evento">' + escapar(r.evento) + '</td>' +
       '<td role="cell" data-etiqueta="Entradas" class="numero">' + r.entradas + '</td>' +
       '<td role="cell" data-etiqueta="Valor" class="numero">' + textoPrecio(r.valor) + '</td>' +
-      '<td role="cell" data-etiqueta="Pago">' +
-        '<span class="celda-pago">' + etiquetaPago(r.pago, r.valor) +
-          (r.pago ? '<span class="agente-nit">' + METODOS_PAGO[r.pago.metodo] + '</span>' : '') +
-        '</span>' +
-      '</td>' +
+      '<td role="cell" data-etiqueta="Aprobación">' + etiquetaAprobacion(r) + '</td>' +
       '<td role="cell" class="celda-accion">' +
         '<button type="button" class="admin-boton-sec" data-codigo="' + escapar(r.codigo) + '">' +
           'Ver detalle<span class="oculto"> de la reserva ' + escapar(r.codigo) + '</span>' +
@@ -109,31 +103,24 @@ export function pintarTablaReservas(lista, total) {
   }).join("");
 }
 
-function notaPago(r) {
-  if (!r.pago && r.valor === 0) return "Evento gratuito: la reserva no necesita pago.";
-  if (!r.pago) {
-    return r.estado === "Confirmada"
-      ? "La registró un administrador y está confirmada: se pagó en taquilla."
-      : "La registró un administrador y todavía no tiene pago. Cuando el cliente pague, cámbiala a Confirmada.";
-  }
-  var notas = {
-    "APPROVED": "Se confirmó el pago. La reserva quedó confirmada automáticamente.",
-    "PENDING": "Todavía no se ha confirmado el pago (por ejemplo, un PSE o un Nequi sin terminar). La reserva se confirmará sola cuando llegue la respuesta.",
-    "DECLINED": "El banco o la entidad rechazó el pago. El cliente puede intentarlo de nuevo con otro medio.",
-    "VOIDED": "El pago fue anulado y el dinero se devolvió al cliente.",
-    "ERROR": "Hubo un error al procesar el pago. El cliente puede intentarlo de nuevo."
-  };
-  return notas[r.pago.estado];
+function notaAprobacion(r) {
+  if (r.estado === "Cancelada") return "La reserva está cancelada.";
+  if (r.valor === 0) return "Evento gratuito: la reserva no necesita aprobación ni pago.";
+  if (r.estado === "Reservada") return "Falta que un administrador apruebe la reserva y el pago. Al aprobarla pasa a Confirmada y la entrada ya sirve.";
+  return "Un administrador aprobó la reserva y el pago. La entrada ya sirve.";
 }
 
 export function botonesReserva(r, conCrud) {
+  var aprobar = conCrud && r.estado === "Reservada" && r.valor > 0
+    ? '<button type="button" class="admin-boton" data-accion="aprobar">Aprobar reserva y pago</button>'
+    : '';
   var eliminar = conCrud
     ? '<button type="button" class="admin-boton admin-boton-peligro" data-accion="eliminar">Eliminar reserva</button>'
     : '';
   if (r.estado === "Cancelada") {
     return '<p class="texto-gris">Esta reserva está cancelada.</p>' + eliminar;
   }
-  return (conCrud ? '<button type="button" class="admin-boton-sec" data-accion="editar">Editar reserva</button>' : '') +
+  return aprobar + (conCrud ? '<button type="button" class="admin-boton-sec" data-accion="editar">Editar reserva</button>' : '') +
     '<button type="button" class="' + (conCrud ? 'admin-boton-sec' : 'admin-boton admin-boton-peligro') + '" data-accion="confirmar">Cancelar reserva</button>' +
     eliminar;
 }
@@ -164,20 +151,6 @@ export function pintarFormularioReserva(contenido, r, clientes, eventos) {
 
 export function confirmarEliminacionReserva(r) {
   var acciones = document.getElementById("detalle-acciones");
-  if (r.pago) {
-    /* PAGO.id_reserva es RESTRICT: una reserva con pago no se puede borrar */
-    acciones.innerHTML =
-      '<div class="detalle-confirmar">' +
-        '<p id="texto-confirmar"><strong>No se puede eliminar la reserva ' + escapar(r.codigo) + '.</strong> ' +
-        'Tiene un pago registrado, que debe quedar en el historial. ' +
-        (r.estado === "Cancelada" ? "Ya está cancelada." : "Si no va a usarse, cancélala.") + '</p>' +
-        '<div class="detalle-botones">' +
-          '<button type="button" class="admin-boton-sec" data-accion="volver">Entendido</button>' +
-        '</div>' +
-      '</div>';
-    acciones.querySelector('[data-accion="volver"]').focus();
-    return;
-  }
   acciones.innerHTML =
     '<div class="detalle-confirmar">' +
       '<p id="texto-confirmar"><strong>¿Eliminar la reserva ' + escapar(r.codigo) + '?</strong> ' +
@@ -193,7 +166,7 @@ export function confirmarEliminacionReserva(r) {
 
 export function confirmarCancelacionReserva(r, notaDevolucion) {
   var acciones = document.getElementById("detalle-acciones");
-  var devolucion = r.pago && r.pago.estado === "APPROVED" ? notaDevolucion : "";
+  var devolucion = r.estado === "Confirmada" && r.valor > 0 ? notaDevolucion : "";
   acciones.innerHTML =
     '<div class="detalle-confirmar">' +
       '<p id="texto-confirmar"><strong>¿Cancelar la reserva ' + escapar(r.codigo) + '?</strong> ' +
@@ -212,7 +185,7 @@ function seccionEntrada(r) {
   if (!entradaValida(r)) {
     return '<p class="detalle-nota">Sin QR válido: ' +
       (r.estado === "Cancelada" ? "la reserva está cancelada."
-        : (r.pago ? "el pago todavía no está aprobado." : "la reserva todavía no está pagada.")) + '</p>';
+        : "un administrador todavía no la aprueba.") + '</p>';
   }
 
   return '<div class="detalle-entrada">' +
@@ -226,7 +199,6 @@ function seccionEntrada(r) {
 }
 
 export function pintarDetalleReserva(contenido, r, conCrud, mensaje) {
-  var pago = r.pago;
   var cancelacion = leerCancelacion(r.observaciones);
 
   contenido.innerHTML =
@@ -236,7 +208,7 @@ export function pintarDetalleReserva(contenido, r, conCrud, mensaje) {
         '<p>' + escapar(r.evento) + '</p>' +
         '<span class="detalle-etiquetas">' +
           etiqueta(r.estado, CLASE_RESERVA[r.estado], "Reserva") +
-          (pago ? etiqueta("Pago " + ESTADOS_PAGO[pago.estado].toLowerCase(), CLASE_PAGO[pago.estado], "Pago") : "") +
+          (r.valor > 0 && r.estado !== "Cancelada" ? etiquetaAprobacion(r) : "") +
         '</span>' +
       '</div>' +
     '</div>' +
@@ -257,17 +229,8 @@ export function pintarDetalleReserva(contenido, r, conCrud, mensaje) {
           '</dd></div>'
         : '') +
     '</dl>' +
-    '<h3>Pago</h3>' +
-    '<p class="detalle-nota">' + notaPago(r) + '</p>' +
-    (pago
-      ? '<dl class="detalle-datos">' +
-          '<div><dt>Estado</dt><dd>' + ESTADOS_PAGO[pago.estado] + ' <span class="texto-gris">(' + pago.estado + ')</span></dd></div>' +
-          '<div><dt>Medio de pago</dt><dd>' + METODOS_PAGO[pago.metodo] + '</dd></div>' +
-          '<div><dt>ID de la transacción</dt><dd>' + escapar(pago.id) + '</dd></div>' +
-          '<div><dt>Referencia</dt><dd>' + escapar(r.codigo) + '</dd></div>' +
-          '<div><dt>Monto</dt><dd>' + pesos.format(pago.montoCentavos / 100) + ' ' + pago.moneda + '</dd></div>' +
-        '</dl>'
-      : '') +
+    '<h3>Aprobación</h3>' +
+    '<p class="detalle-nota">' + notaAprobacion(r) + '</p>' +
     '<h3>Entrada</h3>' + seccionEntrada(r) +
     '<div class="detalle-acciones" id="detalle-acciones">' + botonesReserva(r, conCrud) + '</div>';
 

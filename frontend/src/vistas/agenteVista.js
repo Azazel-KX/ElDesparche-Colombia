@@ -26,8 +26,8 @@ export function pintarIndicadoresAgente(datos) {
     { titulo: "Tu ganancia (después de la comisión del " + numero.format(datos.agente.comision) + " %)",
       valor: ind.ganancia, formato: pesosCompacto.format, completo: pesos.format },
     { titulo: "Ocupación promedio", valor: ind.ocupacion, formato: porcentaje },
-    { titulo: "Pagos pendientes", valor: ind.pagosPendientes, formato: numero.format,
-      alerta: ind.pagosPendientes > 0 }
+    { titulo: "Reservas por aprobar", valor: ind.porAprobar, formato: numero.format,
+      alerta: ind.porAprobar > 0 }
   ]);
 }
 

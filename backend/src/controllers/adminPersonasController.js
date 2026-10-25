@@ -103,10 +103,10 @@ async function estadoCliente(req, res) {
   res.json({ cliente: await personaModel.obtenerCliente(req.params.documento) });
 }
 
-// DELETE /api/admin/clientes/:documento  (sus reservas se borran en cascada; 409 si alguna tiene un pago)
+// DELETE /api/admin/clientes/:documento  (sus reservas se borran en cascada)
 async function eliminarCliente(req, res) {
   const existe = await borrar(() => personaModel.eliminarCliente(req.params.documento),
-    "No se puede eliminar: el cliente tiene reservas con pagos.");
+    "No se puede eliminar: el cliente tiene datos que dependen de él.");
   if (!existe) throw noExiste("El cliente");
   res.status(204).end();
 }

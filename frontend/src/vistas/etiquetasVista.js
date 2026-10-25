@@ -4,7 +4,6 @@
    ========================================================================== */
 
 import { escapar } from "../lib/formato.js";
-import { ESTADOS_PAGO } from "../modelos/catalogos.js";
 
 /* Convierte el estado en una clase de CSS: "En Boletería" -> "estado-boleteria" */
 function claseEstado(estado) {
@@ -79,23 +78,18 @@ export function etiqueta(texto, clase, prefijo) {
   return '<span class="estado ' + clase + '"><span class="oculto">' + prefijo + ': </span>' + escapar(texto) + '</span>';
 }
 
-export var CLASE_PAGO = {
-  "APPROVED": "agente-activo",
-  "PENDING": "agente-pendiente",
-  "DECLINED": "estado-vivo",
-  "VOIDED": "agente-suspendido",
-  "ERROR": "estado-finalizado"
+/* Colores de cada estado de la reserva en las gráficas */
+export var COLOR_RESERVA = {
+  "Confirmada": "var(--grafica-azul)",
+  "Reservada": "var(--grafica-amarillo)",
+  "Cancelada": "var(--grafica-magenta)"
 };
 
-export var COLOR_PAGO = {
-  "APPROVED": "var(--grafica-azul)",
-  "PENDING": "var(--grafica-amarillo)",
-  "DECLINED": "var(--grafica-magenta)",
-  "VOIDED": "var(--grafica-naranja)",
-  "ERROR": "var(--grafica-morado)"
-};
-
-export function etiquetaPago(pago, valor) {
-  if (!pago) return '<span class="texto-gris">' + (valor > 0 ? "Sin pago" : "Sin pago (gratis)") + '</span>';
-  return etiqueta(ESTADOS_PAGO[pago.estado], CLASE_PAGO[pago.estado], "Pago");
+/* Si la reserva ya la aprobó un administrador (reserva y pago a la vez) */
+export function etiquetaAprobacion(r) {
+  if (r.estado === "Cancelada") return '<span class="texto-gris">Cancelada</span>';
+  if (r.valor === 0) return '<span class="texto-gris">Gratis</span>';
+  return r.estado === "Reservada"
+    ? etiqueta("Por aprobar", "agente-pendiente", "Aprobación")
+    : etiqueta("Aprobada", "agente-activo", "Aprobación");
 }

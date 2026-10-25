@@ -1,6 +1,6 @@
 /* ==========================================================================
    modelos/catalogos.js
-   Catálogos del dominio: categorías, planes, estados, medios de pago y tipos de documento.
+   Catálogos del dominio: categorías, planes, estados y tipos de documento.
    ========================================================================== */
 
 export var CATEGORIAS_EVENTO = [
@@ -14,22 +14,6 @@ export var NOMBRE_CATEGORIA = CATEGORIAS_EVENTO.reduce(function (mapa, c) {
 }, {});
 
 export var NOMBRE_PLAN = { parchesote: "Parchesote", parche: "Parche", parchesito: "Parchesito" };
-
-/* Medios y estados de pago, tal como los envía la API */
-export var METODOS_PAGO = {
-  "CARD": "Tarjeta",
-  "NEQUI": "Nequi",
-  "PSE": "PSE",
-  "BANCOLOMBIA_TRANSFER": "Botón Bancolombia"
-};
-
-export var ESTADOS_PAGO = {
-  "APPROVED": "Aprobado",
-  "PENDING": "Pendiente",
-  "DECLINED": "Rechazado",
-  "VOIDED": "Anulado",
-  "ERROR": "Error"
-};
 
 /* Tipos de plan (las categorías del pie de página) y el de cada evento */
 export var TIPOS_PARCHE = {

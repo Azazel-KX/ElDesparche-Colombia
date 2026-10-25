@@ -47,7 +47,6 @@ before(async () => {
 
 after(async () => {
   for (const d of creados) {
-    await pool.query("DELETE FROM PAGO WHERE id_reserva IN (SELECT id_reserva FROM RESERVA WHERE numero_identificacion = $1)", [d]);
     await pool.query("DELETE FROM USUARIO WHERE numero_identificacion = $1", [d]);
   }
   await t.terminar();
@@ -297,12 +296,7 @@ test("un cliente bloqueado del seed no puede entrar", async () => {
   assert.equal(mala.estado, 401);
 });
 
-test("DELETE cliente: 409 si alguna reserva tiene un pago; si no, se elimina con sus reservas", async () => {
-  const conPago = await llamar("/api/admin/clientes/1000000002", { metodo: "DELETE", token: tokenAdmin });
-  assert.equal(conPago.estado, 409);
-  assert.match(conPago.json.error, /pagos/);
-  assert.equal((await pool.query("SELECT 1 FROM CLIENTE WHERE numero_identificacion = '1000000002'")).rowCount, 1);
-
+test("DELETE cliente: se elimina con sus reservas; 404 si no existe", async () => {
   const cuerpo = registrar(clienteBase(14));
   await llamar("/api/admin/clientes", { metodo: "POST", token: tokenAdmin, cuerpo });
   const ev = await t.crearEventoAdmin(); // un evento propio: no se tocan los cupos de los del seed

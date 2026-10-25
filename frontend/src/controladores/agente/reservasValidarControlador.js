@@ -42,7 +42,7 @@ export function paginaReservasAgente() {
       obtenerReservas: obtenerReservasAgente,
       cancelar: cancelarReservaAgente,
       quien: "el agente",
-      notaDevolucion: " El pago ya fue aprobado: el equipo de El Desparche hará la devolución del dinero al cliente."
+      notaDevolucion: " La reserva ya estaba aprobada: el equipo de El Desparche le devolverá el dinero al cliente."
     });
   }).catch(avisarError);
 }

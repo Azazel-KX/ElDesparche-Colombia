@@ -214,7 +214,7 @@ test("GET /api/agente/resumen: la forma de resumenAgenteLocal() de ESE agente", 
   assert.ok(i.ingresos >= 100000);
   assert.equal(i.ganancia, Math.round(i.ingresos * 0.9), "ingresos menos la comisión del 10 %");
   assert.ok(Number.isInteger(i.ocupacion) && i.ocupacion >= 0 && i.ocupacion <= 100);
-  assert.equal(typeof i.pagosPendientes, "number");
+  assert.equal(typeof i.porAprobar, "number");
 
   assert.equal(json.meses.length, 6);
   assert.ok(json.meses[5].reservas >= 2, "entradas vendidas este mes");
@@ -237,20 +237,16 @@ test("GET /api/agente/resumen: la forma de resumenAgenteLocal() de ESE agente", 
   assert.equal((await llamar("/api/agente/resumen", { token: tokenAdmin })).estado, 403);
 });
 
-test("resumen del agente: los pagos pendientes de sus eventos se cuentan", async () => {
-  const antes = (await llamar("/api/agente/resumen", { token: tokenAgente1 })).json.indicadores.pagosPendientes;
+test("resumen del agente: las reservas por aprobar de sus eventos se cuentan", async () => {
+  const antes = (await llamar("/api/agente/resumen", { token: tokenAgente1 })).json.indicadores.porAprobar;
   const ev = await crearEventoAdmin({ precio: 10000 });
-  const { rows } = await pool.query(
-    "INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1, '1000000002', $1) RETURNING id_reserva", [ev.id]);
-  await pool.query(
-    "INSERT INTO PAGO (monto, referencia_transaccion, estado, id_reserva, id_metodo) VALUES (10000, $1, 'Pendiente', $2, 1)",
-    [`TX-PEND-${Date.now()}`, rows[0].id_reserva]);
+  await pool.query("INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1, '1000000002', $1)", [ev.id]);
 
   const despues = (await llamar("/api/agente/resumen", { token: tokenAgente1 })).json;
-  assert.equal(despues.indicadores.pagosPendientes, antes + 1);
-  assert.match(despues.actividad[0].texto, /y su pago está pendiente\.$/);
+  assert.equal(despues.indicadores.porAprobar, antes + 1);
+  assert.match(despues.actividad[0].texto, /y está por aprobar\.$/);
   const otro = (await llamar("/api/agente/resumen", { token: tokenAgente2 })).json;
-  assert.ok(otro.indicadores.pagosPendientes < despues.indicadores.pagosPendientes || otro.indicadores.pagosPendientes >= 0);
+  assert.ok(otro.indicadores.porAprobar >= 0);
 });
 
 // ---------------------------------------------------------------------------------------------

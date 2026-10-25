@@ -72,7 +72,7 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/api/reservas` | `{ idEvento, entradas (1 a 10), observaciones }`. Evento de pago: queda `Reservada` hasta que se confirme el pago; gratis: `Confirmada`. 409 si el evento no está a la venta o ya terminó (aunque siga `Programado`) |
+| POST | `/api/reservas` | `{ idEvento, entradas (1 a 10), observaciones }`. Evento de pago: queda `Reservada` hasta que un administrador apruebe la reserva y el pago; gratis: `Confirmada`. 409 si el evento no está a la venta o ya terminó (aunque siga `Programado`) |
 | GET | `/api/reservas/mias` | Sus reservas |
 | PATCH | `/api/reservas/:codigo/cancelar` | `{ causa, detalle }`. Causas: No puede asistir, Error en el evento o en la cantidad, Cambio de fecha del evento, Otra causa (con detalle) |
 
@@ -100,7 +100,7 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 | PUT, DELETE | `/api/admin/agentes/:nit` | Modifica (el NIT y el documento no cambian) o elimina (409 si tiene eventos) |
 | PATCH | `/api/admin/agentes/:nit/estado` | `{ estado: "Activo" \| "Pendiente" \| "Suspendido" }` |
 | GET, POST | `/api/admin/clientes` | Lista (forma de `CLIENTES_DEMO`) y alta |
-| PUT, DELETE | `/api/admin/clientes/:documento` | Modifica o elimina (sus reservas se borran; 409 si alguna tiene un pago) |
+| PUT, DELETE | `/api/admin/clientes/:documento` | Modifica o elimina (sus reservas se borran) |
 | PATCH | `/api/admin/clientes/:documento/estado` | `{ estado: "Activa" \| "Bloqueada" }` |
 | GET, POST | `/api/admin/administradores` | Lista y alta |
 | PUT, DELETE | `/api/admin/administradores/:documento` | Modifica o elimina (no la cuenta propia ni al último administrador) |
@@ -109,10 +109,10 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 | PATCH | `/api/admin/eventos/:id/estado` | `{ estado, observaciones }`. Programado → En Boletería → En Vivo → Finalizado; Cancelado desde cualquiera. Al cancelar, sus reservas se cancelan |
 | GET | `/api/admin/eventos/solicitudes` | Las solicitudes `En revisión` |
 | PATCH | `/api/admin/eventos/solicitudes/:id` | `{ estado: "Aprobado" \| "Rechazado", motivo }`. Aprobar la publica como `Programado` |
-| GET, POST | `/api/admin/reservas` | Lista (con su pago) y alta para un cliente (venta en taquilla) |
-| PUT, DELETE | `/api/admin/reservas/:codigo` | Modifica entradas, estado u observaciones (con pago, solo observaciones) o elimina (409 si tiene pago) |
+| GET, POST | `/api/admin/reservas` | Lista y alta para un cliente (venta en taquilla) |
+| PUT, DELETE | `/api/admin/reservas/:codigo` | Modifica entradas, estado u observaciones (pasarla a `Confirmada` es aprobar la reserva y el pago) o elimina |
 | PATCH | `/api/admin/reservas/:codigo/estado` | `{ estado: "Cancelada", observaciones }` |
-| POST | `/api/admin/entradas/:codigo/ingreso` | Valida la entrada (201). Rechaza (409) si está usada, cancelada, sin pagar, con el pago no aprobado o si el evento terminó |
+| POST | `/api/admin/entradas/:codigo/ingreso` | Valida la entrada (201). Rechaza (409) si está usada, cancelada, por aprobar (`Reservada`) o si el evento terminó |
 | GET | `/api/admin/ubicaciones` | `{ paises, departamentos, ciudades }` |
 | POST, PUT, DELETE | `/api/admin/paises[/:id]`, `/departamentos[/:id]`, `/ciudades[/:id]` | `{ nombre }` (y `idPais` o `idDepartamento` al registrar). DELETE: 409 si algo depende de él |
 
@@ -164,7 +164,7 @@ Docker. Los tres funcionan en PowerShell, cmd y Git Bash.
 ## Pendiente
 
 - **Pagos en línea:** no hay pasarela de pago. Una reserva de un evento de pago queda `Reservada` hasta que un
-  administrador la confirme. El estado del pago en la base tiene 3 valores (Pendiente, Aprobado, Rechazado).
+  administrador la apruebe. No hay tablas de pago: aprobar la reserva es aprobar el pago.
 
 La web pública usa el API: el catálogo, el detalle y los filtros salen de `GET /api/eventos`
 (incluye `pais` para los filtros de ubicación), la reserva se crea con `POST /api/reservas`, y "Mis reservas", la

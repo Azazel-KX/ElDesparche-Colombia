@@ -1,6 +1,6 @@
 const reservaModel = require("../models/reservaModel");
 const { validarReservaNueva, validarReservaEdicion, validarCancelacionPanel } = require("../utils/validacionReserva");
-const { ErrorHttp, esRestriccion } = require("../utils/errores");
+const { ErrorHttp } = require("../utils/errores");
 
 // Reservas vistas por el ADMINISTRADOR (rutas /api/admin/reservas y /api/admin/entradas). Contrato en
 // frontend/js/admin.js. La respuesta tiene la forma de reservasLocales(). El código de una reserva es "DES-1041".
@@ -11,7 +11,7 @@ async function listar(_req, res) {
 }
 
 // POST /api/admin/reservas  { documento: "CC 123", eventoId, entradas, estado, observaciones }
-// Registra una reserva para un cliente, sin pago (por ejemplo, una venta en taquilla). El valor, el código y
+// Registra una reserva para un cliente (por ejemplo, una venta en taquilla). El valor, el código y
 // la fecha los pone el servidor aunque el formulario los mande.
 async function crear(req, res) {
   const { datos, errores } = validarReservaNueva(req.body);
@@ -24,7 +24,7 @@ async function crear(req, res) {
 }
 
 // PUT /api/admin/reservas/:codigo  { entradas, estado, observaciones }
-// Con un pago registrado solo se pueden cambiar las observaciones: el valor pagado y el estado ya no se tocan.
+// Aprobar la reserva y el pago es pasarla a Confirmada.
 async function actualizar(req, res) {
   const { datos, errores } = validarReservaEdicion(req.body);
   if (errores) throw new ErrorHttp(400, "Datos de la reserva inválidos.", errores);
@@ -32,9 +32,6 @@ async function actualizar(req, res) {
   const verificar = (actual) => {
     if (actual.estado === "Cancelada" || actual.estado === "Usada") {
       throw new ErrorHttp(422, `No se puede modificar una reserva en estado "${actual.estado}".`);
-    }
-    if (actual.estado_pago && (datos.entradas !== undefined || datos.estado !== undefined)) {
-      throw new ErrorHttp(422, "Ya tiene un pago registrado: solo se pueden cambiar las observaciones. Para cambiar las entradas, cancélala y registra otra.");
     }
   };
 
@@ -57,14 +54,9 @@ async function cancelar(req, res) {
   res.json({ reserva: await reservaModel.obtener(req.params.codigo) });
 }
 
-// DELETE /api/admin/reservas/:codigo  (409 si ya tiene un pago: PAGO.id_reserva es RESTRICT)
+// DELETE /api/admin/reservas/:codigo  
 async function eliminar(req, res) {
-  try {
-    if (!(await reservaModel.eliminar(req.params.codigo))) throw new ErrorHttp(404, "La reserva no existe.");
-  } catch (err) {
-    if (esRestriccion(err)) throw new ErrorHttp(409, "No se puede eliminar: la reserva tiene un pago. Cancélala en lugar de eliminarla.");
-    throw err;
-  }
+  if (!(await reservaModel.eliminar(req.params.codigo))) throw new ErrorHttp(404, "La reserva no existe.");
   res.status(204).end();
 }
 

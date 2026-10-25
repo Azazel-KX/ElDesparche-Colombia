@@ -28,7 +28,7 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 |---|---|
 | Geografía | `PAIS`, `DEPARTAMENTO`, `CIUDAD`, `UBICACION` |
 | Usuarios | `USUARIO` (superclase) → `ADMIN`, `CLIENTE`, `AGENTE`; `USUARIO_TELEFONO` |
-| Eventos y ventas | `EVENTO`, `RESERVA`, `METODO_PAGO`, `PAGO` |
+| Eventos y ventas | `EVENTO`, `RESERVA` |
 
 ## Relaciones
 
@@ -42,9 +42,6 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 | Registra | `AGENTE` – `EVENTO` | 1:N | `EVENTO.numero_identificacion` |
 | Inscribe | `CLIENTE` – `RESERVA` | 1:N | `RESERVA.numero_identificacion` |
 | Ofrece | `EVENTO` – `RESERVA` | 1:N | `RESERVA.codigo_evento` |
-| Registra | `CLIENTE` – `METODO_PAGO` | 1:N | `METODO_PAGO.numero_identificacion` |
-| Genera | `RESERVA` – `PAGO` | 1:N | `PAGO.id_reserva` |
-| Utiliza | `METODO_PAGO` – `PAGO` | 1:N | `PAGO.id_metodo` |
 | IS-A (total, disjunta) | `USUARIO` → `ADMIN`, `CLIENTE`, `AGENTE` | 1:1 | PK de la subclase = PK de `USUARIO` (PK y FK) |
 
 ## Decisiones del diseño
@@ -57,7 +54,7 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 - **Sin `tipo_usuario`:** el perfil lo define la generalización. Cada subtipo (`ADMIN`, `CLIENTE`, `AGENTE`) usa como PK y FK el `numero_identificacion` de `USUARIO`; para saber el perfil se busca en qué subtipo está la fila.
 - **Herencia total y disjunta:** un trigger diferido exige que todo usuario esté en exactamente un subtipo (ni ninguno ni dos).
 - **Nombre:** `USUARIO.nombre_completo` guarda nombres y apellidos en una sola columna.
-- **Llaves foráneas hacia el usuario:** se llaman `numero_identificacion`, igual que la PK a la que apuntan (`EVENTO` → agente, `RESERVA` y `METODO_PAGO` → cliente).
+- **Llaves foráneas hacia el usuario:** se llaman `numero_identificacion`, igual que la PK a la que apuntan (`EVENTO` → agente, `RESERVA` → cliente).
 - **Cancelaciones:** la causa se agrega a `observaciones` de `EVENTO` o `RESERVA`, en una línea nueva, con el formato que escribe la web: `Cancelada por el cliente. Causa: No puede asistir. Detalle: ...`. Si no hay cancelación ni rechazo, `observaciones` solo tiene las notas del evento o la reserva (o `NULL`).
 - **Teatro:** `EVENTO.teatro` es el teatro o sitio del evento; la dirección exacta está en `UBICACION`.
 - **Derivado no almacenado:** `edad` (de `fecha_nacimiento`).
@@ -67,10 +64,10 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 ## Reglas que hace cumplir la base (triggers)
 
 - Todo `USUARIO` está en exactamente una de `ADMIN`, `CLIENTE` o `AGENTE` (se valida al COMMIT). Cambiar de perfil es válido si el borrado y el nuevo insert van en la misma transacción.
-- Solo los agentes registran eventos y solo los clientes reservan o tienen métodos de pago (lo garantizan las FK hacia `AGENTE` y `CLIENTE`).
+- Solo los agentes registran eventos y solo los clientes reservan (lo garantizan las FK hacia `AGENTE` y `CLIENTE`).
 - Para reservar: el cliente debe cumplir la edad mínima del evento y tiene que haber cupo.
 - `RESERVA.valor_total` = `numero_entradas` × precio del evento vigente al reservar (0 si el evento es gratis).
-- El método de pago de un `PAGO` pertenece al cliente de la reserva.
+- No hay tablas de pago: una reserva nace `Reservada` y un administrador aprueba la reserva y el pago pasándola a `Confirmada` (las de eventos gratis nacen confirmadas).
 - `capacidad_total` no puede bajar de las entradas ya reservadas.
 - El documento de identidad no se edita; para corregirlo: `BEGIN; SET LOCAL app.corregir_documento = 'on'; UPDATE USUARIO SET numero_identificacion = '...' WHERE ...; COMMIT;`
 
@@ -92,8 +89,8 @@ siempre en el futuro; si la base se cargó hace meses, recárgala para que los e
 
 ## Probar las reglas
 
-`pruebas_bd.sql` comprueba en 97 pruebas la estructura, los datos del seed y que cada restricción
-y trigger acepte lo válido y rechace lo inválido (herencia, documento, edad mínima, cupo, valor, pagos, borrados en
+`pruebas_bd.sql` comprueba en 86 pruebas la estructura, los datos del seed y que cada restricción
+y trigger acepte lo válido y rechace lo inválido (herencia, documento, edad mínima, cupo, valor, borrados en
 cascada o restringidos, ubicaciones). Corre en una transacción que termina en `ROLLBACK` y no usa `nextval`, así que no
 deja cambios. Termina con error si alguna prueba falla. Desde `backend/` (PowerShell, cmd o Git Bash):
 
@@ -117,8 +114,6 @@ INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALU
 INSERT INTO RESERVA (numero_entradas, valor_total, numero_identificacion, codigo_evento) VALUES (1, 20000, '1000000002', 'EVT-2026-0004');
 -- reserva que supera la capacidad
 INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1000, '1000000002', 'EVT-2026-0004');
--- pago con el método de pago de otro cliente
-INSERT INTO PAGO (monto, referencia_transaccion, id_reserva, id_metodo) VALUES (10000, 'TX-PRUEBA', 1, 2);
 -- usuario sin subtipo (se rechaza al COMMIT)
 INSERT INTO USUARIO (numero_identificacion, tipo_identificacion, nombre_completo, correo, contrasena_hash, direccion, id_ciudad)
 VALUES ('2000000001', 'CC', 'Sin Subtipo', 'sin.subtipo@eldesparche.test', 'x', 'Calle 1', 1);

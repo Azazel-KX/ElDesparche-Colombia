@@ -123,16 +123,4 @@ INSERT INTO RESERVA (numero_entradas, observaciones, estado, numero_identificaci
 (2, 'Cancelada por el administrador. Causa: Otra causa. Detalle: el evento se canceló.',
                             'Cancelada',  '1000000003', 'EVT-2026-0005');   -- 5
 
--- ==================================================================================================================
--- MÉTODOS DE PAGO Y PAGOS
--- ==================================================================================================================
-
-INSERT INTO METODO_PAGO (tipo, proveedor, referencia_visible, token_pasarela, activo, numero_identificacion) VALUES
-('Tarjeta crédito', 'Visa',  '4242', 'tok_test_visa_4242',  TRUE, '1000000002'),   -- 1
-('Billetera digital', 'Nequi', NULL, 'tok_test_nequi_0001', TRUE, '1000000003');   -- 2
-
-INSERT INTO PAGO (monto, referencia_transaccion, estado, id_reserva, id_metodo) VALUES
-(100000, 'TX-2026-000001', 'Aprobado', 1, 1),   -- igual al valor_total de la reserva 1
-( 30000, 'TX-2026-000002', 'Aprobado', 3, 2);   -- igual al valor_total de la reserva 3
-
 COMMIT;

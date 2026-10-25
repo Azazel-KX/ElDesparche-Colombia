@@ -29,13 +29,12 @@ export function paginaReservasAdmin(config) {
   var cancelar = config.cancelar || cancelarReservaAdmin;
   var quien = config.quien || "el administrador";   /* quién cancela, para la nota */
   var notaDevolucion = config.notaDevolucion ||
-    " El pago ya fue aprobado: recuerda hacer la devolución del dinero al cliente.";
+    " El pago ya fue aprobado: recuerda devolverle el dinero al cliente.";
 
   var reservas = [];
   var aviso = document.getElementById("admin-aviso");
   var buscar = document.getElementById("buscar-reserva");
-  var filtroPago = document.getElementById("filtro-pago");
-  var filtroMetodo = document.getElementById("filtro-metodo");
+  var filtroEstado = document.getElementById("filtro-estado-reserva");
   var filtroEvento = document.getElementById("filtro-evento");   /* solo en el panel del agente */
   var orden = document.getElementById("orden-reservas");
   var cuerpo = document.getElementById("cuerpo-reservas");
@@ -53,8 +52,7 @@ export function paginaReservasAdmin(config) {
     pintarTablaReservas(filtrarReservas(reservas, {
       texto: buscar.value,
       evento: filtroEvento ? filtroEvento.value : "",
-      pago: filtroPago.value,
-      metodo: filtroMetodo.value,
+      estado: filtroEstado.value,
       orden: orden.value
     }), reservas.length);
   }
@@ -93,8 +91,8 @@ export function paginaReservasAdmin(config) {
     var nuevo = modo === "nuevo";
     var campos = camposReserva(nuevo ? null : abierto, clientesCrud, eventosCrud);
     var v = leerFormulario(campos);
-    var conPago = !nuevo && !!abierto.pago;
-    if (conPago) {
+    var aprobada = !nuevo && abierto.estado === "Confirmada" && abierto.valor > 0;
+    if (aprobada) {
       v.entradas = abierto.entradas;
       v.estado = abierto.estado;
     }
@@ -105,7 +103,7 @@ export function paginaReservasAdmin(config) {
     if (mostrarErroresFormulario("form-reserva", campos, errores)) return;
 
     /* El servidor pone el código, la fecha y el valor (entradas × precio del evento) */
-    var datos = conPago
+    var datos = aprobada
       ? { observaciones: v.observaciones }
       : { entradas: Number(v.entradas), estado: v.estado, observaciones: v.observaciones };
     if (nuevo) {
@@ -158,6 +156,22 @@ export function paginaReservasAdmin(config) {
 
     if (accion === "editar") {
       mostrarFormulario(abierto);
+    } else if (accion === "aprobar") {
+      var porAprobar = abierto;
+      acciones.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      guardarReserva({ estado: "Confirmada" }, porAprobar.codigo).then(function (guardada) {
+        Object.assign(porAprobar, guardada);
+        var mensaje = "Aprobaste la reserva " + porAprobar.codigo + " y su pago.";
+        aviso.textContent = mensaje;
+        pintarResumenReservas(reservas);
+        pintarGraficasReservas(reservas);
+        pintarTabla();
+        pintarDetalle(porAprobar, mensaje);
+        document.getElementById("detalle-nombre").focus();
+      }).catch(function (error) {
+        document.getElementById("detalle-aviso").innerHTML = '<strong>Error:</strong> ' + escapar(error.message);
+        acciones.querySelectorAll("button").forEach(function (b) { b.disabled = false; });
+      });
     } else if (accion === "eliminar") {
       confirmarEliminacionReserva(abierto);
     } else if (accion === "si-eliminar") {
@@ -253,8 +267,7 @@ export function paginaReservasAdmin(config) {
     evento.preventDefault();
   });
   buscar.addEventListener("input", pintarTabla);
-  filtroPago.onchange = pintarTabla;
-  filtroMetodo.onchange = pintarTabla;
+  filtroEstado.onchange = pintarTabla;
   orden.onchange = pintarTabla;
   if (filtroEvento) filtroEvento.onchange = pintarTabla;
 

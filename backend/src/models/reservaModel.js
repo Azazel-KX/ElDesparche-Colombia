@@ -1,15 +1,14 @@
 const db = require("../config/db");
 const { ErrorHttp } = require("../utils/errores");
-const { LATERAL_PAGO } = require("../utils/sql");
 const { ESTADOS_RESERVABLES } = require("../utils/validacionEvento");
 const { codigoReserva, idDeCodigoReserva, agregarNota, notaCancelacion } = require("../utils/formato");
 
-// Modelo de RESERVAS (y del PAGO que cada una puede tener). Aquí vive el SQL de las reservas de los tres perfiles:
+// Modelo de RESERVAS. Aquí vive el SQL de las reservas de los tres perfiles:
 // el cliente (las suyas), el agente (las de sus eventos) y el administrador (todas).
 // Las reglas de negocio (edad mínima, cupo, valor_total = entradas × precio) las hace cumplir la base
 // con el trigger fn_reserva_reglas; aquí solo se comprueban las que dan un mensaje mejor que el del trigger.
 
-// Consulta base: una reserva con su cliente, su evento y el último pago (si lo hay).
+// Consulta base: una reserva con su cliente y su evento.
 // La forma de la fila de salida es la de reservasLocales() en frontend/js/admin.js.
 const SELECT_RESERVA = `
   SELECT r.id_reserva, to_char(r.fecha_hora, 'YYYY-MM-DD"T"HH24:MI:SS') AS fecha, r.estado, r.numero_entradas,
@@ -17,31 +16,15 @@ const SELECT_RESERVA = `
          u.nombre_completo AS cliente, u.tipo_identificacion || ' ' || u.numero_identificacion AS documento,
          u.correo, r.numero_identificacion AS doc_cliente, r.codigo_qr,
          e.codigo AS evento_id, e.nombre AS evento, e.precio::float8 AS precio, e.estado AS estado_evento,
-         e.numero_identificacion AS doc_agente,
-         p.id_pago, p.estado AS estado_pago, p.monto::float8 AS monto, p.referencia_transaccion,
-         mp.tipo AS tipo_metodo, mp.proveedor
+         e.numero_identificacion AS doc_agente
     FROM RESERVA r
     JOIN USUARIO u ON u.numero_identificacion = r.numero_identificacion
     JOIN EVENTO e  ON e.codigo = r.codigo_evento
-    ${LATERAL_PAGO}
-    LEFT JOIN METODO_PAGO mp ON mp.id_metodo = p.id_metodo`;
+`;
 
 // ---------------------------------------------------------------------------------------------
 // Formas que ve la web
 // ---------------------------------------------------------------------------------------------
-
-// La web identifica el medio de pago con un código (CARD, NEQUI, PSE, BANCOLOMBIA_TRANSFER) y la base guarda un
-// tipo y un proveedor del método de pago del cliente. Se traduce de uno a otro.
-function metodoDePago(tipo, proveedor) {
-  if (/nequi/i.test(proveedor)) return "NEQUI";
-  if (/pse/i.test(proveedor)) return "PSE";
-  if (/bancolombia/i.test(proveedor)) return "BANCOLOMBIA_TRANSFER";
-  if (/^tarjeta/i.test(tipo || "")) return "CARD";
-  return "CARD";
-}
-
-// El estado del PAGO en la base tiene 3 valores; la web los ve como APPROVED, PENDING y DECLINED
-const ESTADO_PAGO = { Aprobado: "APPROVED", Pendiente: "PENDING", Rechazado: "DECLINED" };
 
 // "Usada" es un estado interno de la reserva (la entrada ya se validó en la puerta): la web solo conoce Reservada,
 // Confirmada y Cancelada, así que una Usada se ve Confirmada y se marca con usada: true.
@@ -60,15 +43,6 @@ function aFormaWeb(f) {
     precio: f.precio,
     valor: f.valor,
     observaciones: f.observaciones || "",
-    pago: f.id_pago
-      ? {
-        id: f.referencia_transaccion,
-        metodo: metodoDePago(f.tipo_metodo, f.proveedor),
-        estado: ESTADO_PAGO[f.estado_pago],
-        montoCentavos: Math.round(f.monto * 100),
-        moneda: "COP",
-      }
-      : null,
   };
 }
 
@@ -141,8 +115,7 @@ async function bloquear(cliente, codigo) {
   const { rows } = await cliente.query(
     `SELECT r.id_reserva, r.estado, r.numero_entradas, r.observaciones, r.numero_identificacion AS doc_cliente,
             e.codigo AS evento_id, e.estado AS estado_evento, e.numero_identificacion AS doc_agente,
-            e.fecha_hora_fin <= NOW() AS evento_terminado,
-            (SELECT pg.estado FROM PAGO pg WHERE pg.id_reserva = r.id_reserva ORDER BY pg.id_pago DESC LIMIT 1) AS estado_pago
+            e.fecha_hora_fin <= NOW() AS evento_terminado
        FROM RESERVA r JOIN EVENTO e ON e.codigo = r.codigo_evento
       WHERE r.id_reserva = $1
         FOR UPDATE OF r`,
@@ -182,7 +155,7 @@ async function cancelar(codigo, observaciones, verificar) {
   });
 }
 
-// Elimina una reserva (409 desde el controlador si ya tiene un pago: PAGO.id_reserva es RESTRICT). false si no existe.
+// Elimina una reserva . false si no existe.
 async function eliminar(codigo) {
   const id = idDeCodigoReserva(codigo);
   if (!id) return false;
@@ -201,8 +174,7 @@ async function registrarIngreso(codigo, { docAgente, revisor }) {
 
     if (actual.estado === "Usada") throw new ErrorHttp(409, "Esta entrada ya se usó.");
     if (actual.estado === "Cancelada") throw new ErrorHttp(409, "La reserva está cancelada: la entrada no sirve.");
-    if (actual.estado_pago && actual.estado_pago !== "Aprobado") throw new ErrorHttp(409, "El pago de esta reserva no está aprobado.");
-    if (actual.estado === "Reservada" && !actual.estado_pago) throw new ErrorHttp(409, "La reserva todavía no está pagada ni confirmada.");
+    if (actual.estado === "Reservada") throw new ErrorHttp(409, "La reserva todavía no está aprobada por un administrador.");
     if (actual.estado_evento === "Finalizado" || actual.estado_evento === "Cancelado") {
       throw new ErrorHttp(409, `El evento está ${actual.estado_evento === "Cancelado" ? "cancelado" : "finalizado"}.`);
     }
@@ -223,6 +195,6 @@ async function registrarIngreso(codigo, { docAgente, revisor }) {
 }
 
 module.exports = {
-  aFormaWeb, metodoDePago, listar, obtener, obtenerFila, crear, actualizar, cancelar, eliminar, registrarIngreso,
+  aFormaWeb, listar, obtener, obtenerFila, crear, actualizar, cancelar, eliminar, registrarIngreso,
   agregarNota, notaCancelacion,
 };

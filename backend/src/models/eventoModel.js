@@ -373,7 +373,7 @@ async function decidirSolicitud(codigo, { estado, motivo }) {
   });
 }
 
-// Función 7: ELIMINAR un evento (sus reservas se borran en cascada; falla con 23503 si alguna tiene un PAGO).
+// Función 7: ELIMINAR un evento (sus reservas se borran en cascada).
 async function eliminar(codigo, verificar) {
   return db.conTransaccion(async (cliente) => {
     const actual = await bloquearEvento(cliente, codigo);

@@ -5,7 +5,7 @@
 
 import { escapar, textoPesos } from "../lib/formato.js";
 import { causaParaCliente, leerCancelacion } from "../modelos/cancelacionModelo.js";
-import { esperaPago } from "../modelos/reservaModelo.js";
+import { esperaAprobacion } from "../modelos/reservaModelo.js";
 import { camposCancelacion } from "./cancelacionVista.js";
 
 export function pintarSaludo(usuario) {
@@ -45,9 +45,9 @@ export function pintarListaReservas(contenedor, reservas) {
     } else if (r.usada) {
       /* La entrada ya se validó en la puerta: ni QR ni cancelación */
       acciones = '<span class="sin-qr">Entrada usada</span>';
-    } else if (esperaPago(r)) {
+    } else if (esperaAprobacion(r)) {
       acciones =
-        '<span class="sin-qr">' + (r.pago ? "Pago pendiente: el QR aparece al aprobarse" : "Pago por confirmar: el QR aparece al confirmarse") + '</span>' +
+        '<span class="sin-qr">' + "Por aprobar: el QR aparece cuando un administrador apruebe tu reserva y el pago" + '</span>' +
         '<button class="boton-mini boton-cancelar" data-cancelar="' + escapar(r.codigo) + '">Cancelar</button>';
     } else {
       acciones =

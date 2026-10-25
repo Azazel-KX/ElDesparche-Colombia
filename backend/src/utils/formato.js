@@ -108,7 +108,7 @@ function haceCuanto(segundos) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Códigos. La web identifica las reservas con "DES-####" (también es la referencia del pago). La base solo
+// Códigos. La web identifica las reservas con "DES-####". La base solo
 // tiene id_reserva, así que el código se deriva de él: DES-1001, DES-1002...
 // ---------------------------------------------------------------------------------------------
 const BASE_CODIGO_RESERVA = 1000;
