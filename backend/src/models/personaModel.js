@@ -2,6 +2,7 @@ const db = require("../config/db");
 const { ErrorHttp } = require("../utils/errores");
 const ciudadModel = require("./ciudadModel");
 const { guardarImagen, urlPublica } = require("../utils/imagenes");
+const { borrarImagenSinUso, escribirConImagenes } = require("./imagenModel");
 const { ES_VALIDA } = require("../utils/sql");
 const { separarNombre, unirNombre, CUENTA_DE_ESTADO, ultimosMeses } = require("../utils/formato");
 
@@ -196,7 +197,10 @@ async function actualizarAgente(nit, d) {
 // teléfono, ciudad y experiencia. La razón social, el NIT y la comisión no se cambian aquí.
 async function actualizarPerfilAgente(documento, d) {
   const logo = d.logo === null ? undefined : guardarImagen(d.logo, "logos", "logo", "logo");
-  return db.conTransaccion(async (cliente) => {
+  // Si llega otro logo (o se quita), el anterior se borra de uploads/ cuando ya nadie lo usa (imagenModel)
+  await escribirConImagenes(logo, async (cliente) => {
+    const { rows: [anterior] } = await cliente.query(
+      "SELECT logo_url FROM AGENTE WHERE numero_identificacion = $1 FOR UPDATE", [documento]);
     const idCiudad = await ciudadModel.idObligatorio(d.ciudad, cliente);
     await cliente.query("UPDATE USUARIO SET correo = $2, id_ciudad = $3 WHERE numero_identificacion = $1", [documento, d.correo, idCiudad]);
     await cliente.query(
@@ -214,6 +218,7 @@ async function actualizarPerfilAgente(documento, d) {
         await cliente.query("INSERT INTO USUARIO_TELEFONO (numero_identificacion, telefono) VALUES ($1, $2) ON CONFLICT DO NOTHING", [documento, d.telefono]);
       }
     }
+    return { sobra: logo === undefined || !anterior ? null : anterior.logo_url };
   });
 }
 
@@ -224,7 +229,18 @@ const cambiarEstadoAgente = async (nit, estado) => {
   return rowCount > 0;
 };
 
-const eliminarAgente = (nit) => borrarUsuario("AGENTE", "nit", nit);
+// Borra al agente (USUARIO + AGENTE en cascada) y luego su logo de uploads/ si ya nadie lo usa.
+// Si tiene eventos, PostgreSQL lo impide (RESTRICT) y el controlador responde 409: el logo no se toca.
+async function eliminarAgente(nit) {
+  const { rows } = await db.query(
+    `DELETE FROM USUARIO u USING AGENTE s WHERE s.nit = $1 AND u.numero_identificacion = s.numero_identificacion
+     RETURNING s.logo_url`,
+    [nit]
+  );
+  if (!rows.length) return false;
+  await borrarImagenSinUso(rows[0].logo_url);
+  return true;
+}
 
 // ---------------------------------------------------------------------------------------------
 // CLIENTES

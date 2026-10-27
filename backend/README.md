@@ -59,7 +59,10 @@ Cuentas que suma `seed_demo.sql` (misma contraseña): `admin2@`, `agente4@` a `a
   no inician sesión.
 - **Imágenes:** los paneles mandan las imágenes de eventos y logos como data URL (hasta 2 MB). Se guardan como archivo
   en `uploads/` (se comprueba que de verdad sean JPG, PNG o WEBP) y la base solo guarda la ruta. Se sirven en
-  `/uploads/...`. Los paneles admiten cuerpos de hasta 3 MB; el resto del API, 100 KB.
+  `/uploads/...`. Los paneles admiten cuerpos de hasta 3 MB; el resto del API, 100 KB. Cuando se reemplaza o se quita
+  una imagen, se elimina un evento o un agente, o la escritura falla, el archivo que sobra se borra si ningún otro evento
+  ni logo lo usa (las imágenes se nombran por su contenido y se pueden compartir). Lo mismo con la `UBICACION` de un
+  evento al eliminarlo o cambiarle el lugar.
 - **Notas de cancelación y rechazo:** no hay tablas de causas. La causa se agrega a `observaciones`, en una línea
   nueva, con el mismo formato de `notaCancelacion()` de la web (`Cancelado por el agente. Causa: ... Detalle: ...`).
   El motivo de un rechazo se agrega como `Rechazado por el administrador. Motivo: ...`.
@@ -176,7 +179,8 @@ Docker. Los tres funcionan en PowerShell, cmd y Git Bash.
 - Integración (necesitan el esquema y `seed.sql` cargados, **sin** `seed_demo.sql`, y el `.env`; limpian lo que crean): `auth.test.js`,
   `eventos.test.js` (catálogo y administración de eventos y solicitudes), `personas.test.js` (agentes, clientes,
   administradores y estado de la cuenta), `reservas.test.js` (cliente, administrador y validación de entradas),
-  `agente.test.js` (panel del agente y flujo completo de revisión) y `panel.test.js` (ubicaciones, resumen y reportes).
+  `agente.test.js` (panel del agente y flujo completo de revisión), `panel.test.js` (ubicaciones, resumen y reportes) y
+  `limpieza.test.js` (no quedan ubicaciones huérfanas ni imágenes sin uso al editar o eliminar eventos y logos).
   `ayudas.js` reúne lo que comparten.
 
 Qué cargar para probar: el esquema y `seed.sql`, nada más. Las pruebas cuentan con datos exactos del seed (por ejemplo, 5

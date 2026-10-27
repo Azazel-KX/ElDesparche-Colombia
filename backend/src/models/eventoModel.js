@@ -2,6 +2,7 @@ const db = require("../config/db");
 const { ErrorHttp } = require("../utils/errores");
 const ciudadModel = require("./ciudadModel");
 const { guardarImagen, urlPublica } = require("../utils/imagenes");
+const { escribirConImagenes } = require("./imagenModel");
 const {
   fechaLarga, fechaCorta, planDeEvento, notaCancelacion, agregarNota, notaRechazo, leerRechazo, quitarRechazo,
 } = require("../utils/formato");
@@ -219,6 +220,16 @@ async function insertarUbicacion(cliente, datos, idCiudad) {
   return rows[0].id_ubicacion;
 }
 
+// Función auxiliar: borra una UBICACION que ya ningún evento usa (dentro de la transacción).
+// Cada evento crea su propia ubicación, así que al eliminarlo o cambiarle el lugar la anterior quedaría huérfana.
+async function borrarUbicacionSinUso(cliente, idUbicacion) {
+  await cliente.query(
+    `DELETE FROM UBICACION u
+      WHERE u.id_ubicacion = $1 AND NOT EXISTS (SELECT 1 FROM EVENTO e WHERE e.id_ubicacion = u.id_ubicacion)`,
+    [idUbicacion]
+  );
+}
+
 // Función auxiliar: genera el siguiente código "EVT-AAAA-NNNN" (EVT-2026-0008, por ejemplo)
 //
 // El número sale de la secuencia evento_numero_seq (ver el esquema). Una secuencia resuelve dos problemas:
@@ -238,7 +249,7 @@ async function siguienteCodigo(cliente) {
 // Si el INSERT del evento falla, la ubicación recién creada también se deshace: no quedan filas huérfanas.
 async function crear(datos, docAgente, estado) {
   const url = guardarImagen(datos.imagen, "eventos", "evento");
-  return db.conTransaccion(async (cliente) => {
+  const { codigo } = await escribirConImagenes(url, async (cliente) => {
     const idCiudad = await ciudadObligatoria(cliente, datos.ciudad);
     const idUbicacion = await insertarUbicacion(cliente, datos, idCiudad);
     const codigo = await siguienteCodigo(cliente);
@@ -250,8 +261,9 @@ async function crear(datos, docAgente, estado) {
       [codigo, datos.nombre, datos.descripcion, datos.categoria, url, datos.teatro, datos.inicio, datos.fin,
        datos.capacidad, datos.edad, datos.observaciones, estado, datos.precio, idUbicacion, docAgente]
     );
-    return codigo;
+    return { codigo, sobra: null };
   });
+  return codigo;
 }
 
 // Función auxiliar: BLOQUEA la fila del evento y devuelve lo mínimo que hace falta para decidir.
@@ -294,13 +306,14 @@ function mezclar(nuevas, anteriores) {
 async function actualizar(codigo, datos, verificar, estadoNuevo) {
   // imagen null = la web no la mandó (se conserva); "" = se quita; data URL o URL = se guarda
   const url = datos.imagen === null ? undefined : guardarImagen(datos.imagen, "eventos", "evento");
-  return db.conTransaccion(async (cliente) => {
+  const resultado = await escribirConImagenes(url, async (cliente) => {
     const actual = await bloquearEvento(cliente, codigo);
     if (!actual) return false;
     verificar(actual);
 
     const idCiudad = await ciudadObligatoria(cliente, datos.ciudad);
     // La ubicación puede estar compartida con otros eventos: en vez de modificarla, creamos una nueva (solo si cambió)
+    // y la anterior se borra si ya nadie la usa
     const igual = actual.direccion === datos.direccion && actual.id_ciudad === idCiudad &&
                   Math.abs(actual.lat - datos.lat) < 1e-6 && Math.abs(actual.lon - datos.lon) < 1e-6;
     const idUbicacion = igual ? actual.id_ubicacion : await insertarUbicacion(cliente, datos, idCiudad);
@@ -317,8 +330,11 @@ async function actualizar(codigo, datos, verificar, estadoNuevo) {
       [codigo, datos.nombre, datos.descripcion, datos.categoria, url === undefined ? actual.url_imagen : url, datos.teatro,
        datos.inicio, datos.fin, datos.capacidad, datos.edad, observaciones, datos.precio, idUbicacion, estadoNuevo || null]
     );
-    return true;
+    if (!igual) await borrarUbicacionSinUso(cliente, actual.id_ubicacion);
+    // Si llegó otra imagen (o se quitó), la anterior deja de usarse
+    return { sobra: url === undefined ? null : actual.url_imagen };
   });
+  return Boolean(resultado);
 }
 
 // Función 4.b: el AGENTE edita lo que no toca a las reservas de un evento ya publicado: descripción, observaciones e
@@ -326,7 +342,7 @@ async function actualizar(codigo, datos, verificar, estadoNuevo) {
 // imagen null = se conserva; "" = se quita; data URL o URL = se guarda.
 async function editarPublicado(codigo, { descripcion, observaciones, imagen }, verificar) {
   const url = imagen === null ? undefined : guardarImagen(imagen, "eventos", "evento");
-  return db.conTransaccion(async (cliente) => {
+  const resultado = await escribirConImagenes(url, async (cliente) => {
     const actual = await bloquearEvento(cliente, codigo);
     if (!actual) return false;
     verificar(actual);
@@ -334,8 +350,9 @@ async function editarPublicado(codigo, { descripcion, observaciones, imagen }, v
       `UPDATE EVENTO SET descripcion = $2, observaciones = $3, url_imagen = $4 WHERE codigo = $1`,
       [codigo, descripcion, mezclar(observaciones, actual.observaciones), url === undefined ? actual.url_imagen : url]
     );
-    return true;
+    return { sobra: url === undefined ? null : actual.url_imagen };
   });
+  return Boolean(resultado);
 }
 
 // Función 5: CAMBIAR EL ESTADO de un evento publicado. Devuelve false si no existe.
@@ -390,15 +407,18 @@ async function decidirSolicitud(codigo, { estado, motivo }) {
   });
 }
 
-// Función 7: ELIMINAR un evento (sus reservas se borran en cascada).
+// Función 7: ELIMINAR un evento (sus reservas se borran en cascada). También se borran su ubicación y su imagen
+// subida, si ningún otro evento (ni logo) las usa.
 async function eliminar(codigo, verificar) {
-  return db.conTransaccion(async (cliente) => {
+  const resultado = await escribirConImagenes(undefined, async (cliente) => {
     const actual = await bloquearEvento(cliente, codigo);
     if (!actual) return false;
     if (verificar) verificar(actual);
     await cliente.query("DELETE FROM EVENTO WHERE codigo = $1", [codigo]);
-    return true;
+    await borrarUbicacionSinUso(cliente, actual.id_ubicacion);
+    return { sobra: actual.url_imagen };
   });
+  return Boolean(resultado);
 }
 
 // Documento del agente a partir de su NIT (null si no existe)
