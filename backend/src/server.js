@@ -1,5 +1,5 @@
-const { port } = require("./config/env");
-const { pool } = require("./config/db");
+const { port, db, describirBd } = require("./config/env");
+const { pool, verificarConexion } = require("./config/db");
 const app = require("./app");
 
 // PUNTO DE ENTRADA: iniciar el servidor
@@ -14,17 +14,31 @@ async function iniciar() {
     // ¿Por qué?
     // - Si la BD no funciona, mejor fallar ahora que en la primera petición
     // - Los errores serán claros en los logs
-    await pool.query("SELECT 1");
-    console.log("✓ PostgreSQL conectado");
+    // - Con Neon la base puede estar suspendida: verificarConexion reintenta mientras despierta
+    await verificarConexion({
+      alFallar: (err, intento, espera) =>
+        console.warn(`… PostgreSQL no responde (intento ${intento}: ${err.message}); se reintenta en ${espera / 1000} s`),
+    });
+    console.log(`✓ PostgreSQL conectado: ${describirBd(db)}`);
 
     // PASO 2: Iniciar servidor Express
     // Escuchar en el puerto (5000 por defecto)
-    app.listen(port, () => {
+    const servidor = app.listen(port, () => {
       console.log(`✓ API de ElDesparche escuchando en http://localhost:${port}`);
     });
+
+    // PASO 3: Apagado ordenado (Ctrl+C, docker stop, el proveedor de hosting)
+    // Deja de aceptar peticiones, termina las que están en curso y cierra las conexiones del pool
+    const apagar = (senal) => {
+      console.log(`${senal} recibido: cerrando el servidor…`);
+      servidor.close(() => pool.end().then(() => process.exit(0)));
+      setTimeout(() => process.exit(1), 10000).unref();   // si algo se queda colgado, no esperar para siempre
+    };
+    process.once("SIGINT", apagar);
+    process.once("SIGTERM", apagar);
   } catch (err) {
     // Si la BD falla, reportar y salir
-    console.error("✗ No se pudo iniciar el servidor:", err.message);
+    console.error(`✗ No se pudo iniciar el servidor (${describirBd(db)}):`, err.message);
     process.exit(1);
   }
 }
