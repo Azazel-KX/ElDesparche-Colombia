@@ -224,11 +224,10 @@ test("POST /api/admin/eventos: sube la imagen como archivo y la sirve desde /upl
   const { estado, json } = await crearEvento({ imagen: t.PNG_1X1 });
   assert.equal(estado, 201);
   imagenes.push(json.evento.imagen);
-  assert.match(json.evento.imagen, /^http:\/\/localhost:\d+\/uploads\/eventos\/evento-[0-9a-f]{10}\.png$/);
+  // Sin PUBLIC_URL la web recibe la ruta relativa y la pide a su mismo dominio (proxy /uploads de Vite)
+  assert.match(json.evento.imagen, /^\/uploads\/eventos\/evento-[0-9a-f]{10}\.png$/);
 
-  const ruta = new URL(json.evento.imagen).pathname;
-  // El servidor de pruebas escucha en otro puerto que el de PUBLIC_URL: se pide la ruta relativa
-  const archivo = await fetch(t.urlBase() + ruta);
+  const archivo = await fetch(t.urlBase() + json.evento.imagen);
   assert.equal(archivo.status, 200);
   assert.equal(archivo.headers.get("cross-origin-resource-policy"), "cross-origin");
   assert.equal(archivo.headers.get("content-type"), "image/png");

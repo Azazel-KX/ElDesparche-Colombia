@@ -123,7 +123,10 @@ module.exports = {
   nodeEnv: process.env.NODE_ENV || "development",
 
   // Dirección pública del API: se usa para completar la URL de las imágenes que se suben (/uploads/...)
-  publicUrl: (process.env.PUBLIC_URL || `http://localhost:${Number(process.env.PORT) || 5000}`).replace(/\/+$/, ""),
+  // - Vacía (por defecto): la web recibe la ruta relativa "/uploads/..." y la pide a su mismo dominio, que la redirige
+  //   al API (proxy de Vite en desarrollo, túnel o proxy inverso al publicar). Así la permite la CSP de la web ('self').
+  // - Con valor (ej. https://api.eldesparche.online): cuando la web y el API están en dominios distintos.
+  publicUrl: (process.env.PUBLIC_URL || "").replace(/\/+$/, ""),
 
   // Configuración de conexión a PostgreSQL
   db: dbConfig,
