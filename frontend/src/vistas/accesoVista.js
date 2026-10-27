@@ -120,7 +120,7 @@ export function crearModalAcceso(manejadores) {
 
         /* Los campos siguen la tabla USUARIO de la base de datos
            (tipo y número de documento, nombres, apellidos, correo, clave,
-           ciudad y dirección). Lo propio de cada tipo de cuenta va en su
+           país, departamento y ciudad). Lo propio de cada tipo de cuenta va en su
            grupo: CLIENTE pide fecha de nacimiento; AGENTE pide NIT y
            razón social. */
         '<fieldset class="grupo-campos">' +
@@ -171,10 +171,24 @@ export function crearModalAcceso(manejadores) {
           '<legend class="modal-subtitulo">¿Dónde vives?</legend>' +
 
           '<div class="campo">' +
+            '<label for="pais-registro">País</label>' +
+            '<select id="pais-registro" required aria-describedby="error-registro">' +
+              '<option value="">Cargando países…</option>' +
+            '</select>' +
+          '</div>' +
+
+          '<div class="campo">' +
+            '<label for="departamento-registro">Departamento</label>' +
+            '<select id="departamento-registro" required disabled aria-describedby="error-registro">' +
+              '<option value="">Elige primero un país</option>' +
+            '</select>' +
+          '</div>' +
+
+          '<div class="campo">' +
             '<label for="ciudad-registro">Ciudad</label>' +
-            '<select id="ciudad-registro" name="id_ciudad" required ' +
+            '<select id="ciudad-registro" name="id_ciudad" required disabled ' +
                     'aria-describedby="error-registro">' +
-              '<option value="">Cargando ciudades…</option>' +
+              '<option value="">Elige primero un departamento</option>' +
             '</select>' +
           '</div>' +
 
@@ -317,7 +331,8 @@ var alAbrirRegistro = function () {};
 /* Ids de todos los campos del registro (para limpiar las marcas de error) */
 export var CAMPOS_REGISTRO = [
   "tipo-id-registro", "numero-id-registro", "nombres-registro", "apellidos-registro",
-  "telefono-registro", "ciudad-registro", "direccion-registro", "nacimiento-registro",
+  "telefono-registro", "pais-registro", "departamento-registro", "ciudad-registro",
+  "direccion-registro", "nacimiento-registro",
   "alias-registro", "nit-registro", "razon-registro", "comercial-registro",
   "descripcion-registro", "correo-registro", "clave-registro", "clave2-registro"
 ];
@@ -368,20 +383,66 @@ function cambiarPestana(cual) {
   limpiarError("error-registro", CAMPOS_REGISTRO);
 }
 
-/* Llena la lista de ciudades del registro con las de la base de datos */
-export function llenarCiudadesRegistro(ciudades) {
-  var lista = document.getElementById("ciudad-registro");
-  lista.innerHTML = '<option value="">Elige tu ciudad</option>';
-  ciudades.forEach(function (ciudad) {
+/* Pone las opciones de una lista; "vacio" es el texto de la opción sin elegir */
+function ponerOpciones(lista, opciones, vacio) {
+  lista.innerHTML = "";
+  var primera = document.createElement("option");
+  primera.value = "";
+  primera.textContent = vacio;
+  lista.appendChild(primera);
+  opciones.forEach(function (dato) {
     var opcion = document.createElement("option");
-    opcion.value = ciudad.id_ciudad;
-    opcion.textContent = ciudad.nombre + " (" + ciudad.departamento + ")";
+    opcion.value = dato.valor;
+    opcion.textContent = dato.texto;
     lista.appendChild(opcion);
   });
 }
 
+/* Nombres sin repetir, en el orden en que llegan */
+function sinRepetir(nombres) {
+  return nombres.filter(function (nombre, i) { return nombres.indexOf(nombre) === i; });
+}
+
+/* Llena país, departamento y ciudad del registro con los de la base de datos: al elegir el país se abren sus
+   departamentos y al elegir el departamento, sus ciudades. */
+export function llenarCiudadesRegistro(ciudades) {
+  var pais = document.getElementById("pais-registro");
+  var departamento = document.getElementById("departamento-registro");
+  var ciudad = document.getElementById("ciudad-registro");
+
+  function opcionesDe(nombres) {
+    return nombres.map(function (nombre) { return { valor: nombre, texto: nombre }; });
+  }
+
+  function pintarDepartamentos() {
+    var elegido = pais.value;
+    departamento.disabled = !elegido;
+    ponerOpciones(departamento, opcionesDe(sinRepetir(ciudades
+      .filter(function (c) { return c.pais === elegido; })
+      .map(function (c) { return c.departamento; }))),
+      elegido ? "Elige tu departamento" : "Elige primero un país");
+    pintarCiudades();
+  }
+
+  function pintarCiudades() {
+    var elegido = departamento.value;
+    ciudad.disabled = !elegido;
+    ponerOpciones(ciudad, ciudades
+      .filter(function (c) { return c.pais === pais.value && c.departamento === elegido; })
+      .map(function (c) { return { valor: c.id_ciudad, texto: c.nombre }; }),
+      elegido ? "Elige tu ciudad" : "Elige primero un departamento");
+  }
+
+  ponerOpciones(pais, opcionesDe(sinRepetir(ciudades.map(function (c) { return c.pais; }))), "Elige tu país");
+  pais.onchange = pintarDepartamentos;
+  departamento.onchange = pintarCiudades;
+  pintarDepartamentos();
+}
+
 export function ciudadesRegistroConError() {
-  document.getElementById("ciudad-registro").innerHTML = '<option value="">No se pudieron cargar las ciudades</option>';
+  ["pais", "departamento", "ciudad"].forEach(function (nivel) {
+    document.getElementById(nivel + "-registro").innerHTML = '<option value="">No se pudieron cargar las ubicaciones</option>';
+  });
 }
 
 /* ===== MENSAJES DE ERROR ACCESIBLES =====

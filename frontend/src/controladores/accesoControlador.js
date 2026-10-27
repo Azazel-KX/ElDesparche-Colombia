@@ -128,6 +128,8 @@ export function registrar(evento) {
     ["nombres-registro", datos.nombre ? "" : "Escribe tus nombres."],
     ["apellidos-registro", datos.apellidos ? "" : "Escribe tus apellidos."],
     ["telefono-registro", errorTelefono(datos.telefono, false)],
+    ["pais-registro", valor("pais-registro") ? "" : "Elige tu país."],
+    ["departamento-registro", valor("departamento-registro") ? "" : "Elige tu departamento."],
     ["ciudad-registro", datos.id_ciudad ? "" : "Elige tu ciudad."],
     ["direccion-registro", datos.direccion ? "" : "Escribe tu dirección."]
   ];
