@@ -20,10 +20,17 @@ npm run preview    # prueba la carpeta dist/ en http://localhost:5173
 
 ### Conexión con la API
 
-- En desarrollo, Vite redirige las llamadas `/api` a `http://localhost:5000` (ver `vite.config.js`).
-- En producción, la carpeta `dist/` y la API deben quedar en el **mismo dominio** (por ejemplo con un proxy inverso que
-  envíe `/api` al backend). Si la API está en otra dirección, define `window.DESPARCHE_API_URL` antes de cargar
-  `src/modelos/clienteApi.js` y agrega esa dirección a `connect-src` en la etiqueta de seguridad de cada página (ver "Seguridad").
+La web nunca se conecta a la base de datos (local o Neon): todo pasa por el API, que es el único que tiene la cadena de
+conexión. Toda llamada sale de `src/modelos/clienteApi.js`, que agrega el token, espera hasta 20 s (Neon tarda unos
+segundos en despertar) y convierte los fallos en mensajes que se muestran tal cual.
+
+- En desarrollo, Vite redirige las llamadas `/api` y las imágenes subidas (`/uploads`) a `http://localhost:5000`
+  (ver `vite.config.js`). Para otro backend, define `API_PROXY_TARGET` en `frontend/.env` (ver `.env.example`).
+- En producción, lo más simple es que la carpeta `dist/` y la API queden en el **mismo dominio** (por ejemplo con un
+  proxy inverso o el túnel que envíe `/api` y `/uploads` al backend).
+- Si la API está en otro dominio, define `VITE_API_URL` (ej. `https://api.eldesparche.online/api`) en `frontend/.env`
+  antes de `npm run build`: el build agrega ese origen a `connect-src` en la etiqueta de seguridad de cada página (ver
+  "Seguridad"). En el backend, agrega la web a `CORS_ORIGIN` y define `PUBLIC_URL` con la dirección del API.
 
 Las tipografías (Inter, Geist, Outfit, Kadwa y Source Sans 3) se cargan desde Google Fonts; sin internet el navegador
 usa una fuente de respaldo y solo cambian las letras. Los mapas usan OpenStreetMap.

@@ -33,8 +33,14 @@ backend/
    Para **trabajar con la web** conviene cargar los tres (más eventos, ciudades, clientes y reservas). Para **correr las
    pruebas** carga solo el 1 y el 2, de preferencia en una base aparte (ver "Pruebas").
 3. `cp .env.example .env` y completa `JWT_SECRET` (mínimo 32 caracteres) y los datos de la base. `CORS_ORIGIN` debe
-   incluir la dirección donde corre la web, y `PUBLIC_URL` la del API si no es `http://localhost:5000`.
-4. `npm install`, luego `npm run dev` (puerto 5000) o `npm test`.
+   incluir la dirección donde corre la web. `PUBLIC_URL` solo hace falta si la web y el API quedan en dominios
+   distintos: sin ella, las imágenes subidas salen como `/uploads/...` y la web las pide por su propio dominio.
+4. `npm install`, luego `npm run dev` (puerto 5000) o `npm test`. Comprueba la conexión en
+   <http://localhost:5000/api/health> (`{ "estado": "ok", "baseDatos": "ok" }`).
+
+**Neon (PostgreSQL en la nube):** pon la `DATABASE_URL` de Neon en `.env` y carga la base vacía con
+`npm run bd:cargar` (o `npm run bd:cargar -- --demo`), sin necesitar `psql`. El backend se conecta con SSL verificado,
+espera a que Neon despierte y responde 503 si la base no está disponible. Detalle en [GUIA_NEON.md](../GUIA_NEON.md).
 
 Cuentas de `seed.sql` (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente2@`, `agente1@`, `agente2@`,
 `agente3@` (agente pendiente de aprobación) y `cliente3@` (cliente bloqueado) `eldesparche.test`.
@@ -65,7 +71,7 @@ Cuentas que suma `seed_demo.sql` (misma contraseña): `admin2@`, `agente4@` a `a
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/api/health` | Estado del servicio |
+| GET | `/api/health` | Estado del servicio y de la base: 200 `{ estado: "ok", baseDatos: "ok" }` o 503 `{ estado: "error", baseDatos: "sin conexión" }` |
 | GET | `/api/ciudades` | Ciudades con su departamento (para los selectores) |
 | GET | `/api/eventos` | Catálogo público con la forma de `EVENTOS` de la web; filtros `ciudad`, `categoria`, `estado`, `limite`, `pagina`. Nunca muestra solicitudes |
 | GET | `/api/eventos/:codigo` | Un evento publicado (404 si no existe o aún es una solicitud) |
@@ -164,7 +170,9 @@ Docker. Los tres funcionan en PowerShell, cmd y Git Bash.
 
 - Unitarias (no necesitan base): `validacion.test.js` (registro, login y roles), `validacionEvento.test.js`
   (eventos, estados, decisiones, filtros y utilidades de formato) y `errores.test.js` (traducción de errores de
-  PostgreSQL, el 500 genérico, imágenes y validación de personas de los paneles).
+  PostgreSQL, el 500 genérico, imágenes y validación de personas de los paneles) y `conexionBd.test.js` (configuración
+  de la conexión local o con Neon: SSL, pool y tiempos de espera; 503 y `/api/health` con la base caída; reintentos del
+  arranque y transacciones con la conexión cortada).
 - Integración (necesitan el esquema y `seed.sql` cargados, **sin** `seed_demo.sql`, y el `.env`; limpian lo que crean): `auth.test.js`,
   `eventos.test.js` (catálogo y administración de eventos y solicitudes), `personas.test.js` (agentes, clientes,
   administradores y estado de la cuenta), `reservas.test.js` (cliente, administrador y validación de entradas),
