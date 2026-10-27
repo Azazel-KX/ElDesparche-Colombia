@@ -6,27 +6,18 @@
 //
 // Solo trabaja sobre una base VACÍA: si ya existe la tabla USUARIO se detiene sin tocar nada. Para empezar de cero en
 // Neon, borra y vuelve a crear la base desde la consola de Neon (o crea una rama nueva).
-const fs = require("fs");
-const path = require("path");
 const { Client } = require("pg");
-const { db, describirBd, construirConfigBd } = require("../src/config/env");
-
-// En Neon, el esquema se carga por la conexión directa (DATABASE_URL_UNPOOLED, sin "-pooler" en el host): el pooler
-// trabaja por transacciones y no conserva lo que el script fija para toda la sesión (SET timezone, tablas temporales).
-const config = process.env.DATABASE_URL_UNPOOLED
-  ? construirConfigBd({ ...process.env, DATABASE_URL: process.env.DATABASE_URL_UNPOOLED })
-  : db;
-
-const CARPETA_BD = path.join(__dirname, "..", "..", "database");
+const { describirBd } = require("../src/config/env");
+const { configDirecta, cargarArchivos, textoError } = require("./bd");
 
 async function cargar() {
   const archivos = ["schema_ElDesparche.sql", "seed.sql"];
   if (process.argv.includes("--demo")) archivos.push("seed_demo.sql");
 
-  // Un Client y no el pool: los archivos traen varias sentencias (y transacciones propias) y deben ir por la misma conexión
+  const config = configDirecta();
+  console.log(`Base: ${describirBd(config)}`);
   const cliente = new Client(config);
   await cliente.connect();
-  console.log(`Conectado a ${describirBd(config)}`);
 
   try {
     const { rows } = await cliente.query("SELECT to_regclass('usuario') IS NOT NULL AS existe");
@@ -36,12 +27,7 @@ async function cargar() {
       return;
     }
 
-    for (const archivo of archivos) {
-      const sql = fs.readFileSync(path.join(CARPETA_BD, archivo), "utf8");
-      const inicio = Date.now();
-      await cliente.query(sql);
-      console.log(`✓ ${archivo} (${((Date.now() - inicio) / 1000).toFixed(1)} s)`);
-    }
+    await cargarArchivos(cliente, archivos);
 
     const conteo = await cliente.query(
       "SELECT (SELECT COUNT(*) FROM usuario) AS usuarios, (SELECT COUNT(*) FROM evento) AS eventos");
@@ -53,6 +39,6 @@ async function cargar() {
 }
 
 cargar().catch((err) => {
-  console.error("✗ No se pudo cargar la base:", err.message);
+  console.error("✗ No se pudo cargar la base:", textoError(err));
   process.exitCode = 1;
 });

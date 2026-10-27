@@ -168,8 +168,9 @@ salen como se guardaron (`AAAA-MM-DD` y `AAAA-MM-DDTHH:MM:SS`, sin zona horaria)
 
 `npm test` ejecuta todos los `test/*.test.js`, un archivo detrás de otro (`--test-concurrency=1`): las pruebas de integración
 comparten una sola base y en paralelo se pisarían. `npm run test:cobertura` hace lo mismo con el informe de cobertura
-de `src/`, y `npm run test:bd` corre las pruebas de la base (`database/pruebas_bd.sql`) dentro del contenedor de
-Docker. Los tres funcionan en PowerShell, cmd y Git Bash.
+de `src/`, y `npm run test:bd` corre las pruebas de la base (`database/pruebas_bd.sql`) en una base temporal del mismo
+servidor del `.env`, local o Neon, sin `psql` ni Docker (ver `database/README.md`). Los tres funcionan en PowerShell, cmd
+y Git Bash.
 
 - Unitarias (no necesitan base): `validacion.test.js` (registro, login y roles), `validacionEvento.test.js`
   (eventos, estados, decisiones, filtros y utilidades de formato) y `errores.test.js` (traducción de errores de

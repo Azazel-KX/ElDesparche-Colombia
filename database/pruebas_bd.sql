@@ -4,7 +4,8 @@
 -- inválido. Todo corre en UNA transacción que termina en ROLLBACK: no deja cambios en la base donde se ejecuta.
 -- Cada prueba corre en su propio bloque (subtransacción), así que una no afecta a la siguiente.
 --
--- Uso (desde la raíz del repo, sobre una base con schema_ElDesparche.sql + seed.sql recién cargados):
+-- Uso, en local o en Neon: desde backend/, npm run test:bd (lo corre en una base temporal; ver scripts/pruebasBd.js).
+-- Con psql (desde la raíz del repo, sobre una base con schema_ElDesparche.sql + seed.sql recién cargados):
 --   docker exec -i desparche_db_container psql -U postgres -d desparche_db -v ON_ERROR_STOP=1 -q < database/pruebas_bd.sql
 -- Termina con error (código distinto de 0) si alguna prueba falla.
 -- ==================================================================================================================

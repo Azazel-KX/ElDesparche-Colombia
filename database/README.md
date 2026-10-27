@@ -155,10 +155,16 @@ cascada o restringidos, ubicaciones). Corre en una transacción que termina en `
 deja cambios. Termina con error si alguna prueba falla. Desde `backend/` (PowerShell, cmd o Git Bash):
 
 ```bash
-npm run test:bd
+npm run test:bd               # muestra las que fallan y el total
+npm run test:bd -- --todas    # además, la tabla con las 88 pruebas
 ```
 
-O directamente desde la raíz del repo (Git Bash o cmd; PowerShell no admite `<`):
+`npm run test:bd` no necesita `psql` ni Docker y sirve igual con la base local que con **Neon**: en el servidor del
+`backend/.env` crea una base temporal, le carga `schema_ElDesparche.sql` + `seed.sql`, corre las pruebas y la borra (salga
+bien o mal), así que no toca tus datos ni le afecta tener `seed_demo.sql` cargado.
+
+Con `psql`, directamente desde la raíz del repo y sobre una base con solo el esquema y el seed (Git Bash o cmd;
+PowerShell no admite `<`):
 
 ```bash
 docker exec -i desparche_db_container psql -U postgres -d desparche_db -v ON_ERROR_STOP=1 < database/pruebas_bd.sql

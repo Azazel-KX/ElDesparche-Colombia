@@ -10,7 +10,7 @@
     "bd:cargar": "node scripts/cargarBd.js",
     "test": "node --test --test-concurrency=1 \"test/*.test.js\"",
     "test:cobertura": "node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include=src/** \"test/*.test.js\"",
-    "test:bd": "docker cp ../database/pruebas_bd.sql desparche_db_container:/tmp/pruebas_bd.sql && docker exec desparche_db_container psql -U postgres -d desparche_db -v ON_ERROR_STOP=1 -f /tmp/pruebas_bd.sql"
+    "test:bd": "node scripts/pruebasBd.js"
   },
   "engines": {
     "node": ">=20"
