@@ -1,0 +1,42 @@
+# DbGate y pgAdmin conectados a la base de Neon (en la nube). No levanta ninguna base local.
+#
+#   cd backend && npm run neon:herramientas      (una vez: arma docker/.env.neon con tu conexión de Neon)
+#   docker compose -f docker-compose.neon.yml up -d
+#
+#   DbGate   http://localhost:3100   (ya trae la conexión "Neon", sin pedir nada)
+#   pgAdmin  http://localhost:5051   (entra con admin@eldesparche.online / admin; la conexión "Neon - ElDesparche" ya está
+#                                     registrada y te pide la clave de Neon la primera vez)
+#
+# Para apagarlos: docker compose -f docker-compose.neon.yml down
+name: desparche_neon
+
+services:
+  dbgate:
+    image: dbgate/dbgate
+    container_name: desparche_dbgate_neon
+    restart: unless-stopped
+    ports:
+      - "3100:3000"
+    # La conexión (CONNECTIONS, SERVER_neon, USER_neon, PASSWORD_neon...) la escribe npm run neon:herramientas
+    env_file:
+      - docker/.env.neon
+    volumes:
+      - dbgate_datos:/root/.dbgate
+
+  pgadmin_neon:
+    image: dpage/pgadmin4:latest
+    container_name: desparche_pgadmin_neon
+    restart: unless-stopped
+    ports:
+      - "5051:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@eldesparche.online
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    volumes:
+      - ./docker/pgadmin-neon-servers.json:/pgadmin4/servers.json:ro
+      - pgadmin_neon_datos:/var/lib/pgadmin
+
+volumes:
+  dbgate_datos:
+  pgadmin_neon_datos:

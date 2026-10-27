@@ -169,3 +169,6 @@ database/respaldos/
 
 # Archivos locales de Visual Studio
 .vs/
+
+# Conexión de Neon para DbGate y pgAdmin (docker-compose.neon.yml): tiene la clave
+docker/
