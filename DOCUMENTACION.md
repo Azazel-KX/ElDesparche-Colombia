@@ -7,59 +7,9 @@ Para ejecutar el proyecto mira el [README de la raíz](README.md). Esta guía co
 [backend](backend/README.md), [frontend](frontend/README.md), [base de datos](database/README.md) y
 [Neon](GUIA_NEON.md).
 
-## Contenido
-
-1. [Qué es El Desparche](#1-qué-es-el-desparche)
-2. [Mapa del repositorio](#2-mapa-del-repositorio)
-3. [Cómo viaja un dato por el sistema](#3-cómo-viaja-un-dato-por-el-sistema)
-4. [Base de datos (`database/`)](#4-base-de-datos-database)
-5. [Backend (`backend/`)](#5-backend-backend)
-6. [Frontend (`frontend/`)](#6-frontend-frontend)
-7. [Archivos de la raíz](#7-archivos-de-la-raíz)
-8. [Documentos del proyecto (`documents/`)](#8-documentos-del-proyecto-documents)
-9. [Reglas de negocio importantes](#9-reglas-de-negocio-importantes)
-10. [Pruebas](#10-pruebas)
-
----
-
-## 1. Qué es El Desparche
-
-Sitio web de eventos y reservas (música, teatro, danza, circo y comedia) hecho en Tuluá, Colombia, pero con eventos de
-cualquier país. Tiene tres tipos de persona:
-
-| Perfil | Qué puede hacer |
-|---|---|
-| **Cliente** | Ver eventos, reservar entradas, ver su comprobante con QR, consultar y cancelar sus reservas. |
-| **Agente** (empresa organizadora) | Enviar solicitudes de eventos, corregirlas, editar o cancelar sus eventos publicados, aprobar las reservas de sus eventos, validar entradas en la puerta y editar el perfil de su empresa. |
-| **Administrador** | Aprobar o rechazar solicitudes de eventos, gestionar agentes, clientes, administradores, eventos, reservas y ubicaciones, ver reportes y validar entradas. |
-
-
-Tecnologías:
-
 - **Frontend:** HTML5, CSS3 y JavaScript (módulos ES) empaquetado con Vite. Sin frameworks. Patrón MVC.
 - **Backend:** Node.js + Express, patrón MVC, autenticación con JWT.
 - **Base de datos:** PostgreSQL (local con Docker o en la nube con Neon).
-
----
-
-## 2. Mapa del repositorio
-
-```
-ElDesparche-Colombia/
-├── README.md               Cómo ejecutar todo y qué pide el enunciado
-├── DOCUMENTACION.md        Este documento
-├── GUIA_NEON.md            Guía para usar la base en Neon (PostgreSQL en la nube)
-├── docker-compose.yml      Levanta PostgreSQL y pgAdmin con Docker
-├── desc.md                 Registro de los Daily Scrum del Sprint 1
-├── LICENSE                 Licencia del proyecto
-├── .gitignore              Archivos que Git no sube (node_modules, .env, uploads...)
-├── database/               Esquema, datos de prueba y pruebas de la base
-├── backend/                API REST (Express + PostgreSQL)
-├── frontend/               La página web (Vite)
-└── documents/              Entregables académicos (análisis, cronogramas, diagramas)
-```
-
----
 
 ## 3. Cómo viaja un dato por el sistema
 
@@ -94,7 +44,6 @@ Regla de oro de cada lado:
   (`backend/src/utils/validacion*.js`) y en la base (restricciones y triggers). El navegador solo ayuda; la última
   palabra la tiene la base.
 
----
 
 ## 4. Base de datos (`database/`)
 
@@ -383,64 +332,6 @@ Un archivo por HTML. Solo conecta: llama a `iniciarLayout()` y al controlador de
 | `agente/reservasValidarControlador.js` | Reservas y validar entradas del agente (reutiliza las del administrador). |
 | `agente/perfilControlador.js` | Perfil de la empresa (el NIT, la razón social y la comisión no se cambian aquí). |
 
-### 6.9 Otros archivos del frontend
-
-| Archivo / carpeta | Qué es |
-|---|---|
-| `package.json` | Dependencias y scripts (`dev`, `build`, `preview`). |
-| `vite.config.js` | Servidor de desarrollo, redirección de `/api` y `/uploads` al backend, plugin de parciales, CSP por página y lista de páginas del build. |
-| `.env.example` | `API_PROXY_TARGET` (otro backend en desarrollo) y `VITE_API_URL` (API en otro dominio). |
-| `README.md` | Cómo ejecutarlo, estructura MVC, seguridad y media queries. |
-| `docs/estructura-eventos.md` | Notas de diseño de las secciones de eventos de la portada. |
-| `public/documentos/manual-de-usuario-el-desparche.pdf` | Manual de usuario que se publica tal cual. |
-| `img/` | Logo (`logo-eldesparche.svg`), isotipo, favicon, imagen por defecto de eventos (`evento-sin-foto.svg`), fotos de eventos (`.png`) e iconos (`.svg`). |
-| `img/nosotros/` | 12 fotos de la cinta de la página Nosotros. |
-| `img/prensa/` | 20 imágenes `mundo-XX.webp` que dan textura al planeta de la sala de prensa. |
-
----
-
-## 7. Archivos de la raíz
-
-| Archivo | Qué es |
-|---|---|
-| `README.md` | Cómo ejecutar el proyecto, cuentas de prueba y qué pide el enunciado. |
-| `GUIA_NEON.md` | Paso a paso para usar PostgreSQL en Neon: crear el proyecto, conectar el backend, cargar datos, verificar y publicar. |
-| `docker-compose.yml` | Dos servicios: `database` (PostgreSQL con PostGIS, puerto 5432, contenedor `desparche_db_container`) y `pgadmin` (puerto 5050). |
-| `desc.md` | Registro de los Daily Scrum del Sprint 1 (responsables, avance e impedimentos). |
-| `LICENSE` | Licencia. |
-| `.gitignore` | Evita subir `node_modules`, `.env`, `dist`, `uploads` y registros. |
-
----
-
-## 8. Documentos del proyecto (`documents/`)
-
-Entregables académicos del proyecto integrador; no los usa el programa.
-
-| Carpeta | Contenido |
-|---|---|
-| `Analisis (PESTEL y Canvas)/` | PESTEL, matriz Canvas, matriz de Vester y diagrama de Pareto. |
-| `Avances/` | Avances del proyecto integrador. |
-| `BD/` | Avance del corte 2, diagrama de la base (`.drawio`) y diccionario de datos. |
-| `Cronogramas/` | Cronograma del proyecto y modelo Iceberg/apalancamiento. |
-| `Daily/` | Daily Scrum del Sprint 1. |
-| `Enunciado general/` | Enunciado del proyecto integrador. |
-| `Metodologia jira/` | Presentación de puntos de historia. |
-
----
-
-## 9. Reglas de negocio importantes
-
-- **Reserva válida (cuenta como ingreso y sirve para entrar):** no está cancelada y es gratis o ya fue `Confirmada`/`Usada`.
-- **Evento reservable (aparece en la portada):** estado `Programado`, `En Boletería` o `En Vivo`, que no haya terminado y que tenga cupos.
-- **Solicitudes de eventos:** un agente envía una solicitud; queda `En revisión` hasta que un administrador la aprueba (pasa a `Programado`) o la rechaza con un motivo. El agente puede corregirla o retirarla.
-- **Evento publicado:** el agente solo puede editar descripción, observaciones y foto, o cancelarlo con una causa.
-- **Cuentas:** `Activo`, `Pendiente` (agente sin aprobar), `Suspendido` (agente) y `Bloqueado` (cliente). Una cuenta suspendida o bloqueada no puede entrar.
-- **Contraseñas:** de 8 a 72 caracteres, guardadas con hash. No hay correo de recuperación: un administrador la restablece; cada persona puede cambiar la suya.
-- **Ubicaciones:** cualquier país; las coordenadas deben ser válidas en el planeta. Al borrar un evento o cambiarle el lugar, la ubicación que queda sin uso también se borra, igual que las imágenes.
-- **Zona horaria:** todas las conexiones usan la de Colombia (`DB_TIMEZONE`).
-- **Seguridad:** `helmet`, CORS por lista, límite de intentos en el login, token JWT, rol revisado en cada petición, escape de todo dato mostrado y CSP en cada página.
-
----
 
 ## 10. Pruebas
 
@@ -463,6 +354,3 @@ Entregables académicos del proyecto integrador; no los usa el programa.
 | `validacion.test.js`, `validacionEvento.test.js` | Reglas de validación (sin base de datos). |
 | `errores.test.js` | Manejo de errores, imágenes inválidas y validaciones de personas (sin base de datos). |
 | `ayudas.js` | No es una prueba: funciones comunes (arrancar el servidor, entrar, crear eventos y limpiar). |
-
-> Con `seed_demo.sql` cargado varias pruebas del API fallan, porque esperan los datos del `seed.sql` solamente.
-> Para probar, usa una base aparte (ver `database/README.md`).
