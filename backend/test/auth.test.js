@@ -88,10 +88,10 @@ after(async () => {
 // Servicio y catálogo
 // ---------------------------------------------------------------------------------------------
 
-test("health responde ok", async () => {
+test("health responde ok y comprueba la base de datos", async () => {
   const { estado, json } = await llamar("/api/health");
   assert.equal(estado, 200);
-  assert.equal(json.estado, "ok");
+  assert.deepEqual(json, { estado: "ok", baseDatos: "ok" });
 });
 
 test("ciudades lista las del seed con su departamento", async () => {
