@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 
@@ -43,46 +43,70 @@ function incluirParciales() {
   };
 }
 
-export default defineConfig({
-  root: '.',
-  plugins: [incluirParciales()],
-  server: {
-    // 'true' escucha en IPv4 (0.0.0.0) e IPv6 (::) a la vez.
-    // cloudflared resuelve 'localhost' y puede elegir ::1; si Vite solo
-    // estuviera en 127.0.0.1, el tunel recibiria conexion rechazada.
-    host: true,
-    port: 5173,
-    strictPort: true,
-    open: true,
-    // Vite rechaza peticiones cuyo Host no reconoce. El tunel de Cloudflare
-    // llega con Host: eldesparche.online, asi que hay que permitirlo
-    // explicitamente o responde "Blocked request".
-    allowedHosts: ['eldesparche.online', '.eldesparche.online', 'localhost'],
-    // Cuando exista el backend en el puerto 5000, las llamadas a /api
-    // se redirigen solas: fetch('/api/eventos') -> http://localhost:5000/api/eventos
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
-      }
-    }
-  },
-  build: {
-    outDir: 'dist',
-    // Sitio multipagina: sin esto 'npm run build' solo empaqueta index.html
-    // y las demas paginas quedan fuera de dist/.
-    rollupOptions: {
-      input: {
-        index: resolve(import.meta.dirname, 'index.html'),
-        eventos: resolve(import.meta.dirname, 'eventos.html'),
-        evento: resolve(import.meta.dirname, 'evento.html'),
-        reservar: resolve(import.meta.dirname, 'reservar.html'),
-        confirmacion: resolve(import.meta.dirname, 'confirmacion.html'),
-        misReservas: resolve(import.meta.dirname, 'mis-reservas.html'),
-        admin: resolve(import.meta.dirname, 'admin.html'),
-        agente: resolve(import.meta.dirname, 'agente.html'),
-        nosotros: resolve(import.meta.dirname, 'nosotros.html')
-      }
-    }
+/* Si la web llama a un API en otro dominio (VITE_API_URL absoluta, ej. https://api.eldesparche.online/api), la etiqueta
+   Content-Security-Policy de cada página debe permitir ese origen en connect-src o el navegador bloquea las llamadas.
+   Se agrega aquí al servir y al construir, así no hay que editar a mano los nueve HTML. */
+function permitirApiEnCsp(apiUrl) {
+  let origen;
+  try {
+    origen = new URL(apiUrl).origin;
+  } catch {
+    return null;   // sin VITE_API_URL o relativa (/api): es el mismo origen y 'self' ya la cubre
   }
+  return {
+    name: 'permitir-api-en-csp',
+    transformIndexHtml(html) {
+      return html.replace("connect-src 'self'", `connect-src 'self' ${origen}`);
+    }
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  /* Variables de frontend/.env (ver .env.example). Solo las VITE_* llegan al navegador;
+     API_PROXY_TARGET se queda en el servidor de desarrollo. */
+  const env = loadEnv(mode, import.meta.dirname, '');
+  const destinoApi = env.API_PROXY_TARGET || 'http://localhost:5000';
+
+  return {
+    root: '.',
+    plugins: [incluirParciales(), permitirApiEnCsp(env.VITE_API_URL)].filter(Boolean),
+    server: {
+      // 'true' escucha en IPv4 (0.0.0.0) e IPv6 (::) a la vez.
+      // cloudflared resuelve 'localhost' y puede elegir ::1; si Vite solo
+      // estuviera en 127.0.0.1, el tunel recibiria conexion rechazada.
+      host: true,
+      port: 5173,
+      strictPort: true,
+      open: true,
+      // Vite rechaza peticiones cuyo Host no reconoce. El tunel de Cloudflare
+      // llega con Host: eldesparche.online, asi que hay que permitirlo
+      // explicitamente o responde "Blocked request".
+      allowedHosts: ['eldesparche.online', '.eldesparche.online', 'localhost'],
+      // Las llamadas a /api se redirigen al backend: fetch('/api/eventos') -> http://localhost:5000/api/eventos
+      // (o al API_PROXY_TARGET de frontend/.env). /uploads son las imágenes que suben los paneles.
+      // La web nunca habla con la base (local o Neon): solo el backend tiene la cadena de conexión.
+      proxy: {
+        '/api': { target: destinoApi, changeOrigin: true },
+        '/uploads': { target: destinoApi, changeOrigin: true }
+      }
+    },
+    build: {
+      outDir: 'dist',
+      // Sitio multipagina: sin esto 'npm run build' solo empaqueta index.html
+      // y las demas paginas quedan fuera de dist/.
+      rollupOptions: {
+        input: {
+          index: resolve(import.meta.dirname, 'index.html'),
+          eventos: resolve(import.meta.dirname, 'eventos.html'),
+          evento: resolve(import.meta.dirname, 'evento.html'),
+          reservar: resolve(import.meta.dirname, 'reservar.html'),
+          confirmacion: resolve(import.meta.dirname, 'confirmacion.html'),
+          misReservas: resolve(import.meta.dirname, 'mis-reservas.html'),
+          admin: resolve(import.meta.dirname, 'admin.html'),
+          agente: resolve(import.meta.dirname, 'agente.html'),
+          nosotros: resolve(import.meta.dirname, 'nosotros.html')
+        }
+      }
+    }
+  };
 });
