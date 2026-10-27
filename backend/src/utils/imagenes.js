@@ -58,4 +58,15 @@ function guardarImagen(valor, subcarpeta, nombre, campo = "imagen") {
 // Lo que ve la web: una ruta guardada ("/uploads/...") se completa con la dirección pública del API
 const urlPublica = (ruta) => (ruta && ruta.startsWith("/uploads/") ? publicUrl + ruta : ruta || "");
 
-module.exports = { guardarImagen, urlPublica, CARPETA_UPLOADS };
+// Borra el archivo de una ruta guardada ("/uploads/eventos/evento-ab12cd34ef.jpg"). Solo acepta la forma exacta que
+// produce guardarImagen (una subcarpeta y un archivo .jpg, .png o .webp), así nunca sale de la carpeta uploads/.
+// Devuelve true si la ruta era de uploads/ (exista o no el archivo). Quién decide si la imagen ya no se usa: el modelo.
+const RE_RUTA_SUBIDA = /^\/uploads\/([\w-]+)\/([\w-]+\.(?:jpg|png|webp))$/;
+function borrarArchivoSubido(ruta) {
+  const m = RE_RUTA_SUBIDA.exec(ruta || "");
+  if (!m) return false;
+  fs.rmSync(path.join(CARPETA_UPLOADS, m[1], m[2]), { force: true });
+  return true;
+}
+
+module.exports = { guardarImagen, urlPublica, borrarArchivoSubido, CARPETA_UPLOADS };

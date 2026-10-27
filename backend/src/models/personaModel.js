@@ -2,7 +2,8 @@ const db = require("../config/db");
 const { ErrorHttp } = require("../utils/errores");
 const ciudadModel = require("./ciudadModel");
 const { guardarImagen, urlPublica } = require("../utils/imagenes");
-const { LATERAL_PAGO, ES_VALIDA } = require("../utils/sql");
+const { borrarImagenSinUso, escribirConImagenes } = require("./imagenModel");
+const { ES_VALIDA } = require("../utils/sql");
 const { separarNombre, unirNombre, CUENTA_DE_ESTADO, ultimosMeses } = require("../utils/formato");
 
 // Modelo de PERSONAS para los paneles: agentes, clientes y administradores (USUARIO + su subtipo).
@@ -66,13 +67,23 @@ async function actualizarUsuario(cliente, documento, d) {
   }
 }
 
-// Borra al usuario (y en cascada su subtipo, teléfonos y métodos de pago). "tabla" es ADMIN, CLIENTE o AGENTE y
+// Borra al usuario (y en cascada su subtipo, teléfonos y reservas). "tabla" es ADMIN, CLIENTE o AGENTE y
 // "columna" por qué se busca (numero_identificacion o nit). Devuelve false si no existe. Si algo todavía lo usa con
-// RESTRICT (eventos de un agente, pagos de un cliente), PostgreSQL lanza 23001 y el controlador lo vuelve un 409.
+// RESTRICT (eventos de un agente), PostgreSQL lanza 23001 y el controlador lo vuelve un 409.
 async function borrarUsuario(tabla, columna, valor) {
   const { rowCount } = await db.query(
     `DELETE FROM USUARIO u USING ${tabla} s WHERE s.${columna} = $1 AND u.numero_identificacion = s.numero_identificacion`,
     [valor]
+  );
+  return rowCount > 0;
+}
+
+// Cambia la contraseña de un usuario (el administrador la restablece). "tabla" es ADMIN, CLIENTE o AGENTE y "columna"
+// por qué se busca (numero_identificacion o nit). Devuelve false si no existe.
+async function cambiarContrasenaDe(tabla, columna, valor, hash) {
+  const { rowCount } = await db.query(
+    `UPDATE USUARIO u SET contrasena_hash = $2 FROM ${tabla} s WHERE s.${columna} = $1 AND u.numero_identificacion = s.numero_identificacion`,
+    [valor, hash]
   );
   return rowCount > 0;
 }
@@ -82,14 +93,13 @@ async function borrarUsuario(tabla, columna, valor) {
 // ---------------------------------------------------------------------------------------------
 
 // Entradas e ingresos de cada agente: totales y por mes. Una consulta para todos. Cuentan las entradas válidas
-// (ES_VALIDA): pagadas, gratis o confirmadas por un administrador. Devuelve Map(documento -> { entradas, ingresos, porMes }).
+// (ES_VALIDA): gratis o confirmadas por un administrador. Devuelve Map(documento -> { entradas, ingresos, porMes }).
 async function ventasPorAgente() {
   const { rows } = await db.query(
     `SELECT e.numero_identificacion AS doc, to_char(r.fecha_hora, 'YYYY-MM') AS mes,
             SUM(r.numero_entradas)::int AS entradas, SUM(r.valor_total)::float8 AS ingresos
        FROM RESERVA r
        JOIN EVENTO e ON e.codigo = r.codigo_evento
-       ${LATERAL_PAGO}
       WHERE ${ES_VALIDA}
       GROUP BY 1, 2`
   );
@@ -187,7 +197,10 @@ async function actualizarAgente(nit, d) {
 // teléfono, ciudad y experiencia. La razón social, el NIT y la comisión no se cambian aquí.
 async function actualizarPerfilAgente(documento, d) {
   const logo = d.logo === null ? undefined : guardarImagen(d.logo, "logos", "logo", "logo");
-  return db.conTransaccion(async (cliente) => {
+  // Si llega otro logo (o se quita), el anterior se borra de uploads/ cuando ya nadie lo usa (imagenModel)
+  await escribirConImagenes(logo, async (cliente) => {
+    const { rows: [anterior] } = await cliente.query(
+      "SELECT logo_url FROM AGENTE WHERE numero_identificacion = $1 FOR UPDATE", [documento]);
     const idCiudad = await ciudadModel.idObligatorio(d.ciudad, cliente);
     await cliente.query("UPDATE USUARIO SET correo = $2, id_ciudad = $3 WHERE numero_identificacion = $1", [documento, d.correo, idCiudad]);
     await cliente.query(
@@ -205,6 +218,7 @@ async function actualizarPerfilAgente(documento, d) {
         await cliente.query("INSERT INTO USUARIO_TELEFONO (numero_identificacion, telefono) VALUES ($1, $2) ON CONFLICT DO NOTHING", [documento, d.telefono]);
       }
     }
+    return { sobra: logo === undefined || !anterior ? null : anterior.logo_url };
   });
 }
 
@@ -215,7 +229,18 @@ const cambiarEstadoAgente = async (nit, estado) => {
   return rowCount > 0;
 };
 
-const eliminarAgente = (nit) => borrarUsuario("AGENTE", "nit", nit);
+// Borra al agente (USUARIO + AGENTE en cascada) y luego su logo de uploads/ si ya nadie lo usa.
+// Si tiene eventos, PostgreSQL lo impide (RESTRICT) y el controlador responde 409: el logo no se toca.
+async function eliminarAgente(nit) {
+  const { rows } = await db.query(
+    `DELETE FROM USUARIO u USING AGENTE s WHERE s.nit = $1 AND u.numero_identificacion = s.numero_identificacion
+     RETURNING s.logo_url`,
+    [nit]
+  );
+  if (!rows.length) return false;
+  await borrarImagenSinUso(rows[0].logo_url);
+  return true;
+}
 
 // ---------------------------------------------------------------------------------------------
 // CLIENTES
@@ -345,7 +370,7 @@ async function eliminarAdministrador(documento, documentoQuienBorra) {
 }
 
 module.exports = {
-  aPersona, estadoWeb, ventasPorAgente,
+  aPersona, estadoWeb, ventasPorAgente, cambiarContrasenaDe,
   listarAgentes, obtenerAgente, obtenerAgentePorDocumento, crearAgente, actualizarAgente, actualizarPerfilAgente,
   cambiarEstadoAgente, eliminarAgente,
   listarClientes, obtenerCliente, crearCliente, actualizarCliente, cambiarEstadoCliente, eliminarCliente,

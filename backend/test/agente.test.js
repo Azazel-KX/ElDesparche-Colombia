@@ -297,3 +297,63 @@ test("PUT /api/agente/perfil: el agente edita el perfil de su empresa (no el NIT
     await pool.query("DELETE FROM USUARIO WHERE numero_identificacion = $1", [cuerpo.documento]);
   }
 });
+
+// ---------------------------------------------------------------------------------------------
+// Aprobar reservas y cambiar un evento ya publicado
+// ---------------------------------------------------------------------------------------------
+
+async function reservaPorAprobar(codigoEvento) {
+  const { rows } = await pool.query(
+    "INSERT INTO RESERVA (numero_entradas, estado, numero_identificacion, codigo_evento) VALUES (1, 'Reservada', '1000000003', $1) RETURNING id_reserva",
+    [codigoEvento]);
+  return `DES-${1000 + rows[0].id_reserva}`;
+}
+
+test("PATCH /api/agente/reservas/:codigo/confirmar: aprueba una reserva de SU evento; de otro organizador 403; ya confirmada 409", async () => {
+  const ev = await crearEventoAdmin({ precio: 10000 });
+  const codigo = await reservaPorAprobar(ev.id);
+
+  assert.equal((await agente(tokenAgente2, `/reservas/${codigo}/confirmar`, "PATCH")).estado, 403, "es de un evento de otro agente");
+  assert.equal((await agente(tokenCliente, `/reservas/${codigo}/confirmar`, "PATCH")).estado, 403, "un cliente no aprueba");
+  const ok = await agente(tokenAgente1, `/reservas/${codigo}/confirmar`, "PATCH");
+  assert.equal(ok.estado, 200, JSON.stringify(ok.json));
+  assert.equal(ok.json.reserva.estado, "Confirmada");
+  assert.equal((await agente(tokenAgente1, `/reservas/${codigo}/confirmar`, "PATCH")).estado, 409, "ya está confirmada");
+  assert.equal((await agente(tokenAgente1, "/reservas/DES-9999/confirmar", "PATCH")).estado, 404);
+});
+
+test("PUT /api/agente/eventos/:id/publicado: edita descripción y observaciones de SU evento publicado; no de otro ni uno cancelado", async () => {
+  const ev = await crearEventoAdmin({ precio: 10000 });
+  const cuerpo = { descripcion: "Una descripción nueva y bien larga para el evento publicado.", observaciones: "Llegar temprano" };
+
+  assert.equal((await agente(tokenAgente2, `/eventos/${ev.id}/publicado`, "PUT", cuerpo)).estado, 404, "es de otro agente");
+  assert.equal((await agente(tokenAgente1, `/eventos/${ev.id}/publicado`, "PUT", { ...cuerpo, descripcion: "corta" })).estado, 400);
+  const ok = await agente(tokenAgente1, `/eventos/${ev.id}/publicado`, "PUT", cuerpo);
+  assert.equal(ok.estado, 200, JSON.stringify(ok.json));
+  assert.equal(ok.json.evento.descripcion, cuerpo.descripcion);
+  assert.equal(ok.json.evento.observaciones, "Llegar temprano");
+  assert.equal(ok.json.evento.titulo, ev.titulo, "no cambia lo demás");
+
+  const sol = (await enviar(tokenAgente1, {})).json.id;
+  assert.equal((await agente(tokenAgente1, `/eventos/${sol}/publicado`, "PUT", cuerpo)).estado, 422, "una solicitud se corrige aparte");
+
+  await agente(tokenAgente1, `/eventos/${ev.id}/cancelar`, "PATCH", { causa: "Fuerza mayor o clima" });
+  assert.equal((await agente(tokenAgente1, `/eventos/${ev.id}/publicado`, "PUT", cuerpo)).estado, 422, "uno cancelado no se edita");
+});
+
+test("PATCH /api/agente/eventos/:id/cancelar: cancela SU evento con la causa y sus reservas; de otro agente 404; sin causa 400", async () => {
+  const ev = await crearEventoAdmin({ precio: 10000 });
+  const codigo = await reservaPorAprobar(ev.id);
+
+  assert.equal((await agente(tokenAgente2, `/eventos/${ev.id}/cancelar`, "PATCH", { causa: "Fuerza mayor o clima" })).estado, 404, "es de otro agente");
+  assert.equal((await agente(tokenAgente1, `/eventos/${ev.id}/cancelar`, "PATCH", {})).estado, 400, "sin causa");
+  assert.equal((await agente(tokenAgente1, `/eventos/${ev.id}/cancelar`, "PATCH", { causa: "Otra causa" })).estado, 400, "Otra causa pide detalle");
+
+  const ok = await agente(tokenAgente1, `/eventos/${ev.id}/cancelar`, "PATCH", { causa: "Otra causa", detalle: "el lugar se cerró" });
+  assert.equal(ok.estado, 200, JSON.stringify(ok.json));
+  assert.equal(ok.json.evento.estado, "Cancelado");
+  assert.match(ok.json.evento.observaciones, /Cancelado por el agente\. Causa: Otra causa/);
+  const reserva = (await agente(tokenAgente1, "/reservas")).json.reservas.find((r) => r.codigo === codigo);
+  assert.equal(reserva.estado, "Cancelada", "sus reservas se cancelan con él");
+  assert.equal((await agente(tokenAgente1, `/eventos/${ev.id}/cancelar`, "PATCH", { causa: "Otra causa", detalle: "x" })).estado, 409, "ya está cancelado");
+});

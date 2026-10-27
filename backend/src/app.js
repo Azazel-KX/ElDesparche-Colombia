@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const { corsOrigins } = require("./config/env");
+const { baseDisponible } = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const ciudadRoutes = require("./routes/ciudadRoutes");
 const eventoRoutes = require("./routes/eventoRoutes");
@@ -49,9 +50,18 @@ app.use("/uploads", (_req, res, next) => {
 // RUTAS PÚBLICAS
 // ============================================
 
-// Health check: verificar que el servidor está vivo
-// GET /api/health → { estado: "ok" }
-app.get("/api/health", (_req, res) => res.json({ estado: "ok" }));
+// Health check: verificar que el servidor está vivo y que la base de datos responde
+// GET /api/health → 200 { estado: "ok", baseDatos: "ok" } o 503 { estado: "error", baseDatos: "sin conexión" }
+// - Sirve para comprobar la conexión con Neon y para el monitor del hosting
+// - Cache-Control: no-store para que ningún proxy guarde un estado viejo
+app.get("/api/health", async (_req, res) => {
+  const conectada = await baseDisponible();
+  res.set("Cache-Control", "no-store");
+  res.status(conectada ? 200 : 503).json({
+    estado: conectada ? "ok" : "error",
+    baseDatos: conectada ? "ok" : "sin conexión",
+  });
+});
 
 // ============================================
 // RUTAS DE AUTENTICACIÓN Y APP

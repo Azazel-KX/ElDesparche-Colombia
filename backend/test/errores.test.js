@@ -192,3 +192,22 @@ test("validarAdministrador: al modificar no pide documento ni contraseña", () =
   assert.equal(cambio.errores?.documento, undefined);
   assert.equal(cambio.errores?.contrasena, undefined);
 });
+
+test("PUBLIC_URL: por defecto las imágenes salen con ruta relativa; con valor, con la dirección del API", () => {
+  assert.equal(urlPublica("/uploads/eventos/a.jpg"), `${publicUrl}/uploads/eventos/a.jpg`);
+
+  // Se cargan de nuevo env.js e imagenes.js con PUBLIC_URL definida (la API en otro dominio)
+  const anterior = process.env.PUBLIC_URL;
+  const modulos = ["../src/config/env", "../src/utils/imagenes"].map((m) => require.resolve(m));
+  process.env.PUBLIC_URL = "https://api.ejemplo.test/";
+  modulos.forEach((m) => delete require.cache[m]);
+  try {
+    const imagenes = require("../src/utils/imagenes");
+    assert.equal(imagenes.urlPublica("/uploads/eventos/a.jpg"), "https://api.ejemplo.test/uploads/eventos/a.jpg");
+    // Al editar, la web reenvía la URL completa: en la base vuelve a quedar la ruta corta
+    assert.equal(imagenes.guardarImagen("https://api.ejemplo.test/uploads/eventos/a-1.jpg", "eventos", "x"), "/uploads/eventos/a-1.jpg");
+  } finally {
+    if (anterior === undefined) delete process.env.PUBLIC_URL; else process.env.PUBLIC_URL = anterior;
+    modulos.forEach((m) => delete require.cache[m]);
+  }
+});

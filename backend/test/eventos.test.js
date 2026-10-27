@@ -204,7 +204,7 @@ test("POST /api/admin/eventos: el primer código después del seed es el 0008", 
 });
 
 test("POST /api/admin/eventos: datos inválidos → 400 con el detalle de cada campo", async () => {
-  const { estado, json } = await crearEvento({ nombre: "", capacidad: 0, categoria: "x", teatro: "", lat: 40 });
+  const { estado, json } = await crearEvento({ nombre: "", capacidad: 0, categoria: "x", teatro: "", lat: 95 });
   assert.equal(estado, 400);
   for (const campo of ["nombre", "capacidad", "categoria", "teatro", "lat"]) assert.ok(json.detalles[campo], campo);
 });
@@ -224,11 +224,10 @@ test("POST /api/admin/eventos: sube la imagen como archivo y la sirve desde /upl
   const { estado, json } = await crearEvento({ imagen: t.PNG_1X1 });
   assert.equal(estado, 201);
   imagenes.push(json.evento.imagen);
-  assert.match(json.evento.imagen, /^http:\/\/localhost:\d+\/uploads\/eventos\/evento-[0-9a-f]{10}\.png$/);
+  // Sin PUBLIC_URL la web recibe la ruta relativa y la pide a su mismo dominio (proxy /uploads de Vite)
+  assert.match(json.evento.imagen, /^\/uploads\/eventos\/evento-[0-9a-f]{10}\.png$/);
 
-  const ruta = new URL(json.evento.imagen).pathname;
-  // El servidor de pruebas escucha en otro puerto que el de PUBLIC_URL: se pide la ruta relativa
-  const archivo = await fetch(t.urlBase() + ruta);
+  const archivo = await fetch(t.urlBase() + json.evento.imagen);
   assert.equal(archivo.status, 200);
   assert.equal(archivo.headers.get("cross-origin-resource-policy"), "cross-origin");
   assert.equal(archivo.headers.get("content-type"), "image/png");
@@ -248,7 +247,12 @@ test("POST /api/admin/eventos: rechaza una imagen que no es una imagen", async (
 test("PUT /api/admin/eventos/:id: edita los datos y puede cambiar la ubicación sin tocar la de otros eventos", async () => {
   const { json: creado } = await crearEvento();
   const id = creado.evento.id;
-  const { rows: antes } = await pool.query("SELECT id_ubicacion FROM EVENTO WHERE codigo = $1", [id]);
+  const { json: otro } = await crearEvento();
+  const ubicacionDe = async (codigo) => (await pool.query("SELECT id_ubicacion FROM EVENTO WHERE codigo = $1", [codigo])).rows[0].id_ubicacion;
+  const existe = async (idUbicacion) => (await pool.query("SELECT 1 FROM UBICACION WHERE id_ubicacion = $1", [idUbicacion])).rowCount === 1;
+  // El otro evento comparte la ubicación: al cambiarle el lugar a este, la de los dos debe seguir existiendo
+  const antes = await ubicacionDe(id);
+  await pool.query("UPDATE EVENTO SET id_ubicacion = $2 WHERE codigo = $1", [otro.evento.id, antes]);
 
   const { estado, json } = await llamar(`/api/admin/eventos/${id}`, {
     metodo: "PUT", token: tokenAdmin,
@@ -260,10 +264,16 @@ test("PUT /api/admin/eventos/:id: edita los datos y puede cambiar la ubicación 
   assert.equal(json.evento.precio, 30000);
   assert.equal(json.evento.ciudad, "Bogotá D.C.");
   assert.equal(json.evento.id, id);
-  const { rows: despues } = await pool.query("SELECT id_ubicacion FROM EVENTO WHERE codigo = $1", [id]);
-  assert.notEqual(despues[0].id_ubicacion, antes[0].id_ubicacion);
-  const { rowCount } = await pool.query("SELECT 1 FROM UBICACION WHERE id_ubicacion = $1", [antes[0].id_ubicacion]);
-  assert.equal(rowCount, 1, "la ubicación anterior sigue existiendo (podría estar compartida)");
+  const despues = await ubicacionDe(id);
+  assert.notEqual(despues, antes);
+  assert.equal(await existe(antes), true, "la ubicación anterior sigue: el otro evento todavía la usa");
+
+  // Sin nadie más que la use, la ubicación que se deja se borra (no quedan huérfanas)
+  const { estado: otraVez } = await llamar(`/api/admin/eventos/${id}`, {
+    metodo: "PUT", token: tokenAdmin, cuerpo: eventoBase({ direccion: "Calle de Prueba # 9-10" }),
+  });
+  assert.equal(otraVez, 200);
+  assert.equal(await existe(despues), false, "la ubicación que ya nadie usa se borró");
 });
 
 test("PUT /api/admin/eventos/:id: una edición sin cambiar la ubicación no crea ubicaciones nuevas", async () => {
@@ -318,19 +328,14 @@ test("DELETE /api/admin/eventos/:id: elimina el evento y sus reservas; 404 si no
   assert.equal((await llamar(`/api/admin/eventos/${id}`, { metodo: "DELETE", token: tokenAdmin })).estado, 404);
 });
 
-test("DELETE /api/admin/eventos/:id: 409 si alguna reserva ya tiene un pago (PAGO.id_reserva es RESTRICT)", async () => {
+test("DELETE /api/admin/eventos/:id: sus reservas se borran con él", async () => {
   const { json: creado } = await crearEvento({ precio: 10000 });
   const id = creado.evento.id;
-  const { rows } = await pool.query(
-    "INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1, '1000000002', $1) RETURNING id_reserva", [id]);
-  await pool.query(
-    "INSERT INTO PAGO (monto, referencia_transaccion, estado, id_reserva, id_metodo) VALUES (10000, $1, 'Aprobado', $2, 1)",
-    [`TX-TEST-${Date.now()}`, rows[0].id_reserva]);
+  await pool.query("INSERT INTO RESERVA (numero_entradas, numero_identificacion, codigo_evento) VALUES (1, '1000000002', $1)", [id]);
 
   const res = await llamar(`/api/admin/eventos/${id}`, { metodo: "DELETE", token: tokenAdmin });
-  assert.equal(res.estado, 409);
-  assert.match(res.json.error, /pagos/);
-  assert.equal((await llamar(`/api/eventos/${id}`)).estado, 200, "el evento sigue ahí");
+  assert.equal(res.estado, 204);
+  assert.equal((await pool.query("SELECT 1 FROM RESERVA WHERE codigo_evento = $1", [id])).rowCount, 0, "sus reservas se borraron");
 });
 
 // ---------------------------------------------------------------------------------------------

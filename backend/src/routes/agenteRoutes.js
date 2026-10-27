@@ -15,8 +15,11 @@ router.get("/eventos", asincrono(agente.listarEventos));
 router.post("/eventos", asincrono(agente.crearSolicitud));
 router.put("/eventos/:id", asincrono(agente.corregirSolicitud));
 router.delete("/eventos/:id", asincrono(agente.retirarSolicitud));
+router.put("/eventos/:id/publicado", asincrono(agente.editarEventoPublicado));
+router.patch("/eventos/:id/cancelar", asincrono(agente.cancelarEvento));
 
 router.get("/reservas", asincrono(agente.listarReservas));
+router.patch("/reservas/:codigo/confirmar", asincrono(agente.confirmarReserva));
 router.patch("/reservas/:codigo/estado", asincrono(agente.cancelarReserva));
 router.post("/entradas/:codigo/ingreso", asincrono(agente.ingreso));
 

@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-m62wOcyBidVqVxOSvCeZaCvF5VIK4XOF9YP7a4I0Yug='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://nominatim.openstreetmap.org; frame-src https://www.openstreetmap.org; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reservar - El Desparche</title>
   <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
@@ -28,96 +29,18 @@
 <body data-pagina="reservar">
 
   <!-- ===== CABECERA ===== -->
-  <header class="cabecera">
-    <button type="button" class="boton-menu" id="boton-menu"
-            aria-expanded="false" aria-controls="menu-principal menu-cuenta">
-      <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
-      <span>Menú</span>
-    </button>
-
-    <div class="cabecera-izquierda">
-      <a class="logo" href="index.html">
-        <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche">
-      </a>
-
-      <nav class="menu" id="menu-principal">
-        <ul>
-          <li><a href="index.html">Inicio</a></li>
-          <li><a class="activo" href="eventos.html">Eventos</a></li>
-          <li><a href="mis-reservas.html">Mis reservas</a></li>
-        </ul>
-      </nav>
-    </div>
-
-    <div class="cabecera-derecha" id="menu-cuenta">
-
-      <!-- El script escribe aquí los botones de acceso o los datos del usuario -->
-      <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
-
-      <!-- ===== BOTÓN DE ACCESIBILIDAD (patron "disclosure") =====
-           aria-expanded es un ESTADO: dice si el panel esta abierto o
-           cerrado, y el lector de pantalla lo anuncia en cada pulsación
-           ("contraído" / "expandido"). aria-controls lo enlaza con el
-           panel que abre. El panel se oculta con el atributo hidden, que
-           lo saca del orden de tabulación y también del lector: así no se
-           puede llegar con el teclado a botones que no se ven. -->
-      <div class="accesibilidad">
-        <button type="button" class="boton-accesibilidad" id="abrir-accesibilidad"
-                aria-expanded="false" aria-controls="panel-accesibilidad">
-          <span>Accesibilidad</span>
-          <!-- La flecha va en el marcado con aria-hidden, no como
-               contenido generado en CSS: el contenido de ::after SÍ entra
-               en el nombre accesible del botón en algunos navegadores, y
-               el lector acabaría diciendo "Accesibilidad triángulo". -->
-          <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
-        </button>
-
-        <div class="panel-accesibilidad" id="panel-accesibilidad" hidden>
-          <h2 class="panel-titulo" id="titulo-panel-acc">Opciones de accesibilidad</h2>
-
-          <!-- role="group" + aria-labelledby agrupan los botones bajo un
-               mismo nombre, para que el lector anuncie de qué van antes
-               de leer cada uno. -->
-          <div class="tamano-texto" role="group" aria-labelledby="titulo-tamano">
-            <span class="oculto" id="titulo-tamano">Tamaño del texto</span>
-
-            <button type="button" class="tamano-menor" id="texto-menos"
-                    aria-label="Disminuir el tamaño del texto">
-              A<span aria-hidden="true">&minus;</span>
-            </button>
-
-            <!-- Señal visible del estado. El lector no lo lee (ya se lo
-                 anuncia la región role="status") para no repetirlo. -->
-            <span class="tamano-valor" id="texto-valor" aria-hidden="true">100%</span>
-
-            <button type="button" class="tamano-mayor" id="texto-mas"
-                    aria-label="Aumentar el tamaño del texto">
-              A<span aria-hidden="true">+</span>
-            </button>
-
-            <button type="button" class="tamano-reinicio" id="texto-normal"
-                    aria-label="Restablecer el tamaño normal del texto">
-              Normal
-            </button>
-          </div>
-
-          <p class="panel-ayuda">Se guarda en este navegador para tus próximas visitas.</p>
-        </div>
-      </div>
-
-      <!-- Anuncia el nuevo tamaño en voz alta al pulsar (WCAG 4.1.3) -->
-      <p class="oculto" id="aviso-tamano" role="status" aria-live="polite"></p>
-    </div>
-  </header>
+    <!--@incluir cabecera-->
 
   <main class="fondo-gris">
     <section class="seccion">
 
-      <p class="migas">
-        <a href="eventos.html">Eventos</a> /
-        <a id="miga-evento" href="#"></a> /
-        <span>Formulario de reserva</span>
-      </p>
+      <nav class="migas" aria-label="Ruta de navegación">
+        <ol>
+          <li><a class="miga-volver" href="eventos.html">Eventos</a></li>
+          <li><a class="miga-enlace" id="miga-evento" href="#"></a></li>
+          <li aria-current="page"><span>Formulario de reserva</span></li>
+        </ol>
+      </nav>
 
       <h1>Formulario de reserva</h1>
 
@@ -125,7 +48,7 @@
       <div class="reserva-columnas">
 
         <!-- ===== DATOS DE LA RESERVA ===== -->
-        <form class="caja">
+        <form class="caja" id="form-reserva" novalidate>
           <h2 class="titulo-caja">Datos de la reserva</h2>
 
           <!-- Resumen corto del evento -->
@@ -152,7 +75,7 @@
             <label for="observaciones">
               Observaciones <span class="opcional">(opcional)</span>
             </label>
-            <textarea id="observaciones" rows="4"
+            <textarea id="observaciones" rows="4" maxlength="1000"
               placeholder="¿Necesitas asistencia especial, alergias, preferencias de asiento?"></textarea>
           </div>
 
@@ -176,17 +99,14 @@
               <dt>Cantidad</dt>
               <dd id="resumen-cantidad"></dd>
             </div>
-            <div>
-              <dt>Tarifa de Wompi</dt>
-              <dd id="resumen-cargo"></dd>
-            </div>
             <div class="resumen-total">
               <dt>Total</dt>
               <dd id="resumen-total"></dd>
             </div>
           </dl>
 
-          <button class="boton boton-morado boton-ancho" type="button" id="confirmar">
+          <!-- Está fuera del <form> (otra columna): el atributo form lo une, así Enter también envía -->
+          <button class="boton boton-morado boton-ancho" type="submit" form="form-reserva" id="confirmar">
             Confirmar reserva
           </button>
 
@@ -201,80 +121,8 @@
   </main>
 
   <!-- ===== PIE DE PÁGINA ===== -->
-    <footer class="pie" role="contentinfo">
-      <div class="pie-columnas">
-        <div class="pie-marca">
-          <img
-            class="logo-texto"
-            src="img/logo-eldesparche.svg"
-            alt="El Desparche"
-          />
-          <p>
-            Conectando la cultura urbana de Colombia. El punto de encuentro de
-            los mejores conciertos, eventos y experiencias inolvidables en tu
-            ciudad.
-          </p>
-        </div>
+    <!--@incluir pie-->
 
-        <nav class="pie-enlaces" aria-labelledby="pie-nosotros">
-          <h2 class="pie-titulo" id="pie-nosotros">Sobre nosotros</h2>
-          <ul>
-            <li><a href="nosotros.html#comunidad">Comunidad</a></li>
-            <li><a href="nosotros.html#prensa">Prensa</a></li>
-            <li><a href="nosotros.html#terminos">Términos de servicio</a></li>
-          </ul>
-        </nav>
-
-        <nav class="pie-enlaces" aria-labelledby="pie-ayuda">
-          <h2 class="pie-titulo" id="pie-ayuda">Ayuda</h2>
-          <ul>
-            <li><a href="#">Soporte</a></li>
-            <li><a href="nosotros.html#manual-de-usuario">Manual de usuario</a></li>
-            <li><a href="nosotros.html#preguntas-frecuentes">Preguntas frecuentes</a></li>
-          </ul>
-        </nav>
-
-        <nav class="pie-enlaces" aria-labelledby="pie-categorias">
-          <h2 class="pie-titulo" id="pie-categorias">Categorías</h2>
-          <ul>
-            <li><a href="index.html?parche=parchesote#parches">Parchesotes</a></li>
-            <li><a href="index.html?parche=parche#parches">Parches</a></li>
-            <li><a href="index.html?parche=parchesito#parches">Parchesitos</a></li>
-          </ul>
-        </nav>
-
-        <nav class="pie-enlaces" aria-labelledby="pie-redes">
-          <h2 class="pie-titulo" id="pie-redes">Síguenos</h2>
-          <!-- Enlaces solo con icono: el nombre accesible lo da aria-label -->
-          <ul class="redes">
-            <li>
-              <a href="#" aria-label="El Desparche en Instagram">
-                <img src="img/cadd5.svg" alt="" aria-hidden="true" />
-              </a>
-            </li>
-            <li>
-              <a href="#" aria-label="El Desparche en Twitter">
-                <img src="img/fbe59.svg" alt="" aria-hidden="true" />
-              </a>
-            </li>
-            <li>
-              <a href="#" aria-label="El Desparche en YouTube">
-                <img src="img/26b07.svg" alt="" aria-hidden="true" />
-              </a>
-            </li>
-          </ul>
-        </nav>
-      </div>
-
-      <p class="pie-final">
-        <span
-          >© 2026 ElDesparche. Todos los derechos reservados a nuestro grupo de
-          proyecto integrador.</span
-        >
-        <span>Tuluá, Colombia</span>
-      </p>
-    </footer>
-
-  <script type="module" src="js/script.js"></script>
+  <script type="module" src="src/paginas/reservar.js"></script>
 </body>
 </html>

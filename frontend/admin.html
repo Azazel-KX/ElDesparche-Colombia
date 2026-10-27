@@ -2,6 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-dX4Mtb6IXElLnooZS2ozsaD9aR5ZBDmJiamK/sG1EeI='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://nominatim.openstreetmap.org; frame-src https://www.openstreetmap.org; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Panel de administración - El Desparche</title>
     <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
@@ -30,68 +31,7 @@
     <a class="salto-contenido" href="#contenido-principal">Saltar al contenido principal</a>
 
     <!-- ===== CABECERA ===== -->
-    <header class="cabecera">
-      <button type="button" class="boton-menu" id="boton-menu"
-              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
-        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
-        <span>Menú</span>
-      </button>
-
-      <div class="cabecera-izquierda">
-        <a class="logo" href="index.html">
-          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
-        </a>
-
-        <nav class="menu" id="menu-principal">
-          <ul>
-            <li><a href="index.html">Inicio</a></li>
-            <li><a href="eventos.html">Eventos</a></li>
-            <li><a href="mis-reservas.html">Mis reservas</a></li>
-          </ul>
-        </nav>
-      </div>
-
-      <div class="cabecera-derecha" id="menu-cuenta">
-        <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
-
-        <div class="accesibilidad">
-          <button type="button" class="boton-accesibilidad" id="abrir-accesibilidad"
-                  aria-expanded="false" aria-controls="panel-accesibilidad">
-            <span>Accesibilidad</span>
-            <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
-          </button>
-
-          <div class="panel-accesibilidad" id="panel-accesibilidad" hidden>
-            <h2 class="panel-titulo" id="titulo-panel-acc">Opciones de accesibilidad</h2>
-
-            <div class="tamano-texto" role="group" aria-labelledby="titulo-tamano">
-              <span class="oculto" id="titulo-tamano">Tamaño del texto</span>
-
-              <button type="button" class="tamano-menor" id="texto-menos"
-                      aria-label="Disminuir el tamaño del texto">
-                A<span aria-hidden="true">&minus;</span>
-              </button>
-
-              <span class="tamano-valor" id="texto-valor" aria-hidden="true">100%</span>
-
-              <button type="button" class="tamano-mayor" id="texto-mas"
-                      aria-label="Aumentar el tamaño del texto">
-                A<span aria-hidden="true">+</span>
-              </button>
-
-              <button type="button" class="tamano-reinicio" id="texto-normal"
-                      aria-label="Restablecer el tamaño normal del texto">
-                Normal
-              </button>
-            </div>
-
-            <p class="panel-ayuda">Se guarda en este navegador para tus próximas visitas.</p>
-          </div>
-        </div>
-
-        <p class="oculto" id="aviso-tamano" role="status" aria-live="polite"></p>
-      </div>
-    </header>
+    <!--@incluir cabecera-->
 
     <main class="admin" id="contenido-principal" tabindex="-1">
       <!-- Sin sesión de administrador -->
@@ -115,7 +55,7 @@
               <li><a href="admin.html?seccion=eventos" data-seccion="eventos">Eventos</a></li>
               <li><a href="admin.html?seccion=clientes" data-seccion="clientes">Clientes</a></li>
               <li><a href="admin.html?seccion=administradores" data-seccion="administradores">Administradores</a></li>
-              <li><a href="admin.html?seccion=reservas" data-seccion="reservas">Reservas y pagos</a></li>
+              <li><a href="admin.html?seccion=reservas" data-seccion="reservas">Reservas</a></li>
               <li><a href="admin.html?seccion=ubicaciones" data-seccion="ubicaciones">Ubicaciones</a></li>
               <li><a href="admin.html?seccion=validar" data-seccion="validar">Validar entradas</a></li>
             </ul>
@@ -220,7 +160,7 @@
           <section class="reporte-grupo" id="grupo-comerciales" aria-labelledby="titulo-comerciales">
             <h2 class="reporte-grupo-titulo" id="titulo-comerciales">Reportes comerciales</h2>
             <p class="reporte-nota">
-              Los ingresos son los pagos aprobados de las reservas que no están canceladas.
+              Los ingresos son el valor de las reservas que un administrador aprobó (o son gratis) y no están canceladas.
             </p>
             <ul class="admin-indicadores admin-indicadores-2" id="reporte-promedios"></ul>
 
@@ -397,37 +337,76 @@
           <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-eventos">
             <h2 id="titulo-lista-eventos" tabindex="-1">Eventos publicados</h2>
 
-            <form class="admin-filtros" role="search" aria-label="Filtrar eventos" id="filtros-eventos">
-              <div class="admin-filtro admin-filtro-buscar">
-                <label for="buscar-evento">Buscar</label>
-                <input type="search" id="buscar-evento" placeholder="Nombre, teatro o agente" autocomplete="off" />
+            <form class="barra-filtros barra-filtros-admin" role="search" aria-label="Filtrar eventos" id="filtros-eventos">
+              <div class="barra-filtros-fila">
+                <div class="admin-filtro admin-filtro-buscar">
+                  <label for="buscar-evento">Buscar</label>
+                  <input type="search" id="buscar-evento" placeholder="Nombre, teatro o agente" autocomplete="off" />
+                </div>
+                <div class="admin-filtro">
+                  <label for="orden-eventos">Ordenar por</label>
+                  <select id="orden-eventos">
+                    <option value="ocupacion">Más ocupación</option>
+                    <option value="ingresos">Más ingresos</option>
+                    <option value="precio">Precio más alto</option>
+                    <option value="nombre">Nombre (A-Z)</option>
+                  </select>
+                </div>
+
+                <!-- Estado y lugar van en un menú desplegable; lo aplicado se resume en etiquetas debajo -->
+                <div class="admin-filtro filtro-desplegable">
+                  <span class="admin-filtro-etiqueta">Filtrar por</span>
+                  <button type="button" class="boton-filtros" id="abrir-filtros-evento" aria-expanded="false" aria-controls="panel-filtros-evento">
+                    <svg class="icono-filtros" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+                    <span>Estado y lugar</span>
+                    <span class="filtros-activos" id="filtros-activos-evento" hidden></span>
+                    <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
+                  </button>
+
+                  <div class="filtro-panel" id="panel-filtros-evento" role="group" aria-label="Filtros de eventos" hidden>
+                    <p class="filtro-panel-guia">Elige el país y se abren sus departamentos y ciudades.</p>
+                    <div class="filtro-panel-campos">
+                      <div class="campo-etiquetado">
+                        <label for="filtro-estado-evento">Estado del evento</label>
+                        <select id="filtro-estado-evento">
+                          <option value="">Todos</option>
+                          <option value="Programado">Programado</option>
+                          <option value="En Boletería">En Boletería</option>
+                          <option value="En Vivo">En Vivo</option>
+                          <option value="Finalizado">Finalizado</option>
+                          <option value="Cancelado">Cancelado</option>
+                        </select>
+                      </div>
+                      <div class="campo-etiquetado">
+                        <label for="filtro-pais-evento">País</label>
+                        <select id="filtro-pais-evento">
+                          <option value="">Todos</option>
+                        </select>
+                      </div>
+                      <div class="campo-etiquetado">
+                        <label for="filtro-departamento-evento">Departamento</label>
+                        <select id="filtro-departamento-evento" disabled aria-describedby="ayuda-departamento-evento">
+                          <option value="">Todos</option>
+                        </select>
+                        <p class="ayuda-campo" id="ayuda-departamento-evento">Elige primero un país.</p>
+                      </div>
+                      <div class="campo-etiquetado">
+                        <label for="filtro-ciudad-evento">Ciudad</label>
+                        <select id="filtro-ciudad-evento" disabled aria-describedby="ayuda-ciudad-evento">
+                          <option value="">Todas</option>
+                        </select>
+                        <p class="ayuda-campo" id="ayuda-ciudad-evento">Elige primero un departamento.</p>
+                      </div>
+                    </div>
+                    <div class="filtro-panel-pie">
+                      <button type="button" class="boton-limpiar" id="limpiar-filtros-evento">Limpiar filtros</button>
+                      <button type="button" class="enlace-ver-todos" id="cerrar-filtros-evento">Listo</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="admin-filtro">
-                <label for="filtro-estado-evento">Estado</label>
-                <select id="filtro-estado-evento">
-                  <option value="">Todos</option>
-                  <option value="Programado">Programado</option>
-                  <option value="En Boletería">En Boletería</option>
-                  <option value="En Vivo">En Vivo</option>
-                  <option value="Finalizado">Finalizado</option>
-                  <option value="Cancelado">Cancelado</option>
-                </select>
-              </div>
-              <div class="admin-filtro">
-                <label for="filtro-ciudad-evento">Ciudad</label>
-                <select id="filtro-ciudad-evento">
-                  <option value="">Todas</option>
-                </select>
-              </div>
-              <div class="admin-filtro">
-                <label for="orden-eventos">Ordenar por</label>
-                <select id="orden-eventos">
-                  <option value="ocupacion">Más ocupación</option>
-                  <option value="ingresos">Más ingresos</option>
-                  <option value="precio">Precio más alto</option>
-                  <option value="nombre">Nombre (A-Z)</option>
-                </select>
-              </div>
+
+              <ul class="filtros-chips" id="filtros-chips-evento" aria-label="Filtros aplicados" hidden></ul>
             </form>
 
             <p class="admin-conteo" id="conteo-eventos" role="status"></p>
@@ -608,12 +587,12 @@
       </dialog>
       </template>
 
-      <template id="seccion-reservas" data-titulo="Reservas y pagos">
+      <template id="seccion-reservas" data-titulo="Reservas">
         <div class="admin-contenido">
           <div class="recuadro-titulo admin-cabecera">
             <div>
-              <h1>Reservas y pagos</h1>
-              <p>Registra, consulta, modifica y elimina reservas, y revisa el estado de cada pago hecho con Wompi.</p>
+              <h1>Reservas</h1>
+              <p>Registra, consulta, modifica y elimina reservas, y aprueba la reserva y el pago de cada una.</p>
             </div>
             <button type="button" class="admin-boton" id="nueva-reserva">Registrar reserva</button>
           </div>
@@ -621,19 +600,19 @@
           <p class="admin-aviso" id="admin-aviso" role="status"></p>
 
           <section aria-labelledby="titulo-resumen-reservas">
-            <h2 class="oculto" id="titulo-resumen-reservas">Resumen de reservas y pagos</h2>
+            <h2 class="oculto" id="titulo-resumen-reservas">Resumen de reservas</h2>
             <ul class="admin-indicadores admin-indicadores-4" id="admin-indicadores"></ul>
           </section>
 
           <div class="admin-graficas">
-            <section class="admin-tarjeta" aria-labelledby="titulo-metodos">
-              <h2 id="titulo-metodos">Ingresos por medio de pago</h2>
-              <div id="grafica-metodos"></div>
+            <section class="admin-tarjeta" aria-labelledby="titulo-ingresos-evento">
+              <h2 id="titulo-ingresos-evento">Ingresos aprobados por evento</h2>
+              <div id="grafica-ingresos-evento"></div>
             </section>
 
-            <section class="admin-tarjeta" aria-labelledby="titulo-estados-pago">
-              <h2 id="titulo-estados-pago">Estado de los pagos</h2>
-              <div id="grafica-estados-pago"></div>
+            <section class="admin-tarjeta" aria-labelledby="titulo-estados-reserva">
+              <h2 id="titulo-estados-reserva">Estado de las reservas</h2>
+              <div id="grafica-estados-reserva"></div>
             </section>
           </div>
 
@@ -643,27 +622,15 @@
             <form class="admin-filtros" role="search" aria-label="Filtrar reservas" id="filtros-reservas">
               <div class="admin-filtro admin-filtro-buscar">
                 <label for="buscar-reserva">Buscar</label>
-                <input type="search" id="buscar-reserva" placeholder="Código, cliente, evento o ID de Wompi" autocomplete="off" />
+                <input type="search" id="buscar-reserva" placeholder="Código, cliente o evento" autocomplete="off" />
               </div>
               <div class="admin-filtro">
-                <label for="filtro-pago">Estado del pago</label>
-                <select id="filtro-pago">
+                <label for="filtro-estado-reserva">Estado</label>
+                <select id="filtro-estado-reserva">
                   <option value="">Todos</option>
-                  <option value="APPROVED">Aprobado</option>
-                  <option value="PENDING">Pendiente</option>
-                  <option value="DECLINED">Rechazado</option>
-                  <option value="VOIDED">Anulado</option>
-                  <option value="ERROR">Error</option>
-                </select>
-              </div>
-              <div class="admin-filtro">
-                <label for="filtro-metodo">Medio de pago</label>
-                <select id="filtro-metodo">
-                  <option value="">Todos</option>
-                  <option value="CARD">Tarjeta</option>
-                  <option value="NEQUI">Nequi</option>
-                  <option value="PSE">PSE</option>
-                  <option value="BANCOLOMBIA_TRANSFER">Botón Bancolombia</option>
+                  <option value="Reservada">Por aprobar (Reservada)</option>
+                  <option value="Confirmada">Aprobada (Confirmada)</option>
+                  <option value="Cancelada">Cancelada</option>
                 </select>
               </div>
               <div class="admin-filtro">
@@ -679,7 +646,7 @@
             <p class="admin-conteo" id="conteo-reservas" role="status"></p>
 
             <table class="admin-tabla" role="table">
-              <caption class="oculto">Reservas y pagos</caption>
+              <caption class="oculto">Reservas</caption>
               <thead role="rowgroup">
                 <tr role="row">
                   <th scope="col" role="columnheader">Reserva</th>
@@ -687,7 +654,7 @@
                   <th scope="col" role="columnheader">Evento</th>
                   <th scope="col" role="columnheader" class="numero">Entradas</th>
                   <th scope="col" role="columnheader" class="numero">Valor</th>
-                  <th scope="col" role="columnheader">Pago</th>
+                  <th scope="col" role="columnheader">Aprobación</th>
                   <th scope="col" role="columnheader">Acciones</th>
                 </tr>
               </thead>
@@ -833,22 +800,8 @@
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
-    <footer class="pie">
-      <div class="pie-columnas">
-        <div class="pie-marca">
-          <img class="logo-texto" src="img/logo-eldesparche.svg" alt="El Desparche" />
-          <p>
-            Conectando la cultura urbana de Colombia con planes que vale la pena
-            vivir.
-          </p>
-        </div>
-      </div>
-      <p class="pie-final">
-        <span>© 2026 ElDesparche.</span> <span>Tuluá, Colombia</span>
-      </p>
-    </footer>
+    <!--@incluir pie-panel-->
 
-    <script type="module" src="js/script.js"></script>
-    <script type="module" src="js/admin.js"></script>
+    <script type="module" src="src/paginas/admin.js"></script>
   </body>
 </html>

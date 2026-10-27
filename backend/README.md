@@ -1,9 +1,9 @@
 # Backend de ElDesparche
 
 API REST en Node.js + Express con PostgreSQL, organizada en MVC. Trabaja sobre el esquema de
-`database/schema_ElDesparche.sql` (13 tablas; ver `database/README.md`). Las respuestas tienen la misma forma que
-los datos de ejemplo de la web (`frontend/js/script.js`, `admin.js` y `agente.js`), así que el frontend pasa del
-modo local al API cambiando `USAR_API` a `true`.
+`database/schema_ElDesparche.sql` (11 tablas; ver `database/README.md`). Las respuestas tienen la misma forma que
+la que espera la web (`frontend/src/modelos/`). El frontend ya no trae datos de ejemplo:
+todo sale de este API.
 
 ```
 backend/
@@ -24,17 +24,28 @@ backend/
 ## Puesta en marcha
 
 1. Base de datos (Docker): `docker compose up -d` desde la raíz del repo.
-2. Cargar esquema y datos de prueba sobre una base **vacía** (el esquema primero):
+2. Cargar los datos sobre una base **vacía**, en este orden (detalle en `database/README.md`):
    ```bash
-   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql
-   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql
+   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql   # 1. esquema (obligatorio)
+   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql                # 2. datos básicos (obligatorio)
+   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed_demo.sql           # 3. demostración (opcional)
    ```
+   Para **trabajar con la web** conviene cargar los tres (más eventos, ciudades, clientes y reservas). Para **correr las
+   pruebas** carga solo el 1 y el 2, de preferencia en una base aparte (ver "Pruebas").
 3. `cp .env.example .env` y completa `JWT_SECRET` (mínimo 32 caracteres) y los datos de la base. `CORS_ORIGIN` debe
-   incluir la dirección donde corre la web, y `PUBLIC_URL` la del API si no es `http://localhost:5000`.
-4. `npm install`, luego `npm run dev` (puerto 5000) o `npm test`.
+   incluir la dirección donde corre la web. `PUBLIC_URL` solo hace falta si la web y el API quedan en dominios
+   distintos: sin ella, las imágenes subidas salen como `/uploads/...` y la web las pide por su propio dominio.
+4. `npm install`, luego `npm run dev` (puerto 5000) o `npm test`. Comprueba la conexión en
+   <http://localhost:5000/api/health> (`{ "estado": "ok", "baseDatos": "ok" }`).
 
-Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente2@`, `agente1@`, `agente2@`,
+**Neon (PostgreSQL en la nube):** pon la `DATABASE_URL` de Neon en `.env` y carga la base vacía con
+`npm run bd:cargar` (o `npm run bd:cargar -- --demo`), sin necesitar `psql`. El backend se conecta con SSL verificado,
+espera a que Neon despierte y responde 503 si la base no está disponible. Detalle en [GUIA_NEON.md](../GUIA_NEON.md).
+
+Cuentas de `seed.sql` (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente2@`, `agente1@`, `agente2@`,
 `agente3@` (agente pendiente de aprobación) y `cliente3@` (cliente bloqueado) `eldesparche.test`.
+Cuentas que suma `seed_demo.sql` (misma contraseña): `admin2@`, `agente4@` a `agente10@` (el 9 suspendido y el 10 pendiente) y
+`cliente04@` a `cliente33@` (el `cliente20@` bloqueado) `eldesparche.test`.
 
 ## Seguridad y reglas generales
 
@@ -48,7 +59,10 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
   no inician sesión.
 - **Imágenes:** los paneles mandan las imágenes de eventos y logos como data URL (hasta 2 MB). Se guardan como archivo
   en `uploads/` (se comprueba que de verdad sean JPG, PNG o WEBP) y la base solo guarda la ruta. Se sirven en
-  `/uploads/...`. Los paneles admiten cuerpos de hasta 3 MB; el resto del API, 100 KB.
+  `/uploads/...`. Los paneles admiten cuerpos de hasta 3 MB; el resto del API, 100 KB. Cuando se reemplaza o se quita
+  una imagen, se elimina un evento o un agente, o la escritura falla, el archivo que sobra se borra si ningún otro evento
+  ni logo lo usa (las imágenes se nombran por su contenido y se pueden compartir). Lo mismo con la `UBICACION` de un
+  evento al eliminarlo o cambiarle el lugar.
 - **Notas de cancelación y rechazo:** no hay tablas de causas. La causa se agrega a `observaciones`, en una línea
   nueva, con el mismo formato de `notaCancelacion()` de la web (`Cancelado por el agente. Causa: ... Detalle: ...`).
   El motivo de un rechazo se agrega como `Rechazado por el administrador. Motivo: ...`.
@@ -60,19 +74,20 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/api/health` | Estado del servicio |
+| GET | `/api/health` | Estado del servicio y de la base: 200 `{ estado: "ok", baseDatos: "ok" }` o 503 `{ estado: "error", baseDatos: "sin conexión" }` |
 | GET | `/api/ciudades` | Ciudades con su departamento (para los selectores) |
 | GET | `/api/eventos` | Catálogo público con la forma de `EVENTOS` de la web; filtros `ciudad`, `categoria`, `estado`, `limite`, `pagina`. Nunca muestra solicitudes |
 | GET | `/api/eventos/:codigo` | Un evento publicado (404 si no existe o aún es una solicitud) |
 | POST | `/api/auth/register` | Registro de CLIENTE o AGENTE; devuelve `token` y `usuario` |
 | POST | `/api/auth/login` | Inicio de sesión; devuelve `token` y `usuario` |
 | GET | `/api/auth/me` | Perfil del usuario autenticado |
+| PATCH | `/api/auth/contrasena` | `{ actual, nueva }`: cambia la contraseña de quien tiene la sesión abierta (400 si la actual no es correcta) |
 
 ### Cliente (`/api/reservas`, solo CLIENTE)
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/api/reservas` | `{ idEvento, entradas (1 a 10), observaciones }`. Evento de pago: queda `Reservada` hasta que se confirme el pago; gratis: `Confirmada`. 409 si el evento no está a la venta o ya terminó (aunque siga `Programado`) |
+| POST | `/api/reservas` | `{ idEvento, entradas (1 a 10), observaciones }`. Evento de pago: queda `Reservada` hasta que un administrador apruebe la reserva y el pago; gratis: `Confirmada`. 409 si el evento no está a la venta o ya terminó (aunque siga `Programado`) |
 | GET | `/api/reservas/mias` | Sus reservas |
 | PATCH | `/api/reservas/:codigo/cancelar` | `{ causa, detalle }`. Causas: No puede asistir, Error en el evento o en la cantidad, Cambio de fecha del evento, Otra causa (con detalle) |
 
@@ -85,7 +100,10 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 | POST | `/api/agente/eventos` | Envía una solicitud (campos de `datosFormulario()`); queda `En revisión`. Un agente `Pendiente` recibe 403 |
 | PUT | `/api/agente/eventos/:id` | Corrige una solicitud en revisión o rechazada; vuelve a `En revisión` y se quita el motivo anterior |
 | DELETE | `/api/agente/eventos/:id` | Retira una solicitud que todavía no se publica |
+| PUT | `/api/agente/eventos/:id/publicado` | `{ descripcion, observaciones, imagen }`: edita lo que no toca a las reservas de un evento ya publicado suyo |
+| PATCH | `/api/agente/eventos/:id/cancelar` | `{ causa, detalle }`: cancela un evento publicado suyo y sus reservas |
 | GET | `/api/agente/reservas` | Las reservas de sus eventos |
+| PATCH | `/api/agente/reservas/:codigo/confirmar` | Aprueba la reserva (y el pago) de un evento suyo: `Reservada` → `Confirmada`. 403 si es de otro organizador |
 | PATCH | `/api/agente/reservas/:codigo/estado` | `{ estado: "Cancelada", observaciones }` (con la nota de causa). 403 si la reserva es de otro organizador |
 | POST | `/api/agente/entradas/:codigo/ingreso` | Valida la entrada en la puerta (201). 403 si es de otro organizador |
 | PUT | `/api/agente/perfil` | `{ nombre, descripcion, logo, correo, telefono, ciudad, experiencia }`. El NIT, la razón social y la comisión no cambian aquí |
@@ -99,8 +117,9 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 | GET, POST | `/api/admin/agentes` | Lista (forma de `AGENTES_DEMO`) y alta (USUARIO + AGENTE, con `contrasena`) |
 | PUT, DELETE | `/api/admin/agentes/:nit` | Modifica (el NIT y el documento no cambian) o elimina (409 si tiene eventos) |
 | PATCH | `/api/admin/agentes/:nit/estado` | `{ estado: "Activo" \| "Pendiente" \| "Suspendido" }` |
+| PATCH | `/api/admin/{agentes/:nit, clientes/:documento, administradores/:documento}/contrasena` | `{ contrasena }`: restablece la contraseña de quien la olvidó (solo queda su hash) |
 | GET, POST | `/api/admin/clientes` | Lista (forma de `CLIENTES_DEMO`) y alta |
-| PUT, DELETE | `/api/admin/clientes/:documento` | Modifica o elimina (sus reservas se borran; 409 si alguna tiene un pago) |
+| PUT, DELETE | `/api/admin/clientes/:documento` | Modifica o elimina (sus reservas se borran) |
 | PATCH | `/api/admin/clientes/:documento/estado` | `{ estado: "Activa" \| "Bloqueada" }` |
 | GET, POST | `/api/admin/administradores` | Lista y alta |
 | PUT, DELETE | `/api/admin/administradores/:documento` | Modifica o elimina (no la cuenta propia ni al último administrador) |
@@ -109,10 +128,10 @@ Cuentas del seed (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente
 | PATCH | `/api/admin/eventos/:id/estado` | `{ estado, observaciones }`. Programado → En Boletería → En Vivo → Finalizado; Cancelado desde cualquiera. Al cancelar, sus reservas se cancelan |
 | GET | `/api/admin/eventos/solicitudes` | Las solicitudes `En revisión` |
 | PATCH | `/api/admin/eventos/solicitudes/:id` | `{ estado: "Aprobado" \| "Rechazado", motivo }`. Aprobar la publica como `Programado` |
-| GET, POST | `/api/admin/reservas` | Lista (forma de `reservasLocales()`, con el pago estilo Wompi) y alta para un cliente (venta en taquilla) |
-| PUT, DELETE | `/api/admin/reservas/:codigo` | Modifica entradas, estado u observaciones (con pago, solo observaciones) o elimina (409 si tiene pago) |
+| GET, POST | `/api/admin/reservas` | Lista y alta para un cliente (venta en taquilla) |
+| PUT, DELETE | `/api/admin/reservas/:codigo` | Modifica entradas, estado u observaciones (pasarla a `Confirmada` es aprobar la reserva y el pago) o elimina |
 | PATCH | `/api/admin/reservas/:codigo/estado` | `{ estado: "Cancelada", observaciones }` |
-| POST | `/api/admin/entradas/:codigo/ingreso` | Valida la entrada (201). Rechaza (409) si está usada, cancelada, sin pagar, con el pago no aprobado o si el evento terminó |
+| POST | `/api/admin/entradas/:codigo/ingreso` | Valida la entrada (201). Rechaza (409) si está usada, cancelada, por aprobar (`Reservada`) o si el evento terminó |
 | GET | `/api/admin/ubicaciones` | `{ paises, departamentos, ciudades }` |
 | POST, PUT, DELETE | `/api/admin/paises[/:id]`, `/departamentos[/:id]`, `/ciudades[/:id]` | `{ nombre }` (y `idPais` o `idDepartamento` al registrar). DELETE: 409 si algo depende de él |
 
@@ -147,28 +166,36 @@ salen como se guardaron (`AAAA-MM-DD` y `AAAA-MM-DDTHH:MM:SS`, sin zona horaria)
 
 ## Pruebas
 
-`npm test` ejecuta todo `test/`, un archivo detrás de otro (`--test-concurrency=1`): las pruebas de integración
+`npm test` ejecuta todos los `test/*.test.js`, un archivo detrás de otro (`--test-concurrency=1`): las pruebas de integración
 comparten una sola base y en paralelo se pisarían. `npm run test:cobertura` hace lo mismo con el informe de cobertura
 de `src/`, y `npm run test:bd` corre las pruebas de la base (`database/pruebas_bd.sql`) dentro del contenedor de
 Docker. Los tres funcionan en PowerShell, cmd y Git Bash.
 
 - Unitarias (no necesitan base): `validacion.test.js` (registro, login y roles), `validacionEvento.test.js`
   (eventos, estados, decisiones, filtros y utilidades de formato) y `errores.test.js` (traducción de errores de
-  PostgreSQL, el 500 genérico, imágenes y validación de personas de los paneles).
-- Integración (necesitan el esquema y el seed cargados y el `.env`; limpian lo que crean): `auth.test.js`,
+  PostgreSQL, el 500 genérico, imágenes y validación de personas de los paneles) y `conexionBd.test.js` (configuración
+  de la conexión local o con Neon: SSL, pool y tiempos de espera; 503 y `/api/health` con la base caída; reintentos del
+  arranque y transacciones con la conexión cortada).
+- Integración (necesitan el esquema y `seed.sql` cargados, **sin** `seed_demo.sql`, y el `.env`; limpian lo que crean): `auth.test.js`,
   `eventos.test.js` (catálogo y administración de eventos y solicitudes), `personas.test.js` (agentes, clientes,
   administradores y estado de la cuenta), `reservas.test.js` (cliente, administrador y validación de entradas),
-  `agente.test.js` (panel del agente y flujo completo de revisión) y `panel.test.js` (ubicaciones, resumen y reportes).
+  `agente.test.js` (panel del agente y flujo completo de revisión), `panel.test.js` (ubicaciones, resumen y reportes) y
+  `limpieza.test.js` (no quedan ubicaciones huérfanas ni imágenes sin uso al editar o eliminar eventos y logos).
   `ayudas.js` reúne lo que comparten.
+
+Qué cargar para probar: el esquema y `seed.sql`, nada más. Las pruebas cuentan con datos exactos del seed (por ejemplo, 5
+reservas o los valores de `DES-1001`), así que con `seed_demo.sql` encima fallan varias. Lo más cómodo es usar una base aparte
+y apuntar a ella con `DB_NAME` (los pasos están en `database/README.md`, "Una base aparte para las pruebas"):
+
+```bash
+DB_NAME=desparche_prueba npm test          # PowerShell: $env:DB_NAME="desparche_prueba"; npm test
+```
 
 ## Pendiente
 
-- **Pago con Wompi** (`POST /api/pagos/wompi/iniciar`, firma de integridad, webhook `transaction.updated` y
-  `GET /api/pagos/wompi/transacciones/:id`). Hoy una reserva de un evento de pago queda `Reservada` hasta que un
-  administrador la confirme. El estado del pago en la base tiene 3 valores (Pendiente, Aprobado, Rechazado); Wompi
-  tiene más. La web ya está lista para conectarlo: en `frontend/js/script.js` basta con cambiar `reservarEnApi()` por
-  `pagarConWompi()` en la página de reserva.
+- **Pagos en línea:** no hay pasarela de pago. Una reserva de un evento de pago queda `Reservada` hasta que un
+  administrador la apruebe. No hay tablas de pago: aprobar la reserva es aprobar el pago.
 
-Con `USAR_API = true` la web pública ya usa el API: el catálogo, el detalle y los filtros salen de `GET /api/eventos`
+La web pública usa el API: el catálogo, el detalle y los filtros salen de `GET /api/eventos`
 (incluye `pais` para los filtros de ubicación), la reserva se crea con `POST /api/reservas`, y "Mis reservas", la
 confirmación y la cancelación usan `GET /api/reservas/mias` y `PATCH /api/reservas/:codigo/cancelar`.

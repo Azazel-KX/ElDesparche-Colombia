@@ -27,19 +27,14 @@ const reservar = (token, idEvento, entradas = 1, extra = {}) =>
 
 const admin = (ruta, metodo = "GET", cuerpo) => llamar(`/api/admin${ruta}`, { metodo, token: tokenAdmin, cuerpo });
 
-// Cantidad de pesos de una reserva: entradas × precio + tarifa de Wompi (2,65 % + $700, más IVA)
-const conTarifa = (subtotal) => subtotal + Math.round((subtotal * 0.0265 + 700) * 1.19);
+// Pesos de una reserva: entradas × precio
+const valorDe = (subtotal) => subtotal;
 
-// Inserta una reserva (y, si se pide, su pago) directo en la base para probar un estado concreto
-async function reservaSql(codigoEvento, { doc = "1000000002", estado = "Confirmada", pago = null, entradas = 1 } = {}) {
+// Inserta una reserva directo en la base para probar un estado concreto
+async function reservaSql(codigoEvento, { doc = "1000000002", estado = "Confirmada", entradas = 1 } = {}) {
   const { rows } = await pool.query(
     `INSERT INTO RESERVA (numero_entradas, estado, numero_identificacion, codigo_evento)
-     VALUES ($1, $2::estado_reserva_t, $3, $4) RETURNING id_reserva, valor_total::float8 AS valor`, [entradas, estado, doc, codigoEvento]);
-  if (pago) {
-    await pool.query(
-      `INSERT INTO PAGO (monto, referencia_transaccion, estado, id_reserva, id_metodo)
-       VALUES ($1, $2, $3::estado_pago_t, $4, 1)`, [Math.max(rows[0].valor, 1), `TX-T-${Date.now()}-${rows[0].id_reserva}`, pago, rows[0].id_reserva]);
-  }
+     VALUES ($1, $2::estado_reserva_t, $3, $4) RETURNING id_reserva`, [entradas, estado, doc, codigoEvento]);
   return `DES-${1000 + rows[0].id_reserva}`;
 }
 
@@ -47,7 +42,7 @@ async function reservaSql(codigoEvento, { doc = "1000000002", estado = "Confirma
 // Cliente: reservar
 // ---------------------------------------------------------------------------------------------
 
-test("POST /api/reservas: un cliente reserva en un evento de pago; queda Reservada con valor = entradas × precio + tarifa", async () => {
+test("POST /api/reservas: un cliente reserva en un evento de pago; queda Reservada con valor = entradas × precio", async () => {
   const ev = await crearEventoAdmin({ precio: 50000 });
   const { estado, json } = await reservar(tokenCliente2, ev.id, 2, { observaciones: "Cerca del escenario" });
   assert.equal(estado, 201, JSON.stringify(json));
@@ -57,12 +52,11 @@ test("POST /api/reservas: un cliente reserva en un evento de pago; queda Reserva
   assert.equal(r.usada, false);
   assert.equal(r.entradas, 2);
   assert.equal(r.precio, 50000);
-  assert.equal(r.valor, conTarifa(100000), "el trigger de la base suma la tarifa de Wompi");
+  assert.equal(r.valor, valorDe(100000), "el trigger de la base calcula entradas × precio");
   assert.equal(r.cliente, "Laura Gómez Prueba");
   assert.equal(r.documento, "CC 1000000003");
   assert.equal(r.eventoId, ev.id);
   assert.equal(r.observaciones, "Cerca del escenario");
-  assert.equal(r.pago, null);
   assert.match(r.fecha, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
   assert.equal((await llamar(`/api/eventos/${ev.id}`)).json.evento.disponibles, 98, "los cupos bajan");
 });
@@ -72,7 +66,6 @@ test("POST /api/reservas: en un evento gratis queda Confirmada con valor 0 y sin
   const { json } = await reservar(tokenCliente1, ev.id, 3);
   assert.equal(json.reserva.estado, "Confirmada");
   assert.equal(json.reserva.valor, 0);
-  assert.equal(json.reserva.pago, null);
 });
 
 test("POST /api/reservas: la base rechaza la edad mínima y el cupo; el servidor rechaza eventos que no se pueden reservar", async () => {
@@ -164,7 +157,7 @@ test("/api/admin/reservas: sin token 401; cliente o agente 403", async () => {
   assert.equal((await llamar("/api/admin/reservas", { token: tokenAgente })).estado, 403);
 });
 
-test("GET /api/admin/reservas: la forma de reservasLocales() con el pago estilo Wompi", async () => {
+test("GET /api/admin/reservas: la forma de reservasLocales()", async () => {
   const { estado, json } = await admin("/reservas");
   assert.equal(estado, 200);
 
@@ -177,11 +170,9 @@ test("GET /api/admin/reservas: la forma de reservasLocales() con el pago estilo 
   assert.equal(r1.evento, "Concierto Música Colombiana");
   assert.equal(r1.entradas, 2);
   assert.equal(r1.precio, 50000);
-  assert.equal(r1.valor, 103987);
-  assert.deepEqual(r1.pago, { id: "TX-2026-000001", metodo: "CARD", estado: "APPROVED", montoCentavos: 10398700, moneda: "COP" });
-
-  assert.equal(json.reservas.find((r) => r.codigo === "DES-1002").pago, null, "una reserva sin pago");
-  assert.equal(json.reservas.find((r) => r.codigo === "DES-1003").pago.metodo, "NEQUI");
+  assert.equal(r1.valor, 100000);
+  assert.equal(r1.pago, undefined, "ya no hay datos de pago");
+  assert.equal(json.reservas.find((r) => r.codigo === "DES-1002").estado, "Reservada", "una reserva por aprobar");
   const cancelada = json.reservas.find((r) => r.codigo === "DES-1004");
   assert.equal(cancelada.estado, "Cancelada");
   assert.equal(cancelada.observaciones, "Cancelada por el cliente. Causa: No puede asistir.");
@@ -199,7 +190,7 @@ test("POST /api/admin/reservas: registra una reserva (venta en taquilla) e ignor
   });
   assert.equal(estado, 201, JSON.stringify(json));
   assert.notEqual(json.reserva.codigo, "DES-1");
-  assert.equal(json.reserva.valor, conTarifa(80000));
+  assert.equal(json.reserva.valor, valorDe(80000));
   assert.equal(json.reserva.estado, "Confirmada");
   assert.equal(json.reserva.cliente, "Laura Gómez Prueba");
   assert.notEqual(json.reserva.fecha, "2000-01-01T00:00:00");
@@ -224,13 +215,13 @@ test("PUT /api/admin/reservas/:codigo: cambia entradas y estado (el valor se rec
   const ev = await crearEventoAdmin({ precio: 20000 });
   const { json } = await reservar(tokenCliente2, ev.id, 2);
   const codigo = json.reserva.codigo;
-  assert.equal(json.reserva.valor, conTarifa(40000));
+  assert.equal(json.reserva.valor, valorDe(40000));
 
   const ok = await admin(`/reservas/${codigo}`, "PUT", { entradas: 3, estado: "Confirmada", observaciones: "Corregida", valor: 1 });
   assert.equal(ok.estado, 200, JSON.stringify(ok.json));
   assert.equal(ok.json.reserva.entradas, 3);
   assert.equal(ok.json.reserva.estado, "Confirmada");
-  assert.equal(ok.json.reserva.valor, conTarifa(60000), "se conserva el precio con que se reservó");
+  assert.equal(ok.json.reserva.valor, valorDe(60000), "se conserva el precio con que se reservó");
   assert.equal(ok.json.reserva.observaciones, "Corregida");
 
   assert.equal((await admin(`/reservas/${codigo}`, "PUT", { entradas: 99 })).estado, 400);
@@ -238,17 +229,16 @@ test("PUT /api/admin/reservas/:codigo: cambia entradas y estado (el valor se rec
   assert.equal((await admin("/reservas/DES-9999", "PUT", { entradas: 1 })).estado, 404);
 });
 
-test("PUT /api/admin/reservas/:codigo: con un pago solo cambian las observaciones; una cancelada no se edita", async () => {
+test("PUT /api/admin/reservas/:codigo: el administrador aprueba la reserva y el pago (Confirmada); una cancelada no se edita", async () => {
   const ev = await crearEventoAdmin({ precio: 10000 });
-  const codigo = await reservaSql(ev.id, { estado: "Confirmada", pago: "Aprobado" });
+  const codigo = await reservaSql(ev.id, { estado: "Reservada" });
 
-  const cambio = await admin(`/reservas/${codigo}`, "PUT", { entradas: 2, estado: "Confirmada" });
-  assert.equal(cambio.estado, 422);
-  assert.match(cambio.json.error, /pago/);
+  const aprobada = await admin(`/reservas/${codigo}`, "PUT", { estado: "Confirmada" });
+  assert.equal(aprobada.estado, 200);
+  assert.equal(aprobada.json.reserva.estado, "Confirmada");
   const obs = await admin(`/reservas/${codigo}`, "PUT", { observaciones: "Solo la nota" });
   assert.equal(obs.estado, 200);
   assert.equal(obs.json.reserva.observaciones, "Solo la nota");
-  assert.equal(obs.json.reserva.pago.estado, "APPROVED");
 
   const nota = "Cancelada por el administrador. Causa: Otra causa. Detalle: prueba";
   await admin(`/reservas/${codigo}/estado`, "PATCH", { estado: "Cancelada", observaciones: nota });
@@ -274,17 +264,11 @@ test("PATCH /api/admin/reservas/:codigo/estado: cancela con la causa que manda l
   assert.equal((await admin("/reservas/DES-9999/estado", "PATCH", { estado: "Cancelada", observaciones: nota })).estado, 404);
 });
 
-test("DELETE /api/admin/reservas/:codigo: elimina la reserva; 409 si tiene un pago; 404 si no existe", async () => {
+test("DELETE /api/admin/reservas/:codigo: elimina la reserva; 404 si no existe", async () => {
   const ev = await crearEventoAdmin();
   const { json } = await reservar(tokenCliente2, ev.id);
   assert.equal((await admin(`/reservas/${json.reserva.codigo}`, "DELETE")).estado, 204);
   assert.equal((await admin(`/reservas/${json.reserva.codigo}`, "DELETE")).estado, 404);
-
-  const conPago = await reservaSql(ev.id, { pago: "Aprobado" });
-  const res = await admin(`/reservas/${conPago}`, "DELETE");
-  assert.equal(res.estado, 409);
-  assert.match(res.json.error, /pago/);
-  assert.equal((await admin("/reservas")).json.reservas.some((r) => r.codigo === conPago), true, "la reserva sigue ahí");
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -318,23 +302,18 @@ test("POST /api/admin/entradas/:codigo/ingreso: marca la entrada como usada (201
   assert.equal((await admin(`/reservas/${codigo}/estado`, "PATCH", { estado: "Cancelada", observaciones: "Cancelada por el administrador. Causa: Otra causa. Detalle: x" })).estado, 409, "una entrada usada no se cancela");
 });
 
-test("ingreso: rechaza una reserva sin pagar, con el pago pendiente, cancelada o de un evento terminado; 404 si no existe", async () => {
+test("ingreso: rechaza una reserva por aprobar, cancelada o de un evento terminado; 404 si no existe", async () => {
   const ev = await crearEventoAdmin({ precio: 10000 });
 
   const sinPagar = await reservaSql(ev.id, { estado: "Reservada" });
   const a = await admin(`/entradas/${sinPagar}/ingreso`, "POST");
   assert.equal(a.estado, 409);
-  assert.match(a.json.error, /pagada/);
-
-  const pendiente = await reservaSql(ev.id, { estado: "Reservada", pago: "Pendiente" });
-  assert.equal((await admin(`/entradas/${pendiente}/ingreso`, "POST")).estado, 409);
-  const rechazado = await reservaSql(ev.id, { estado: "Confirmada", pago: "Rechazado" });
-  assert.match((await admin(`/entradas/${rechazado}/ingreso`, "POST")).json.error, /pago/);
+  assert.match(a.json.error, /aprobada/);
 
   const cancelada = await reservaSql(ev.id, { estado: "Cancelada" });
   assert.match((await admin(`/entradas/${cancelada}/ingreso`, "POST")).json.error, /cancelada/);
 
-  const aprobada = await reservaSql(ev.id, { estado: "Confirmada", pago: "Aprobado" });
+  const aprobada = await reservaSql(ev.id, { estado: "Confirmada" });
   await pool.query("UPDATE EVENTO SET estado = 'Finalizado' WHERE codigo = $1", [ev.id]);
   const terminado = await admin(`/entradas/${aprobada}/ingreso`, "POST");
   assert.equal(terminado.estado, 409);

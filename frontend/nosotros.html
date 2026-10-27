@@ -2,6 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-BEG1k/ZrSd5Vg8kxLuH6wrQHcPMgGvdHcU6NcMnpLqk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://nominatim.openstreetmap.org; frame-src https://www.openstreetmap.org; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nosotros - El Desparche</title>
     <meta
@@ -45,129 +46,7 @@
     >
 
     <!-- ===== CABECERA ===== -->
-    <header class="cabecera" role="banner">
-      <button type="button" class="boton-menu" id="boton-menu"
-              aria-expanded="false" aria-controls="menu-principal menu-cuenta">
-        <span class="boton-menu-icono" aria-hidden="true"><span></span><span></span><span></span></span>
-        <span>Menú</span>
-      </button>
-
-      <div class="cabecera-izquierda">
-        <a
-          class="logo"
-          href="index.html"
-          aria-label="El Desparche, ir a la página de inicio"
-        >
-          <img
-            class="logo-texto"
-            src="img/logo-eldesparche.svg"
-            alt=""
-            aria-hidden="true"
-          />
-        </a>
-
-        <nav class="menu" id="menu-principal" role="navigation" aria-label="Navegación principal">
-          <ul>
-            <li>
-              <a href="index.html">Inicio</a>
-            </li>
-            <li><a href="eventos.html">Eventos</a></li>
-            <li><a href="mis-reservas.html">Mis reservas</a></li>
-          </ul>
-        </nav>
-      </div>
-
-      <div class="cabecera-derecha" id="menu-cuenta">
-        <!-- El script escribe aquí los botones de acceso o los datos del usuario -->
-        <div class="sesion" id="sesion" aria-label="Sesión de usuario"></div>
-
-        <!-- ===== BOTÓN DE ACCESIBILIDAD (patron "disclosure") =====
-           aria-expanded es un ESTADO: dice si el panel esta abierto o
-           cerrado, y el lector de pantalla lo anuncia en cada pulsación
-           ("contraído" / "expandido"). aria-controls lo enlaza con el
-           panel que abre. El panel se oculta con el atributo hidden, que
-           lo saca del orden de tabulación y también del lector: así no se
-           puede llegar con el teclado a botones que no se ven. -->
-        <div class="accesibilidad">
-          <button
-            type="button"
-            class="boton-accesibilidad"
-            id="abrir-accesibilidad"
-            aria-expanded="false"
-            aria-controls="panel-accesibilidad"
-          >
-            <span>Accesibilidad</span>
-            <!-- La flecha va en el marcado con aria-hidden, no como
-               contenido generado en CSS: el contenido de ::after SÍ entra
-               en el nombre accesible del botón en algunos navegadores, y
-               el lector acabaría diciendo "Accesibilidad triángulo". -->
-            <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
-          </button>
-
-          <div class="panel-accesibilidad" id="panel-accesibilidad" hidden>
-            <h2 class="panel-titulo" id="titulo-panel-acc">
-              Opciones de accesibilidad
-            </h2>
-
-            <!-- role="group" + aria-labelledby agrupan los botones bajo un
-               mismo nombre, para que el lector anuncie de qué van antes
-               de leer cada uno. -->
-            <div
-              class="tamano-texto"
-              role="group"
-              aria-labelledby="titulo-tamano"
-            >
-              <span class="oculto" id="titulo-tamano">Tamaño del texto</span>
-
-              <button
-                type="button"
-                class="tamano-menor"
-                id="texto-menos"
-                aria-label="Disminuir el tamaño del texto"
-              >
-                A<span aria-hidden="true">&minus;</span>
-              </button>
-
-              <!-- Señal visible del estado. El lector no lo lee (ya se lo
-                 anuncia la región role="status") para no repetirlo. -->
-              <span class="tamano-valor" id="texto-valor" aria-hidden="true"
-                >100%</span
-              >
-
-              <button
-                type="button"
-                class="tamano-mayor"
-                id="texto-mas"
-                aria-label="Aumentar el tamaño del texto"
-              >
-                A<span aria-hidden="true">+</span>
-              </button>
-
-              <button
-                type="button"
-                class="tamano-reinicio"
-                id="texto-normal"
-                aria-label="Restablecer el tamaño normal del texto"
-              >
-                Normal
-              </button>
-            </div>
-
-            <p class="panel-ayuda">
-              Se guarda en este navegador para tus próximas visitas.
-            </p>
-          </div>
-        </div>
-
-        <!-- Anuncia el nuevo tamaño en voz alta al pulsar (WCAG 4.1.3) -->
-        <p
-          class="oculto"
-          id="aviso-tamano"
-          role="status"
-          aria-live="polite"
-        ></p>
-      </div>
-    </header>
+    <!--@incluir cabecera-->
 
     <!-- tabindex="-1" permite que el enlace de salto mueva el foco hasta aquí -->
     <main id="contenido" class="info" tabindex="-1">
@@ -239,7 +118,7 @@
             </p>
             <p>
               Así que armamos un solo lugar para descubrir conciertos, festivales, teatro y planes familiares,
-              reservar en minutos, pagar seguro y entrar al evento con un QR en el celular.
+              reservar en minutos, que te aprueben la reserva y entrar al evento con un QR en el celular.
             </p>
           </div>
 
@@ -261,8 +140,8 @@
             <li>
               <span class="info-boleta-talon" aria-hidden="true">3</span>
               <div class="info-boleta-cuerpo">
-                <h3>Pagas seguro</h3>
-                <p>Con tarjeta, Nequi, PSE o Botón Bancolombia, a través de Wompi.</p>
+                <h3>Te la aprueban</h3>
+                <p>Un administrador aprueba tu reserva y tu pago.</p>
               </div>
             </li>
             <li>
@@ -303,7 +182,7 @@
             </div>
             <div>
               <dt>Seguridad</dt>
-              <dd>Los pagos pasan por Wompi y cada entrada tiene un QR que sirve una sola vez.</dd>
+              <dd>Cada entrada tiene un QR que sirve una sola vez.</dd>
             </div>
             <div>
               <dt>Accesibilidad</dt>
@@ -427,10 +306,10 @@
               <article aria-labelledby="comunicado-pagos">
                 <time class="prensa-talon" datetime="2026-10-15"><span>15</span> oct 2026</time>
                 <div>
-                  <h3 id="comunicado-pagos">Pagos con Wompi y entradas con código QR</h3>
+                  <h3 id="comunicado-pagos">Reservas aprobadas y entradas con código QR</h3>
                   <p>
-                    Las entradas se pagan con tarjeta, Nequi, PSE o el Botón Bancolombia a
-                    través de Wompi. Cada reserva confirmada trae un QR personal que sirve para
+                    Un administrador aprueba la reserva y el pago.
+                    Cada reserva confirmada trae un QR personal que sirve para
                     entrar una sola vez.
                   </p>
                 </div>
@@ -506,7 +385,7 @@
                 El Desparche es una plataforma colombiana para encontrar conciertos, festivales,
                 teatro y planes gratis, y reservar las entradas en línea. Nació en Tuluá en 2026
                 como proyecto integrador de estudiantes de la UCEVA. Los organizadores publican sus
-                eventos; el público reserva, paga con Wompi y entra con un código QR.
+                eventos; el público reserva y entra con un código QR cuando se aprueba su reserva.
               </p>
               <button type="button" class="prensa-copiar prensa-copiar-texto" data-copiar-de="texto-sobre">Copiar el texto</button>
             </section>
@@ -534,7 +413,7 @@
               <span>Pregunta en taquilla</span>
             </h1>
             <p class="ayuda-entrada">
-              Reservas, pagos y el QR de tu entrada. Si no está
+              Reservas, aprobación y el QR de tu entrada. Si no está
               aquí, escríbenos y te ayudamos.
             </p>
 
@@ -548,7 +427,7 @@
                 <input
                   type="search"
                   id="faq-buscar"
-                  placeholder="Ejemplo: Nequi, QR, cancelar"
+                  placeholder="Ejemplo: aprobar, QR, cancelar"
                   autocomplete="off"
                   aria-describedby="faq-cuantas"
                 />
@@ -564,7 +443,7 @@
             <h2 class="ayuda-indice-titulo" id="ayuda-indice-titulo">Temas</h2>
             <ul>
               <li><a href="#tema-reservas">Reservas y entradas</a></li>
-              <li><a href="#tema-pagos">Pagos con Wompi</a></li>
+              <li><a href="#tema-pagos">Aprobación de la reserva</a></li>
               <li><a href="#tema-qr">El QR y el día del evento</a></li>
               <li><a href="#tema-cuenta">Tu cuenta y los agentes</a></li>
             </ul>
@@ -603,7 +482,7 @@
                   <p>
                     En <a href="mis-reservas.html">Mis reservas</a>, con tu sesión
                     iniciada. Ahí aparece cada reserva con su fecha, lugar, total y
-                    estado: Confirmada, Reservada (pago pendiente) o Cancelada.
+                    estado: Confirmada, Reservada (por aprobar) o Cancelada.
                   </p>
                 </div>
               </details>
@@ -632,48 +511,26 @@
 
             <!-- ===== PAGOS ===== -->
             <section class="faq-grupo" id="tema-pagos" aria-labelledby="tema-pagos-titulo">
-              <h2 id="tema-pagos-titulo">Pagos con Wompi</h2>
+              <h2 id="tema-pagos-titulo">Aprobación de la reserva</h2>
 
-              <details class="faq-pregunta" id="medios-pago">
-                <summary>¿Con qué puedo pagar?</summary>
+              <details class="faq-pregunta" id="como-pago">
+                <summary>¿Cómo se paga una reserva?</summary>
                 <div class="faq-respuesta">
                   <p>
-                    Con tarjeta débito o crédito, Nequi, PSE o el Botón
-                    Bancolombia. Todos los pagos se hacen en pesos colombianos a
-                    través de Wompi.
+                    La reserva queda registrada como «Reservada». Un administrador
+                    la aprueba junto con el pago y entonces pasa a «Confirmada». Las
+                    de eventos gratis quedan confirmadas al instante.
                   </p>
                 </div>
               </details>
 
-              <details class="faq-pregunta" id="pago-seguro">
-                <summary>¿Es seguro pagar aquí?</summary>
+              <details class="faq-pregunta" id="reserva-por-aprobar">
+                <summary>Mi reserva sigue «Reservada». ¿Qué hago?</summary>
                 <div class="faq-respuesta">
                   <p>
-                    Sí. El pago lo procesa Wompi, una pasarela de pagos de
-                    Bancolombia. Los datos de tu tarjeta o de tu banco se escriben
-                    en la ventana de Wompi: El Desparche nunca los ve ni los guarda.
-                  </p>
-                </div>
-              </details>
-
-              <details class="faq-pregunta" id="pago-pendiente">
-                <summary>Mi pago quedó «Pendiente». ¿Qué hago?</summary>
-                <div class="faq-respuesta">
-                  <p>
-                    Nada por ahora. Algunos pagos, sobre todo con PSE, tardan unos
-                    minutos en confirmarse. Mientras tanto la reserva aparece como
-                    «Reservada» y el QR se activa solo cuando el pago se aprueba.
-                  </p>
-                </div>
-              </details>
-
-              <details class="faq-pregunta" id="pago-rechazado">
-                <summary>Mi pago fue rechazado. ¿Me cobraron?</summary>
-                <div class="faq-respuesta">
-                  <p>
-                    No. Si el pago aparece como rechazado o con error, no se hizo
-                    ningún cobro y la reserva no queda activa. Revisa los datos o
-                    el saldo e inténtalo de nuevo, o prueba con otro medio de pago.
+                    Nada por ahora. Mientras un administrador no la apruebe, la
+                    reserva aparece como «Reservada» y el QR se activa solo cuando
+                    la apruebe. Si tarda mucho, escríbenos a soporte@eldesparche.online.
                   </p>
                 </div>
               </details>
@@ -688,8 +545,7 @@
                 <div class="faq-respuesta">
                   <p>
                     En <a href="mis-reservas.html">Mis reservas</a>, con el botón
-                    «Ver QR». Aparece en cuanto el pago está aprobado. También lo
-                    ves en la página de confirmación justo después de pagar.
+                    «Ver QR». Aparece en cuanto un administrador aprueba tu reserva.
                   </p>
                 </div>
               </details>
@@ -831,7 +687,7 @@
               <h2 id="terminos-resumen-titulo">Lo esencial</h2>
               <ul>
                 <li>Para reservar necesitas una cuenta de cliente.</li>
-                <li>Los pagos los procesa Wompi; nunca vemos los datos de tu tarjeta.</li>
+                <li>Nunca guardamos los datos de tu tarjeta.</li>
                 <li>Tu QR es personal y sirve para entrar una sola vez. No se revende.</li>
                 <li>Si el evento se cancela, te devolvemos lo que pagaste.</li>
               </ul>
@@ -885,27 +741,23 @@
                   <p>
                     Puedes reservar hasta 10 entradas por reserva. El precio que
                     ves en el resumen, en pesos colombianos, es el que pagas. La
-                    reserva queda confirmada cuando el pago se aprueba; mientras
-                    tanto aparece como «Reservada».
+                    reserva queda confirmada cuando un administrador la aprueba (a ella
+                    y a su pago); mientras tanto aparece como «Reservada».
                   </p>
                   <p>
-                    Los cupos de cada evento son limitados. Una reserva sin pagar
-                    no garantiza el cupo hasta que el pago se confirme.
+                    Los cupos de cada evento son limitados. Una reserva sin aprobar
+                    no garantiza el cupo hasta que un administrador la confirme.
                   </p>
                 </section>
               </li>
 
               <li>
                 <section id="pagos" aria-labelledby="t-pagos">
-                  <h2 id="t-pagos">Pagos</h2>
+                  <h2 id="t-pagos">Aprobación y pago</h2>
                   <p>
-                    Los pagos se hacen a través de Wompi, con tarjeta, Nequi, PSE o
-                    el Botón Bancolombia. Los datos de tu tarjeta o de tu banco los
-                    recibe Wompi directamente: El Desparche no los ve ni los guarda.
-                  </p>
-                  <p>
-                    Si un pago es rechazado o tiene un error, no se hace ningún
-                    cobro y la reserva no queda activa.
+                    En esta versión no hay pasarela de pago: un administrador
+                    aprueba la reserva y el pago y la deja «Confirmada». El Desparche
+                    no guarda datos de tu tarjeta ni de tu banco.
                   </p>
                 </section>
               </li>
@@ -1074,7 +926,7 @@
               <h2 id="manual-resumen-titulo">Lo esencial</h2>
               <ul>
                 <li>Sin cuenta puedes ver todos los eventos; para reservar necesitas una cuenta de cliente.</li>
-                <li>El total de una reserva es el número de entradas por el precio, más la tarifa de Wompi.</li>
+                <li>El total de una reserva es el número de entradas por el precio.</li>
                 <li>Tu QR es tu entrada y sirve para entrar una sola vez.</li>
                 <li>Los eventos que crean los organizadores se publican cuando un administrador los aprueba.</li>
               </ul>
@@ -1159,9 +1011,9 @@
                   <ol class="manual-pasos">
                     <li>En la página del evento, toca <strong>Reservar</strong>. Necesitas haber iniciado sesión con una cuenta de cliente.</li>
                     <li>Elige el número de tickets con los botones <strong>−</strong> y <strong>+</strong>: hasta 10 por reserva, sin pasar los cupos que quedan.</li>
-                    <li>Revisa el resumen: precio unitario, cantidad, tarifa de Wompi y total.</li>
-                    <li>Paga con tarjeta, Nequi, PSE o Botón Bancolombia a través de Wompi.</li>
-                    <li>Cuando el pago se aprueba, ves el comprobante con tu código QR.</li>
+                    <li>Revisa el resumen: precio unitario, cantidad y total.</li>
+                    <li>Confirma la reserva: queda «Reservada» hasta que un administrador la apruebe.</li>
+                    <li>Cuando la aprueban, ves tu código QR.</li>
                   </ol>
                   <p>
                     Si no cumples la edad mínima del evento o ya no quedan cupos,
@@ -1176,7 +1028,7 @@
                   <ol class="manual-pasos">
                     <li>Entra a <strong>Mis reservas</strong> en el menú.</li>
                     <li>Toca <strong>Ver QR</strong> en la reserva que quieras.</li>
-                    <li>Si el pago todavía está pendiente, el QR aparece cuando Wompi lo aprueba.</li>
+                    <li>Si la reserva sigue por aprobar, el QR aparece cuando un administrador la apruebe.</li>
                   </ol>
                 </div>
               </details>
@@ -1252,12 +1104,12 @@
                 <summary>Ver y cancelar las reservas de tus eventos</summary>
                 <div class="faq-respuesta">
                   <ol class="manual-pasos">
-                    <li>En <strong>Reservas</strong> ves solo las reservas de tus eventos. Puedes buscar y filtrar por evento, estado del pago y medio de pago.</li>
+                    <li>En <strong>Reservas</strong> ves solo las reservas de tus eventos. Puedes buscar y filtrar por evento y por estado.</li>
                     <li>Para cancelar una, ábrela y toca <strong>Cancelar reserva</strong>. Elige la causa y, si hace falta, escribe un detalle.</li>
                   </ol>
                   <p>
-                    Si el pago ya estaba aprobado, haz la devolución del dinero
-                    desde el panel de comercios de Wompi.
+                    Si la reserva ya estaba aprobada, devuélvele el dinero
+                    al cliente.
                   </p>
                 </div>
               </details>
@@ -1268,7 +1120,7 @@
                   <ol class="manual-pasos">
                     <li>En <strong>Validar entradas</strong>, elige el evento en <strong>Evento en la puerta</strong>.</li>
                     <li>Toca <strong>Abrir la cámara</strong> y apunta al QR, o escribe el código de la reserva (por ejemplo DES-1052) y toca <strong>Validar</strong>.</li>
-                    <li>La página te dice si la entrada es válida, o si ya se usó, está cancelada, no está pagada o es de otro evento.</li>
+                    <li>La página te dice si la entrada es válida, o si ya se usó, está cancelada, no está aprobada o es de otro evento.</li>
                   </ol>
                   <p>Solo puedes validar las entradas de tus propios eventos.</p>
                 </div>
@@ -1330,13 +1182,13 @@
                 <summary>Registrar, editar y eliminar</summary>
                 <div class="faq-respuesta">
                   <ol class="manual-pasos">
-                    <li>En <strong>Agentes</strong>, <strong>Eventos</strong>, <strong>Clientes</strong>, <strong>Administradores</strong> o <strong>Reservas y pagos</strong>, toca el botón de arriba para registrar, por ejemplo <strong>Registrar agente</strong>.</li>
+                    <li>En <strong>Agentes</strong>, <strong>Eventos</strong>, <strong>Clientes</strong>, <strong>Administradores</strong> o <strong>Reservas</strong>, toca el botón de arriba para registrar, por ejemplo <strong>Registrar agente</strong>.</li>
                     <li>Para cambiar un registro, ábrelo en la tabla y toca <strong>Editar datos</strong> (o <strong>Editar evento</strong>, <strong>Editar reserva</strong>).</li>
                     <li>Para borrarlo, toca <strong>Eliminar</strong> y confirma.</li>
                   </ol>
                   <p>
                     No se puede eliminar lo que tiene datos que dependen de él: un
-                    agente con eventos o una reserva con un pago. Tampoco tu propia
+                    agente con eventos. Tampoco tu propia
                     cuenta ni al último administrador. Todo evento debe tener un
                     agente, aunque lo registre un administrador.
                   </p>
@@ -1405,82 +1257,8 @@
     </main>
 
     <!-- ===== PIE DE PÁGINA ===== -->
-    <footer class="pie" role="contentinfo">
-      <div class="pie-columnas">
-        <div class="pie-marca">
-          <img
-            class="logo-texto"
-            src="img/logo-eldesparche.svg"
-            alt="El Desparche"
-          />
-          <p>
-            Conectando la cultura urbana de Colombia. El punto de encuentro de
-            los mejores conciertos, eventos y experiencias inolvidables en tu
-            ciudad.
-          </p>
-        </div>
+    <!--@incluir pie-->
 
-        <nav class="pie-enlaces" aria-labelledby="pie-nosotros">
-          <h2 class="pie-titulo" id="pie-nosotros">Sobre nosotros</h2>
-          <ul>
-            <li><a href="nosotros.html#comunidad">Comunidad</a></li>
-            <li><a href="nosotros.html#prensa">Prensa</a></li>
-            <li><a href="nosotros.html#terminos">Términos de servicio</a></li>
-          </ul>
-        </nav>
-
-        <nav class="pie-enlaces" aria-labelledby="pie-ayuda">
-          <h2 class="pie-titulo" id="pie-ayuda">Ayuda</h2>
-          <ul>
-            <li><a href="#">Soporte</a></li>
-            <li><a href="nosotros.html#manual-de-usuario">Manual de usuario</a></li>
-            <li><a href="nosotros.html#preguntas-frecuentes">Preguntas frecuentes</a></li>
-          </ul>
-        </nav>
-
-        <nav class="pie-enlaces" aria-labelledby="pie-categorias">
-          <h2 class="pie-titulo" id="pie-categorias">Categorías</h2>
-          <ul>
-            <li><a href="index.html?parche=parchesote#parches">Parchesotes</a></li>
-            <li><a href="index.html?parche=parche#parches">Parches</a></li>
-            <li><a href="index.html?parche=parchesito#parches">Parchesitos</a></li>
-          </ul>
-        </nav>
-
-        <nav class="pie-enlaces" aria-labelledby="pie-redes">
-          <h2 class="pie-titulo" id="pie-redes">Síguenos</h2>
-          <!-- Enlaces solo con icono: el nombre accesible lo da aria-label -->
-          <ul class="redes">
-            <li>
-              <a href="#" aria-label="El Desparche en Instagram">
-                <img src="img/cadd5.svg" alt="" aria-hidden="true" />
-              </a>
-            </li>
-            <li>
-              <a href="#" aria-label="El Desparche en Twitter">
-                <img src="img/fbe59.svg" alt="" aria-hidden="true" />
-              </a>
-            </li>
-            <li>
-              <a href="#" aria-label="El Desparche en YouTube">
-                <img src="img/26b07.svg" alt="" aria-hidden="true" />
-              </a>
-            </li>
-          </ul>
-        </nav>
-      </div>
-
-      <p class="pie-final">
-        <span
-          >© 2026 ElDesparche. Todos los derechos reservados a nuestro grupo de
-          proyecto integrador.</span
-        >
-        <span>Tuluá, Colombia</span>
-      </p>
-    </footer>
-
-    <script type="module" src="js/script.js"></script>
-    <script type="module" src="js/paginas.js"></script>
-    <script type="module" src="js/prensa.js"></script>
+    <script type="module" src="src/paginas/nosotros.js"></script>
   </body>
 </html>

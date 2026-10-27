@@ -773,6 +773,95 @@ main:focus-visible {
   text-decoration: underline;
 }
 
+/* Menú de la cuenta: el botón "Mi cuenta" despliega "Cambiar contraseña" y "Cerrar sesión" */
+.usuario-menu {
+  position: relative;
+}
+
+.usuario .boton-menu-usuario {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--blanco);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(13px * var(--escala-texto));
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.usuario .boton-menu-usuario:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--blanco);
+  text-decoration: none;
+}
+
+.usuario .boton-menu-usuario[aria-expanded="true"] {
+  background: var(--blanco);
+  color: var(--oscuro);
+  border-color: var(--blanco);
+}
+
+.usuario .boton-menu-usuario[aria-expanded="true"] .flecha-accesibilidad {
+  transform: rotate(180deg);
+}
+
+/* Flota por encima, igual que el panel de accesibilidad: no empuja nada de la página */
+.panel-usuario {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: auto;
+  z-index: 120;
+  min-width: 230px;
+  max-width: calc(100vw - 40px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(19, 10, 43, 0.35);
+}
+
+.panel-usuario[hidden] {
+  display: none;
+}
+
+.panel-usuario button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--texto);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(14px * var(--escala-texto));
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.panel-usuario button:hover {
+  background: var(--morado-claro);
+  color: var(--morado);
+}
+
+.panel-usuario .salir {
+  color: var(--rojo-texto);
+}
+
+.panel-usuario .salir:hover {
+  background: var(--rojo-claro);
+  color: var(--rojo-texto);
+}
+
 /* ==========================================================================
    ESTRUCTURA GENERAL
    ========================================================================== */
@@ -845,7 +934,7 @@ main:focus-visible {
   justify-content: center;
   padding: 15px 26px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   font-family: "Geist", "Inter", sans-serif;
   font-size: calc(15px * var(--escala-texto));
   font-weight: 700;
@@ -854,9 +943,27 @@ main:focus-visible {
   cursor: pointer;
 }
 
+/* Botón morado principal (Reservar, Iniciar sesión...): la misma sombra y el mismo movimiento que "Ver evento" y "Ver todos los eventos" */
 .boton-morado {
   background: var(--morado);
   color: var(--blanco);
+  border-radius: 10px;
+  transition: transform 0.2s ease;
+}
+
+.boton-morado:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boton-morado {
+    transition: none;
+  }
+
+  .boton-morado:hover {
+    transform: none;
+  }
 }
 
 .boton-borde {
@@ -1395,7 +1502,8 @@ main:focus-visible {
 }
 
 /* Listas desplegables con la flechita a la derecha */
-.filtros select {
+.filtros select,
+.filtro-panel select {
   width: 100%;
   min-height: 54px;
   padding: 0 44px 0 16px;
@@ -1416,11 +1524,13 @@ main:focus-visible {
   -webkit-appearance: none;
 }
 
-.filtros select:hover {
+.filtros select:hover,
+.filtro-panel select:hover {
   border-color: var(--morado);
 }
 
-.filtros select:focus-visible {
+.filtros select:focus-visible,
+.filtro-panel select:focus-visible {
   outline: var(--foco-grosor) solid var(--foco);
   outline-offset: 2px;
 }
@@ -1428,7 +1538,8 @@ main:focus-visible {
 /* Lista aún no disponible: el estado se comunica con el atributo
    disabled (que el lector de pantalla anuncia como "no disponible")
    y con el texto de ayuda de abajo, no solo con el gris. */
-.filtros select:disabled {
+.filtros select:disabled,
+.filtro-panel select:disabled {
   /* El relleno gris separa "disponible" de "aún no disponible"; el
      borde sigue negro para que el campo no se pierda. El texto usa
      --gris-texto porque --gris-claro sobre este gris daba 3.72:1. */
@@ -1445,7 +1556,8 @@ main:focus-visible {
 }
 
 /* Cuando la lista ya está habilitada, la ayuda deja de tener sentido */
-.filtros select:not(:disabled) + .ayuda-campo {
+.filtros select:not(:disabled) + .ayuda-campo,
+.filtro-panel select:not(:disabled) + .ayuda-campo {
   /* visibility y no display: el texto deja de verse pero conserva su
      hueco, asi la portada no cambia de altura al elegir un filtro y el
      carrusel de debajo no se mueve ni choca con el buscador. */
@@ -1539,7 +1651,6 @@ main:focus-visible {
   border-color: var(--morado);
   background: var(--morado);
   color: var(--blanco);
-  box-shadow: 0 14px 28px -18px rgba(91, 54, 242, 0.9);
 }
 
 .parche-filtro[aria-pressed="true"] .parche-icono {
@@ -1632,6 +1743,45 @@ main:focus-visible {
   margin-top: 12px;
 }
 
+/* "Ver todos los eventos": botón morado de esquinas poco redondeadas, igual que los botones de la página.
+   El texto blanco sobre --morado da 6.45:1 (AA). */
+.enlace-ver-todos {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 14px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  background: var(--morado);
+  color: var(--blanco);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(15px * var(--escala-texto));
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.2s ease;
+}
+
+.enlace-ver-todos:hover {
+  transform: translateY(-2px);
+}
+
+/* Versión chica del botón (por ejemplo, "Ver en OpenStreetMap" bajo el mapa) */
+.enlace-pequeno {
+  padding: 8px 16px;
+  font-size: calc(13px * var(--escala-texto));
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enlace-ver-todos {
+    transition: none;
+  }
+
+  .enlace-ver-todos:hover {
+    transform: none;
+  }
+}
+
 .titulo-seccion h2 {
   font-size: calc(28px * var(--escala-texto));
   margin-bottom: 6px;
@@ -1662,6 +1812,8 @@ main:focus-visible {
   width: 100%;
   background: var(--blanco);
   border-radius: 14px;
+  /* Reborde muy sutil en el lila de los recuadros de la página */
+  border: 1px solid #e6defc;
   overflow: hidden;
   box-shadow: 0 8px 28px rgba(23, 33, 58, 0.08);
   color: var(--texto);
@@ -1669,10 +1821,12 @@ main:focus-visible {
   flex-direction: column;
   transition:
     transform 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .tarjeta-cuerpo:hover {
+  border-color: #cbbcf8;
   box-shadow: 0 12px 40px rgba(23, 33, 58, 0.14);
   transform: translateY(-3px);
 }
@@ -1769,10 +1923,19 @@ main:focus-visible {
   margin: 0;
 }
 
+/* "Ver evento": el mismo botón morado de esquinas poco redondeadas de "Ver todos los eventos".
+   Es un texto dentro de la tarjeta (el enlace de la tarjeta es el título), por eso no es un <a> aparte. */
 .tarjeta-ver {
-  font-size: calc(13px * var(--escala-texto));
-  color: var(--morado);
+  display: inline-block;
   margin: 0;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--morado);
+  color: var(--blanco);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(13px * var(--escala-texto));
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 /* Mensaje de "no se encontraron eventos": ocupa todas las columnas
@@ -1806,7 +1969,7 @@ main:focus-visible {
   display: inline-flex;
   align-items: center;
   border: 2px solid transparent;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 5px 10px;
   font-family: "Geist", "Inter", sans-serif;
   font-size: calc(11px * var(--escala-texto));
@@ -1871,14 +2034,88 @@ main:focus-visible {
    PÁGINA DE DETALLE
    ========================================================================== */
 
+/* Ruta de navegación: una franja de lado a lado con el camino recorrido. El primer paso es un botón para volver;
+   el último, la página donde estás, va en negrita y se recorta con "…" si no cabe. */
 .migas {
-  font-size: calc(13px * var(--escala-texto));
-  color: var(--morado);
   margin-bottom: 20px;
+  padding: 8px;
+  background: var(--blanco);
+  border: 1px solid #e6defc;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(23, 33, 58, 0.05);
 }
 
-.migas a {
+.migas ol {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.migas li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(14px * var(--escala-texto));
+}
+
+/* El separador es un trazo (no es texto, así que el lector de pantalla no lo lee) */
+.migas li + li::before {
+  content: "";
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  margin: 0 8px 0 4px;
+  border-top: 2px solid #b9a9f5;
+  border-right: 2px solid #b9a9f5;
+  transform: rotate(45deg);
+}
+
+.miga-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--morado-claro);
   color: var(--morado);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.miga-volver:hover {
+  background: var(--morado);
+  color: var(--blanco);
+}
+
+.miga-enlace {
+  color: var(--morado);
+  font-weight: 600;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.miga-enlace:hover {
+  text-decoration: underline;
+}
+
+.migas li[aria-current="page"] {
+  flex: 1;
+  color: var(--texto);
+  font-weight: 700;
+}
+
+.migas li[aria-current="page"] > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .portada-evento {
@@ -1912,6 +2149,41 @@ main:focus-visible {
 
 .caja h2 {
   font-size: calc(22px * var(--escala-texto));
+}
+
+/* Ubicación: el título y el sitio en dos líneas (el nombre del sitio y, en gris, dónde queda) */
+.ubicacion-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.caja-ubicacion .ubicacion-cabecera h2 {
+  margin: 0 0 4px;
+  font-family: "Outfit", "Inter", sans-serif;
+  font-weight: 800;
+  font-size: calc(24px * var(--escala-texto));
+  line-height: 1.1;
+}
+
+.ubicacion-lugar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.ubicacion-lugar strong {
+  color: var(--texto);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(16px * var(--escala-texto));
+  font-weight: 700;
+}
+
+.ubicacion-lugar span {
+  color: var(--gris-texto);
+  font-size: calc(14px * var(--escala-texto));
 }
 
 /* Caja lateral con el precio y el botón de reservar */
@@ -2997,7 +3269,8 @@ iframe {
 /* El enlace de cada red social es solo un icono: su nombre accesible
    viene del aria-label del <a>. Se le da tamaño de 44x44 px para que
    sea fácil de pulsar en pantalla táctil (WCAG 2.5.8 Tamaño del área). */
-.redes a {
+.redes a,
+.redes .red {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3153,9 +3426,16 @@ iframe {
 
   /* ESCRITORIO: el botón está pegado al borde derecho, así que el
      panel se despliega hacia la IZQUIERDA (al revés que en móvil). */
-  .panel-accesibilidad {
+  .panel-accesibilidad,
+  .panel-usuario {
     left: auto;
     right: 0;
+  }
+
+  /* En el panel lateral (agente y administrador) el menú sigue saliendo hacia la derecha */
+  .lateral-cuenta .panel-usuario {
+    left: 0;
+    right: auto;
   }
 
   .seccion,
@@ -3245,7 +3525,8 @@ iframe {
     font-size: calc(32px * var(--escala-texto));
   }
 
-  .seccion-destacados .titulo-seccion .enlace {
+  .seccion-destacados .titulo-seccion .enlace,
+  .seccion-destacados .titulo-seccion .enlace-ver-todos {
     margin-top: 0;
   }
 
@@ -3431,5 +3712,412 @@ iframe {
 
   .cabecera {
     padding: 0 80px;
+  }
+}
+
+/* ===== PÁGINAS DE EVENTOS DE LA PORTADA ===== */
+
+.paginas-eventos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.paginas-eventos[hidden] {
+  display: none;
+}
+
+.paginas-eventos .boton {
+  padding: 10px 20px;
+}
+
+.paginas-eventos .boton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagina-lista {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pagina-numero {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(15px * var(--escala-texto));
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pagina-numero:hover {
+  border-color: var(--morado);
+  color: var(--morado);
+}
+
+.pagina-numero[aria-current="page"] {
+  background: var(--morado);
+  border-color: var(--morado);
+  color: var(--blanco);
+}
+
+.pagina-puntos {
+  color: var(--gris-texto);
+  padding: 0 2px;
+}
+
+/* ===== BOLETA DE eventos.html: título + talón con el número de eventos ===== */
+
+.boleta-eventos {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 22px;
+  border-radius: 18px;
+  background: linear-gradient(115deg, var(--oscuro) 0%, #2a1260 100%);
+  color: var(--blanco);
+  overflow: hidden;
+}
+
+.boleta-cuerpo {
+  padding: 28px 26px 26px;
+}
+
+.boleta-cuerpo h1 {
+  margin: 0 0 10px;
+  color: var(--blanco);
+  font-family: "Outfit", "Inter", sans-serif;
+  font-weight: 800;
+  font-size: calc(clamp(30px, 6vw, 50px) * var(--escala-texto));
+  line-height: 1.05;
+}
+
+.boleta-cuerpo p {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--texto-claro);
+  font-size: calc(16px * var(--escala-texto));
+  line-height: 1.5;
+}
+
+/* El talón: se separa del cuerpo por la línea de corte punteada, con una muesca en cada punta */
+.boleta-talon {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  padding: 18px 26px 20px;
+  background: var(--morado);
+  border-top: 2px dashed rgba(255, 255, 255, 0.5);
+  color: var(--blanco);
+}
+
+.boleta-talon::before,
+.boleta-talon::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--fondo);
+}
+
+.boleta-talon::before { top: -12px; left: -12px; }
+.boleta-talon::after { top: -12px; right: -12px; }
+
+.boleta-talon strong {
+  font-family: "Outfit", "Inter", sans-serif;
+  font-weight: 800;
+  font-size: calc(46px * var(--escala-texto));
+  line-height: 1;
+}
+
+.boleta-talon span {
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(15px * var(--escala-texto));
+  font-weight: 600;
+}
+
+@media (min-width: 800px) {
+  .boleta-eventos {
+    flex-direction: row;
+  }
+
+  .boleta-cuerpo {
+    flex: 1;
+    padding: 34px 36px;
+  }
+
+  .boleta-talon {
+    flex: 0 0 230px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 24px;
+    border-top: none;
+    border-left: 2px dashed rgba(255, 255, 255, 0.5);
+  }
+
+  .boleta-talon::before { top: -12px; left: -12px; }
+  .boleta-talon::after { top: auto; right: auto; bottom: -12px; left: -12px; }
+
+  .boleta-talon strong {
+    font-size: calc(72px * var(--escala-texto));
+  }
+}
+
+/* ===== BUSCADOR Y MENÚ DESPLEGABLE DE FILTROS ===== */
+
+.barra-filtros {
+  margin: 0 0 22px;
+}
+
+.barra-filtros-fila {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.barra-filtros .caja-busqueda {
+  flex: none;
+}
+
+.filtro-desplegable {
+  position: relative;
+}
+
+.boton-filtros {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 22px;
+  border: 2px solid var(--borde-negro);
+  border-radius: 999px;
+  background: var(--blanco);
+  color: var(--texto);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(15px * var(--escala-texto));
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boton-filtros:hover {
+  border-color: var(--morado);
+  color: var(--morado);
+}
+
+.boton-filtros[aria-expanded="true"] {
+  background: var(--morado);
+  border-color: var(--morado);
+  color: var(--blanco);
+}
+
+.icono-filtros {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.boton-filtros .flecha-accesibilidad {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.boton-filtros[aria-expanded="true"] .flecha-accesibilidad {
+  transform: rotate(180deg);
+}
+
+/* Cuántos filtros hay aplicados */
+.filtros-activos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--morado);
+  color: var(--blanco);
+  font-size: calc(13px * var(--escala-texto));
+  font-weight: 700;
+}
+
+.filtros-activos[hidden] {
+  display: none;
+}
+
+.boton-filtros[aria-expanded="true"] .filtros-activos {
+  background: var(--blanco);
+  color: var(--morado);
+}
+
+/* El panel flota por encima del listado: al abrirse no empuja nada */
+.filtro-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  padding: 20px;
+  background: var(--blanco);
+  border: 1px solid #e6defc;
+  border-radius: 16px;
+  box-shadow: 0 18px 44px rgba(19, 10, 43, 0.28);
+}
+
+.filtro-panel[hidden] {
+  display: none;
+}
+
+.filtro-panel-guia {
+  margin: 0 0 14px;
+  color: var(--gris-texto);
+  font-size: calc(14px * var(--escala-texto));
+}
+
+.filtro-panel-campos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+/* Cada lista lleva su etiqueta a la vista: así se sabe de qué es cada una */
+.campo-etiquetado label {
+  display: block;
+  margin: 0 0 6px 2px;
+  color: var(--texto);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(13px * var(--escala-texto));
+  font-weight: 700;
+}
+
+.filtro-panel .campo-etiquetado select {
+  min-height: 48px;
+}
+
+.filtro-panel-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed #d8cefc;
+}
+
+.filtro-panel-pie .enlace-ver-todos {
+  margin-top: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.boton-limpiar {
+  padding: 10px 16px;
+  border: 1px solid #cbbcf8;
+  border-radius: 10px;
+  background: var(--morado-claro);
+  color: var(--morado);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(14px * var(--escala-texto));
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boton-limpiar:hover {
+  background: var(--morado);
+  border-color: var(--morado);
+  color: var(--blanco);
+}
+
+/* Etiquetas de los filtros aplicados */
+.filtros-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.filtros-chips[hidden] {
+  display: none;
+}
+
+.filtro-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 14px;
+  border: 1px solid #cbbcf8;
+  border-radius: 999px;
+  background: var(--morado-claro);
+  color: var(--morado);
+  font-family: "Geist", "Inter", sans-serif;
+  font-size: calc(14px * var(--escala-texto));
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filtro-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--morado);
+  color: var(--blanco);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.filtro-chip:hover {
+  background: #ddd3fd;
+}
+
+@media (min-width: 700px) {
+  .barra-filtros-fila {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .barra-filtros .caja-busqueda {
+    flex: 1;
+  }
+
+  .boton-filtros {
+    width: auto;
+    min-height: 54px;
+  }
+
+  .filtro-panel {
+    left: auto;
+    right: 0;
+    width: min(640px, calc(100vw - 64px));
+  }
+
+  .filtro-panel-campos {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
