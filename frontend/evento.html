@@ -34,9 +34,12 @@
   <main class="fondo-gris">
     <article class="seccion">
 
-      <p class="migas">
-        <a href="eventos.html">Eventos</a> / <span id="miga-titulo"></span>
-      </p>
+      <nav class="migas" aria-label="Ruta de navegación">
+        <ol>
+          <li><a class="miga-volver" href="eventos.html">Eventos</a></li>
+          <li aria-current="page"><span id="miga-titulo"></span></li>
+        </ol>
+      </nav>
 
       <figure class="portada-evento">
         <img id="evento-imagen" src="" alt="">
@@ -65,11 +68,15 @@
       </section>
 
       <!-- ===== UBICACIÓN ===== -->
-      <section class="caja">
-        <h2>Ubicación</h2>
-        <p class="texto-gris" id="evento-lugar"></p>
+      <section class="caja caja-ubicacion">
+        <div class="ubicacion-cabecera">
+          <div>
+            <h2>Ubicación</h2>
+            <p class="ubicacion-lugar" id="evento-lugar"></p>
+          </div>
+        </div>
         <iframe id="evento-mapa" title="Mapa de la ubicación del evento" src="" loading="lazy"></iframe>
-        <p><a class="enlace" id="evento-mapa-enlace" href="#" target="_blank" rel="noreferrer">Ver en OpenStreetMap →</a></p>
+        <p><a class="enlace-ver-todos enlace-pequeno" id="evento-mapa-enlace" href="#" target="_blank" rel="noreferrer">Ver en OpenStreetMap<span class="oculto"> (se abre en otra pestaña)</span></a></p>
       </section>
 
     </article>

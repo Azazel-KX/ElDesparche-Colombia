@@ -34,43 +34,86 @@
   <main class="fondo-gris">
     <section class="seccion">
 
-      <div class="recuadro-titulo">
-        <h1>Encuentra tu próximo plan</h1>
-        <p class="texto-gris">
-          Explora conciertos, teatro, festivales y experiencias en toda Colombia.
-        </p>
-      </div>
+      <!-- La cabecera es una boleta: el título a la izquierda y, tras la línea de corte, el talón con cuántos eventos hay -->
+      <header class="boleta-eventos">
+        <div class="boleta-cuerpo">
+          <h1>Encuentra tu próximo plan</h1>
+          <p>Conciertos, teatro, festivales y mucho más, en Colombia y en otros países.</p>
+        </div>
+        <p class="boleta-talon" id="contador" role="status" aria-live="polite"></p>
+      </header>
 
-      <!-- ===== FILTROS ===== -->
-      <form class="filtros" id="filtros-eventos">
-        <div class="caja-busqueda">
-          <img src="img/66766.svg" alt="">
-          <label class="oculto" for="busqueda">Buscar</label>
-          <input type="search" id="busqueda" placeholder="Buscar" autocomplete="off">
+      <!-- ===== BUSCADOR Y FILTROS ===== -->
+      <form class="barra-filtros" id="filtros-eventos" role="search" aria-label="Buscar y filtrar eventos">
+        <div class="barra-filtros-fila">
+          <div class="caja-busqueda">
+            <img src="img/66766.svg" alt="">
+            <label class="oculto" for="busqueda">Buscar por nombre del evento o ciudad</label>
+            <input type="search" id="busqueda" placeholder="Busca por nombre del evento o por ciudad" autocomplete="off">
+          </div>
+
+          <div class="filtro-desplegable">
+            <button type="button" class="boton-filtros" id="abrir-filtros" aria-expanded="false" aria-controls="panel-filtros">
+              <svg class="icono-filtros" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+              <span>Filtros</span>
+              <span class="filtros-activos" id="filtros-activos" hidden></span>
+              <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
+            </button>
+
+            <div class="filtro-panel" id="panel-filtros" role="group" aria-label="Filtros de eventos" hidden>
+              <p class="filtro-panel-guia">Elige el país y se abren sus departamentos y ciudades.</p>
+
+              <!-- Primero se elige el país, luego su departamento y por último la ciudad -->
+              <div class="filtro-panel-campos">
+                <div class="campo-etiquetado">
+                  <label for="pais">País</label>
+                  <select id="pais">
+                    <!-- Los países los llena el script con los de los eventos publicados -->
+                    <option value="">Todos</option>
+                  </select>
+                </div>
+
+                <div class="campo-etiquetado">
+                  <label for="departamento">Departamento</label>
+                  <select id="departamento" disabled aria-describedby="ayuda-departamento">
+                    <option value="">Todos</option>
+                  </select>
+                  <p class="ayuda-campo" id="ayuda-departamento">Elige primero un país.</p>
+                </div>
+
+                <div class="campo-etiquetado">
+                  <label for="ciudad">Ciudad</label>
+                  <select id="ciudad" disabled aria-describedby="ayuda-ciudad">
+                    <option value="">Todas</option>
+                  </select>
+                  <p class="ayuda-campo" id="ayuda-ciudad">Elige primero un departamento.</p>
+                </div>
+
+                <div class="campo-etiquetado">
+                  <label for="estado">Estado del evento</label>
+                  <select id="estado">
+                    <option value="">Todos</option>
+                    <option>Programado</option>
+                    <option>En Boletería</option>
+                    <option>En Vivo</option>
+                    <option>Finalizado</option>
+                    <option>Cancelado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="filtro-panel-pie">
+                <button type="button" class="boton-limpiar" id="limpiar-filtros">Limpiar filtros</button>
+                <button type="button" class="enlace-ver-todos" id="cerrar-filtros">Listo</button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="campo-filtro">
-          <label class="oculto" for="ciudad">Ciudad</label>
-          <select id="ciudad">
-            <!-- Las ciudades las llena el script con las de los eventos publicados -->
-            <option>Todas</option>
-          </select>
-        </div>
-
-        <div class="campo-filtro">
-          <label class="oculto" for="estado">Estado</label>
-          <select id="estado">
-            <option>Todos</option>
-            <option>Programado</option>
-            <option>En Boletería</option>
-            <option>En Vivo</option>
-            <option>Finalizado</option>
-            <option>Cancelado</option>
-          </select>
-        </div>
+        <!-- Lo que está aplicado, a la vista aunque el panel esté cerrado; cada etiqueta se quita con un clic -->
+        <ul class="filtros-chips" id="filtros-chips" aria-label="Filtros aplicados" hidden></ul>
       </form>
 
-      <p class="contador" id="contador"></p>
       <p class="orden">Ordenar: Próximos primero</p>
 
       <!-- El script escribe aquí las tarjetas -->

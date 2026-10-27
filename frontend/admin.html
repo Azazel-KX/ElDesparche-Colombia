@@ -337,37 +337,76 @@
           <section class="admin-tarjeta admin-lista" aria-labelledby="titulo-lista-eventos">
             <h2 id="titulo-lista-eventos" tabindex="-1">Eventos publicados</h2>
 
-            <form class="admin-filtros" role="search" aria-label="Filtrar eventos" id="filtros-eventos">
-              <div class="admin-filtro admin-filtro-buscar">
-                <label for="buscar-evento">Buscar</label>
-                <input type="search" id="buscar-evento" placeholder="Nombre, teatro o agente" autocomplete="off" />
+            <form class="barra-filtros barra-filtros-admin" role="search" aria-label="Filtrar eventos" id="filtros-eventos">
+              <div class="barra-filtros-fila">
+                <div class="admin-filtro admin-filtro-buscar">
+                  <label for="buscar-evento">Buscar</label>
+                  <input type="search" id="buscar-evento" placeholder="Nombre, teatro o agente" autocomplete="off" />
+                </div>
+                <div class="admin-filtro">
+                  <label for="orden-eventos">Ordenar por</label>
+                  <select id="orden-eventos">
+                    <option value="ocupacion">Más ocupación</option>
+                    <option value="ingresos">Más ingresos</option>
+                    <option value="precio">Precio más alto</option>
+                    <option value="nombre">Nombre (A-Z)</option>
+                  </select>
+                </div>
+
+                <!-- Estado y lugar van en un menú desplegable; lo aplicado se resume en etiquetas debajo -->
+                <div class="admin-filtro filtro-desplegable">
+                  <span class="admin-filtro-etiqueta">Filtrar por</span>
+                  <button type="button" class="boton-filtros" id="abrir-filtros-evento" aria-expanded="false" aria-controls="panel-filtros-evento">
+                    <svg class="icono-filtros" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+                    <span>Estado y lugar</span>
+                    <span class="filtros-activos" id="filtros-activos-evento" hidden></span>
+                    <span class="flecha-accesibilidad" aria-hidden="true">&#9662;</span>
+                  </button>
+
+                  <div class="filtro-panel" id="panel-filtros-evento" role="group" aria-label="Filtros de eventos" hidden>
+                    <p class="filtro-panel-guia">Elige el país y se abren sus departamentos y ciudades.</p>
+                    <div class="filtro-panel-campos">
+                      <div class="campo-etiquetado">
+                        <label for="filtro-estado-evento">Estado del evento</label>
+                        <select id="filtro-estado-evento">
+                          <option value="">Todos</option>
+                          <option value="Programado">Programado</option>
+                          <option value="En Boletería">En Boletería</option>
+                          <option value="En Vivo">En Vivo</option>
+                          <option value="Finalizado">Finalizado</option>
+                          <option value="Cancelado">Cancelado</option>
+                        </select>
+                      </div>
+                      <div class="campo-etiquetado">
+                        <label for="filtro-pais-evento">País</label>
+                        <select id="filtro-pais-evento">
+                          <option value="">Todos</option>
+                        </select>
+                      </div>
+                      <div class="campo-etiquetado">
+                        <label for="filtro-departamento-evento">Departamento</label>
+                        <select id="filtro-departamento-evento" disabled aria-describedby="ayuda-departamento-evento">
+                          <option value="">Todos</option>
+                        </select>
+                        <p class="ayuda-campo" id="ayuda-departamento-evento">Elige primero un país.</p>
+                      </div>
+                      <div class="campo-etiquetado">
+                        <label for="filtro-ciudad-evento">Ciudad</label>
+                        <select id="filtro-ciudad-evento" disabled aria-describedby="ayuda-ciudad-evento">
+                          <option value="">Todas</option>
+                        </select>
+                        <p class="ayuda-campo" id="ayuda-ciudad-evento">Elige primero un departamento.</p>
+                      </div>
+                    </div>
+                    <div class="filtro-panel-pie">
+                      <button type="button" class="boton-limpiar" id="limpiar-filtros-evento">Limpiar filtros</button>
+                      <button type="button" class="enlace-ver-todos" id="cerrar-filtros-evento">Listo</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="admin-filtro">
-                <label for="filtro-estado-evento">Estado</label>
-                <select id="filtro-estado-evento">
-                  <option value="">Todos</option>
-                  <option value="Programado">Programado</option>
-                  <option value="En Boletería">En Boletería</option>
-                  <option value="En Vivo">En Vivo</option>
-                  <option value="Finalizado">Finalizado</option>
-                  <option value="Cancelado">Cancelado</option>
-                </select>
-              </div>
-              <div class="admin-filtro">
-                <label for="filtro-ciudad-evento">Ciudad</label>
-                <select id="filtro-ciudad-evento">
-                  <option value="">Todas</option>
-                </select>
-              </div>
-              <div class="admin-filtro">
-                <label for="orden-eventos">Ordenar por</label>
-                <select id="orden-eventos">
-                  <option value="ocupacion">Más ocupación</option>
-                  <option value="ingresos">Más ingresos</option>
-                  <option value="precio">Precio más alto</option>
-                  <option value="nombre">Nombre (A-Z)</option>
-                </select>
-              </div>
+
+              <ul class="filtros-chips" id="filtros-chips-evento" aria-label="Filtros aplicados" hidden></ul>
             </form>
 
             <p class="admin-conteo" id="conteo-eventos" role="status"></p>

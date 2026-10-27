@@ -8,7 +8,7 @@ import { enfocarSiExiste, reducirImagen } from "../../lib/dom.js";
 import { escapar } from "../../lib/formato.js";
 import { agregarNota, notaCancelacion } from "../../modelos/cancelacionModelo.js";
 import {
-  EVENTOS, cambiarEstadoEvento, ciudadesDeEventos, completarEvento, cuerpoEvento, eliminarEvento, filtrarEventosAdmin,
+  EVENTOS, cambiarEstadoEvento, ubicacionesDe, completarEvento, cuerpoEvento, eliminarEvento, filtrarEventosAdmin,
   guardarEvento, obtenerEventosAdmin, obtenerSolicitudesEventos, resolverSolicitudEvento, validarEvento
 } from "../../modelos/eventoModelo.js";
 import { obtenerAgentes } from "../../modelos/personaModelo.js";
@@ -18,10 +18,12 @@ import { camposEvento } from "../../vistas/camposVista.js";
 import { datosCancelacion } from "../../vistas/cancelacionVista.js";
 import { leerFormulario, mostrarErroresFormulario } from "../../vistas/formularioVista.js";
 import {
-  confirmarCancelacionEvento, confirmarEliminacionEvento, llenarFiltroCiudades, mostrarCampoRechazo,
+  confirmarCancelacionEvento, confirmarEliminacionEvento, mostrarCampoRechazo,
   mostrarMotivoDeCancelacion, ocultarCampoRechazo, pintarDetalleEventoAdmin, pintarFormularioEvento, pintarPorRevisar,
   pintarResumenEventos, pintarSolicitud, pintarTablaEventos, restaurarBotonesEvento, volverACancelarEvento
 } from "../../vistas/admin/eventosVista.js";
+import { pintarFiltrosActivos, prepararMenuFiltros } from "../../vistas/filtrosEventosVista.js";
+import { llenarLista } from "../../vistas/inicioVista.js";
 import { entrarComoAdmin } from "../adminControlador.js";
 
 export function paginaEventosAdmin() {
@@ -31,7 +33,10 @@ export function paginaEventosAdmin() {
   var aviso = document.getElementById("admin-aviso");
   var buscar = document.getElementById("buscar-evento");
   var filtroEstado = document.getElementById("filtro-estado-evento");
+  var filtroPais = document.getElementById("filtro-pais-evento");
+  var filtroDepartamento = document.getElementById("filtro-departamento-evento");
   var filtroCiudad = document.getElementById("filtro-ciudad-evento");
+  var lugares = {};   /* { país: { departamento: [ciudades] } } con los eventos cargados */
   var orden = document.getElementById("orden-eventos");
   var cuerpo = document.getElementById("cuerpo-eventos");
   var dialogo = document.getElementById("detalle-evento");
@@ -43,8 +48,10 @@ export function paginaEventosAdmin() {
 
   function pintarTabla() {
     pintarTablaEventos(filtrarEventosAdmin(eventos, {
-      texto: buscar.value, estado: filtroEstado.value, ciudad: filtroCiudad.value, orden: orden.value
+      texto: buscar.value, estado: filtroEstado.value, pais: filtroPais.value, departamento: filtroDepartamento.value,
+      ciudad: filtroCiudad.value, orden: orden.value
     }), eventos.length);
+    pintarFiltrosActivos(filtrosActivos(), quitarFiltro, ids);
   }
 
   function pintarDetalle(e, mensaje) {
@@ -278,8 +285,65 @@ export function paginaEventosAdmin() {
   });
   buscar.addEventListener("input", pintarTabla);
   filtroEstado.onchange = pintarTabla;
-  filtroCiudad.onchange = pintarTabla;
   orden.onchange = pintarTabla;
+
+  /* País → departamentos de ese país → ciudades de ese departamento */
+  var alfabetico = function (a, b) { return a.localeCompare(b, "es"); };
+  filtroPais.onchange = function () {
+    llenarLista(filtroDepartamento, filtroPais.value ? Object.keys(lugares[filtroPais.value]).sort(alfabetico) : [], "Todos");
+    llenarLista(filtroCiudad, [], "Todas");
+    pintarTabla();
+  };
+  filtroDepartamento.onchange = function () {
+    var ciudades = filtroDepartamento.value ? lugares[filtroPais.value][filtroDepartamento.value].slice().sort(alfabetico) : [];
+    llenarLista(filtroCiudad, ciudades, "Todas");
+    pintarTabla();
+  };
+  filtroCiudad.onchange = pintarTabla;
+
+  /* ----- Menú desplegable de filtros y etiquetas de lo aplicado ----- */
+  var ids = { boton: "abrir-filtros-evento", panel: "panel-filtros-evento", listo: "cerrar-filtros-evento",
+              chips: "filtros-chips-evento", cantidad: "filtros-activos-evento" };
+
+  function filtrosActivos() {
+    var chips = [];
+    if (filtroEstado.value) chips.push({ clave: "estado", texto: filtroEstado.value });
+    if (filtroPais.value) chips.push({ clave: "pais", texto: filtroPais.value });
+    if (filtroDepartamento.value) chips.push({ clave: "departamento", texto: filtroDepartamento.value });
+    if (filtroCiudad.value) chips.push({ clave: "ciudad", texto: filtroCiudad.value });
+    return chips;
+  }
+
+  function reiniciarDepartamento() { llenarLista(filtroDepartamento, [], "Todos"); }
+  function reiniciarCiudad() { llenarLista(filtroCiudad, [], "Todas"); }
+
+  /* Quitar una etiqueta: al quitar el país también se quitan su departamento y su ciudad */
+  function quitarFiltro(clave) {
+    if (clave === "estado") {
+      filtroEstado.value = "";
+    } else if (clave === "pais") {
+      filtroPais.value = "";
+      reiniciarDepartamento();
+      reiniciarCiudad();
+    } else if (clave === "departamento") {
+      filtroDepartamento.value = "";
+      reiniciarCiudad();
+    } else if (clave === "ciudad") {
+      filtroCiudad.value = "";
+    }
+    pintarTabla();
+    document.getElementById(ids.boton).focus();
+  }
+
+  document.getElementById("limpiar-filtros-evento").onclick = function () {
+    filtroEstado.value = "";
+    filtroPais.value = "";
+    reiniciarDepartamento();
+    reiniciarCiudad();
+    pintarTabla();
+  };
+
+  prepararMenuFiltros(ids);
 
   /* ----- Eventos por revisar ----- */
 
@@ -386,7 +450,8 @@ export function paginaEventosAdmin() {
 
   obtenerEventosAdmin().then(function (lista) {
     eventos = lista;
-    llenarFiltroCiudades(filtroCiudad, ciudadesDeEventos(eventos));
+    lugares = ubicacionesDe(eventos);
+    llenarLista(filtroPais, Object.keys(lugares).sort(alfabetico), "Todos");
     pintarResumenEventos(eventos);
     pintarTabla();
   }).catch(function (error) {

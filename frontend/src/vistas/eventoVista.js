@@ -51,7 +51,7 @@ function tarjetaEvento(evento) {
             '</span>' +
             /* Es puro adorno: el enlace real es el título, y repetirlo
                obligaría al lector a decir "Ver evento" en cada tarjeta. */
-            '<span class="tarjeta-ver" aria-hidden="true">Ver evento →</span>' +
+            '<span class="tarjeta-ver" aria-hidden="true">Ver evento</span>' +
           '</div>' +
         '</div>' +
       '</article>' +
@@ -80,13 +80,8 @@ export function pintarTarjetas(contenedor, lista) {
 
 /* "1 evento" / "5 eventos" en el listado */
 export function pintarContador(cuantos) {
-  document.getElementById("contador").textContent = cuantos === 1 ? "1 evento" : cuantos + " eventos";
-}
-
-/* Las ciudades del filtro salen de los eventos de la base, no de la lista fija del HTML */
-export function llenarCiudadesFiltro(ciudades) {
-  document.getElementById("ciudad").innerHTML = '<option>Todas</option>' +
-    ciudades.map(function (c) { return '<option>' + escapar(c) + '</option>'; }).join("");
+  document.getElementById("contador").innerHTML =
+    "<strong>" + cuantos + "</strong><span>" + (cuantos === 1 ? "evento para ti" : "eventos para ti") + "</span>";
 }
 
 /* Todo el detalle de un evento: título, ficha, estado, botón de reservar y mapa */
@@ -96,7 +91,10 @@ export function pintarDetalleEvento(evento) {
   document.getElementById("evento-titulo").textContent = evento.titulo;
   document.getElementById("evento-descripcion").textContent = evento.descripcion;
   document.getElementById("evento-precio").textContent = textoPrecioEvento(evento);
-  document.getElementById("evento-lugar").textContent = evento.teatro + " · " + evento.ciudad;
+  /* El sitio en grande y debajo, en gris, dónde queda */
+  var dondeQueda = [evento.direccion, evento.ciudad, evento.pais].filter(Boolean).join(", ");
+  document.getElementById("evento-lugar").innerHTML =
+    "<strong>" + escapar(evento.teatro) + "</strong><span>" + escapar(dondeQueda) + "</span>";
 
   var imagen = document.getElementById("evento-imagen");
   imagen.src = evento.imagen;

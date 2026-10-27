@@ -31,16 +31,6 @@ export function pintarResumenEventos(eventos) {
   pintarTarjetasResumen(tarjetas);
 }
 
-/* Opciones del filtro por ciudad, con las ciudades de los eventos */
-export function llenarFiltroCiudades(filtro, ciudades) {
-  ciudades.forEach(function (ciudad) {
-    var opcion = document.createElement("option");
-    opcion.value = ciudad;
-    opcion.textContent = ciudad;
-    filtro.appendChild(opcion);
-  });
-}
-
 export function pintarTablaEventos(lista, total) {
   var conteo = document.getElementById("conteo-eventos");
   var cuerpo = document.getElementById("cuerpo-eventos");

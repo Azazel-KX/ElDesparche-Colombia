@@ -9,7 +9,7 @@ import { paginar } from "../lib/paginacion.js";
 var paginaDe = {};   /* id del cuerpo -> página que se está viendo */
 
 function reiniciarSiEsFiltro(evento) {
-  if (evento.target.closest && evento.target.closest(".admin-filtros")) paginaDe = {};
+  if (evento.target.closest && evento.target.closest(".admin-filtros, .barra-filtros")) paginaDe = {};
 }
 /* En la fase de captura, para que corra antes de que la tabla se vuelva a pintar */
 document.addEventListener("input", reiniciarSiEsFiltro, true);

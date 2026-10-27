@@ -8,7 +8,7 @@ import { TIPOS_PARCHE } from "../modelos/catalogos.js";
 import { CIUDADES, DEPARTAMENTOS, filtrarEventosInicio, paisesDelCatalogo } from "../modelos/eventoModelo.js";
 import { prepararCarrusel } from "../vistas/carruselVista.js";
 import { avisarResultados, pintarTarjetas } from "../vistas/eventoVista.js";
-import { irAResultados, llenarLista, llenarPaises, marcarParche } from "../vistas/inicioVista.js";
+import { irAResultados, llenarLista, llenarPaises, marcarParche, paginarEventos } from "../vistas/inicioVista.js";
 
 export function paginaInicio() {
   prepararCarrusel();
@@ -23,11 +23,24 @@ export function paginaInicio() {
 
   llenarPaises(pais, paisesDelCatalogo());
 
-  /* Filtra por texto, ciudad y tipo de plan, y muestra máximo 8 eventos */
-  function actualizar() {
-    var mostrados = filtrarEventosInicio(busqueda.value, ciudad.value, parcheElegido).slice(0, 8);
+  var POR_PAGINA = 8;
+  var pagina = 1;
+
+  /* Pinta la página actual de los eventos disponibles para reservar (según el texto, la ciudad y el tipo de plan) */
+  function pintarPagina() {
+    var encontrados = filtrarEventosInicio(busqueda.value, ciudad.value, parcheElegido);
+    var mostrados = paginarEventos(contenedor, encontrados, pagina, POR_PAGINA, function (nueva) {
+      pagina = nueva;
+      pintarPagina();
+    });
     pintarTarjetas(contenedor, mostrados);
-    avisarResultados(mostrados.length);
+    avisarResultados(encontrados.length);
+  }
+
+  /* Cada cambio de filtro vuelve a la primera página */
+  function actualizar() {
+    pagina = 1;
+    pintarPagina();
   }
 
   /* Al elegir país se llenan los departamentos */

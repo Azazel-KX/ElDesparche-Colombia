@@ -36,6 +36,13 @@ export function sePuedeReservar(evento) {
   return evento.estado !== "Finalizado" && evento.estado !== "Cancelado";
 }
 
+/* Un evento que se puede reservar ahora mismo: no está finalizado ni cancelado, todavía no terminó y le quedan cupos.
+   Es lo que muestra la portada (el listado completo, con los demás estados, está en eventos.html). */
+export function estaDisponible(evento) {
+  var terminado = evento.fin && new Date(evento.fin) <= new Date();
+  return sePuedeReservar(evento) && cuposLibres(evento) > 0 && !terminado;
+}
+
 /* Busca un evento por su código ("EVT-2026-0001") */
 export function buscarEvento(id) {
   for (var i = 0; i < EVENTOS.length; i++) {
@@ -53,31 +60,31 @@ function coincideTexto(evento, texto) {
     evento.ciudad.toLowerCase().indexOf(texto) !== -1;
 }
 
-/* Eventos de la portada: por texto, ciudad ("" = todas) y tipo de plan ("" = todos) */
+/* Eventos de la portada: los disponibles para reservar, por texto, ciudad ("" = todas) y tipo de plan ("" = todos) */
 export function filtrarEventosInicio(texto, ciudad, parche) {
   var buscado = texto.toLowerCase();
   return EVENTOS.filter(function (evento) {
-    return coincideTexto(evento, buscado) &&
+    return estaDisponible(evento) && coincideTexto(evento, buscado) &&
       (ciudad === "" || evento.ciudad === ciudad) &&
       (parche === "" || parcheDe(evento) === parche);
   });
 }
 
-/* Eventos del listado: por texto, ciudad ("Todas") y estado ("Todos") */
-export function filtrarEventosListado(texto, ciudad, estado) {
+/* Eventos del listado: por texto, país, departamento, ciudad y estado ("" = todos en cada uno) */
+export function filtrarEventosListado(texto, pais, departamento, ciudad, estado) {
   var buscado = texto.toLowerCase();
   return EVENTOS.filter(function (evento) {
     return coincideTexto(evento, buscado) &&
-      (ciudad === "Todas" || evento.ciudad === ciudad) &&
-      (estado === "Todos" || evento.estado === estado);
+      (pais === "" || evento.pais === pais) &&
+      (departamento === "" || evento.departamento === departamento) &&
+      (ciudad === "" || evento.ciudad === ciudad) &&
+      (estado === "" || evento.estado === estado);
   });
 }
 
-/* Ciudades que tienen eventos, en orden alfabético */
-export function ciudadesDelCatalogo() {
-  var ciudades = [];
-  EVENTOS.forEach(function (e) { if (ciudades.indexOf(e.ciudad) === -1) ciudades.push(e.ciudad); });
-  return ciudades.sort();
+/* Donde hay eventos (de cualquier estado), para los filtros del listado: { país: { departamento: [ciudades] } } */
+export function ubicacionesDelCatalogo() {
+  return ubicacionesDe(EVENTOS);
 }
 
 /* Países que tienen eventos, en orden alfabético */
@@ -105,7 +112,7 @@ export function usarCatalogo(eventos) {
 
   /* Carrusel de la portada: los próximos eventos que todavía se pueden reservar */
   DESTACADOS.splice(0, DESTACADOS.length);
-  EVENTOS.filter(sePuedeReservar).slice(0, 10).forEach(function (evento) { DESTACADOS.push(evento.id); });
+  EVENTOS.filter(estaDisponible).slice(0, 10).forEach(function (evento) { DESTACADOS.push(evento.id); });
 
   /* Filtros de la portada: los países, departamentos y ciudades que tienen eventos */
   Object.keys(DEPARTAMENTOS).forEach(function (k) { delete DEPARTAMENTOS[k]; });
@@ -113,7 +120,7 @@ export function usarCatalogo(eventos) {
   function agregar(lista, valor) {
     if (valor && lista.indexOf(valor) === -1) lista.push(valor);
   }
-  EVENTOS.forEach(function (evento) {
+  EVENTOS.filter(estaDisponible).forEach(function (evento) {
     DEPARTAMENTOS[evento.pais] = DEPARTAMENTOS[evento.pais] || [];
     agregar(DEPARTAMENTOS[evento.pais], evento.departamento);
     CIUDADES[evento.departamento] = CIUDADES[evento.departamento] || [];
@@ -349,7 +356,7 @@ export function valoresEvento(e) {
   };
 }
 
-/* filtros = { texto, estado, ciudad, orden }; vacío = sin filtrar */
+/* filtros = { texto, estado, pais, departamento, ciudad, orden }; vacío = sin filtrar */
 export function filtrarEventosAdmin(eventos, filtros) {
   var texto = normalizar((filtros.texto || "").trim());
   var lista = eventos.filter(function (e) {
@@ -357,6 +364,8 @@ export function filtrarEventosAdmin(eventos, filtros) {
       normalizar(e.titulo + " " + e.teatro + " " + e.ciudad + " " + e.agente).indexOf(texto) !== -1;
     return coincide &&
       (!filtros.estado || e.estado === filtros.estado) &&
+      (!filtros.pais || e.pais === filtros.pais) &&
+      (!filtros.departamento || e.departamento === filtros.departamento) &&
       (!filtros.ciudad || e.ciudad === filtros.ciudad);
   });
   lista.sort(function (a, b) {
@@ -368,11 +377,15 @@ export function filtrarEventosAdmin(eventos, filtros) {
   return lista;
 }
 
-/* Ciudades de una lista de eventos, sin repetir y en orden alfabético */
-export function ciudadesDeEventos(eventos) {
-  return eventos.map(function (e) { return e.ciudad; })
-    .filter(function (c, i, todas) { return todas.indexOf(c) === i; })
-    .sort(function (a, b) { return a.localeCompare(b, "es"); });
+/* Dónde hay eventos en una lista: { país: { departamento: [ciudades] } } */
+export function ubicacionesDe(eventos) {
+  var mapa = {};
+  eventos.forEach(function (e) {
+    var departamentos = mapa[e.pais] = mapa[e.pais] || {};
+    var ciudades = departamentos[e.departamento] = departamentos[e.departamento] || [];
+    if (ciudades.indexOf(e.ciudad) === -1) ciudades.push(e.ciudad);
+  });
+  return mapa;
 }
 
 /* ----- Mis eventos (panel del agente) ----- */
