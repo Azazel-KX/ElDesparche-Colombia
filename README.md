@@ -15,6 +15,8 @@ gestiona todo y consulta los reportes. Funciona al estilo de Tuboleta, Eventbrit
 | `frontend/` | Sitio web (HTML5, CSS3 y JavaScript con Vite) para clientes, agentes y administradores | [`frontend/README.md`](frontend/README.md) |
 | `documents/` | Documentos del proyecto: diagrama entidad-relación, diccionario de datos, avances y cronogramas | |
 
+¿Quieres saber qué hace cada archivo? Mira la [documentación completa](DOCUMENTACION.md).
+
 La web habla con la API por HTTP (`/api`) y la API con PostgreSQL. El frontend no guarda datos de ejemplo:
 todo sale de la base de datos.
 
