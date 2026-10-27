@@ -247,7 +247,12 @@ test("POST /api/admin/eventos: rechaza una imagen que no es una imagen", async (
 test("PUT /api/admin/eventos/:id: edita los datos y puede cambiar la ubicación sin tocar la de otros eventos", async () => {
   const { json: creado } = await crearEvento();
   const id = creado.evento.id;
-  const { rows: antes } = await pool.query("SELECT id_ubicacion FROM EVENTO WHERE codigo = $1", [id]);
+  const { json: otro } = await crearEvento();
+  const ubicacionDe = async (codigo) => (await pool.query("SELECT id_ubicacion FROM EVENTO WHERE codigo = $1", [codigo])).rows[0].id_ubicacion;
+  const existe = async (idUbicacion) => (await pool.query("SELECT 1 FROM UBICACION WHERE id_ubicacion = $1", [idUbicacion])).rowCount === 1;
+  // El otro evento comparte la ubicación: al cambiarle el lugar a este, la de los dos debe seguir existiendo
+  const antes = await ubicacionDe(id);
+  await pool.query("UPDATE EVENTO SET id_ubicacion = $2 WHERE codigo = $1", [otro.evento.id, antes]);
 
   const { estado, json } = await llamar(`/api/admin/eventos/${id}`, {
     metodo: "PUT", token: tokenAdmin,
@@ -259,10 +264,16 @@ test("PUT /api/admin/eventos/:id: edita los datos y puede cambiar la ubicación 
   assert.equal(json.evento.precio, 30000);
   assert.equal(json.evento.ciudad, "Bogotá D.C.");
   assert.equal(json.evento.id, id);
-  const { rows: despues } = await pool.query("SELECT id_ubicacion FROM EVENTO WHERE codigo = $1", [id]);
-  assert.notEqual(despues[0].id_ubicacion, antes[0].id_ubicacion);
-  const { rowCount } = await pool.query("SELECT 1 FROM UBICACION WHERE id_ubicacion = $1", [antes[0].id_ubicacion]);
-  assert.equal(rowCount, 1, "la ubicación anterior sigue existiendo (podría estar compartida)");
+  const despues = await ubicacionDe(id);
+  assert.notEqual(despues, antes);
+  assert.equal(await existe(antes), true, "la ubicación anterior sigue: el otro evento todavía la usa");
+
+  // Sin nadie más que la use, la ubicación que se deja se borra (no quedan huérfanas)
+  const { estado: otraVez } = await llamar(`/api/admin/eventos/${id}`, {
+    metodo: "PUT", token: tokenAdmin, cuerpo: eventoBase({ direccion: "Calle de Prueba # 9-10" }),
+  });
+  assert.equal(otraVez, 200);
+  assert.equal(await existe(despues), false, "la ubicación que ya nadie usa se borró");
 });
 
 test("PUT /api/admin/eventos/:id: una edición sin cambiar la ubicación no crea ubicaciones nuevas", async () => {
