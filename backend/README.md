@@ -26,12 +26,11 @@ backend/
 1. Base de datos (Docker): `docker compose up -d` desde la raíz del repo.
 2. Cargar los datos sobre una base **vacía**, en este orden (detalle en `database/README.md`):
    ```bash
-   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql   # 1. esquema (obligatorio)
-   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql                # 2. datos básicos (obligatorio)
-   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed_demo.sql           # 3. demostración (opcional)
+   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql   # 1. esquema (las tablas)
+   docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql                # 2. semilla (los datos de ejemplo)
    ```
-   Para **trabajar con la web** conviene cargar los tres (más eventos, ciudades, clientes y reservas). Para **correr las
-   pruebas** carga solo el 1 y el 2, de preferencia en una base aparte (ver "Pruebas").
+   La misma base sirve para **trabajar con la web** y para **correr las pruebas**; si prefieres no mezclar, usa una
+   base aparte para las pruebas (ver "Pruebas").
 3. `cp .env.example .env` y completa `JWT_SECRET` (mínimo 32 caracteres) y los datos de la base. `CORS_ORIGIN` debe
    incluir la dirección donde corre la web. `PUBLIC_URL` solo hace falta si la web y el API quedan en dominios
    distintos: sin ella, las imágenes subidas salen como `/uploads/...` y la web las pide por su propio dominio.
@@ -39,13 +38,12 @@ backend/
    <http://localhost:5000/api/health> (`{ "estado": "ok", "baseDatos": "ok" }`).
 
 **Neon (PostgreSQL en la nube):** pon la `DATABASE_URL` de Neon en `.env` y carga la base vacía con
-`npm run bd:cargar` (o `npm run bd:cargar -- --demo`), sin necesitar `psql`. El backend se conecta con SSL verificado,
+`npm run bd:cargar`, sin necesitar `psql`. El backend se conecta con SSL verificado,
 espera a que Neon despierte y responde 503 si la base no está disponible. Detalle en [GUIA_NEON.md](../GUIA_NEON.md).
 
-Cuentas de `seed.sql` (contraseña `Desparche2026!`): `admin@`, `cliente1@`, `cliente2@`, `agente1@`, `agente2@`,
-`agente3@` (agente pendiente de aprobación) y `cliente3@` (cliente bloqueado) `eldesparche.test`.
-Cuentas que suma `seed_demo.sql` (misma contraseña): `admin2@`, `agente4@` a `agente10@` (el 9 suspendido y el 10 pendiente) y
-`cliente04@` a `cliente33@` (el `cliente20@` bloqueado) `eldesparche.test`.
+Cuentas de `seed.sql` (contraseña `Desparche2026!`, dominio `eldesparche.test`): `admin@` y `admin2@`; `agente1@` a
+`agente10@` (el 3 y el 10 pendientes de aprobación, el 9 suspendido); `cliente1@` a `cliente3@` y `cliente04@` a
+`cliente33@` (el `cliente3@` y el `cliente20@` bloqueados).
 
 ## Seguridad y reglas generales
 
@@ -176,16 +174,16 @@ Docker. Los tres funcionan en PowerShell, cmd y Git Bash.
   PostgreSQL, el 500 genérico, imágenes y validación de personas de los paneles) y `conexionBd.test.js` (configuración
   de la conexión local o con Neon: SSL, pool y tiempos de espera; 503 y `/api/health` con la base caída; reintentos del
   arranque y transacciones con la conexión cortada).
-- Integración (necesitan el esquema y `seed.sql` cargados, **sin** `seed_demo.sql`, y el `.env`; limpian lo que crean): `auth.test.js`,
+- Integración (necesitan el esquema y `seed.sql` cargados, y el `.env`; limpian lo que crean): `auth.test.js`,
   `eventos.test.js` (catálogo y administración de eventos y solicitudes), `personas.test.js` (agentes, clientes,
   administradores y estado de la cuenta), `reservas.test.js` (cliente, administrador y validación de entradas),
   `agente.test.js` (panel del agente y flujo completo de revisión), `panel.test.js` (ubicaciones, resumen y reportes) y
   `limpieza.test.js` (no quedan ubicaciones huérfanas ni imágenes sin uso al editar o eliminar eventos y logos).
   `ayudas.js` reúne lo que comparten.
 
-Qué cargar para probar: el esquema y `seed.sql`, nada más. Las pruebas cuentan con datos exactos del seed (por ejemplo, 5
-reservas o los valores de `DES-1001`), así que con `seed_demo.sql` encima fallan varias. Lo más cómodo es usar una base aparte
-y apuntar a ella con `DB_NAME` (los pasos están en `database/README.md`, "Una base aparte para las pruebas"):
+Qué cargar para probar: el esquema y `seed.sql`, nada más. Las pruebas cuentan con datos del seed (por ejemplo, las 5
+primeras reservas, los eventos `EVT-2026-0001` a `0007` o los valores de `DES-1001`), así que si cambias esos datos hay que
+ajustar las pruebas. Lo más cómodo es usar una base aparte y apuntar a ella con `DB_NAME` (los pasos están en `database/README.md`, "Una base aparte para las pruebas"):
 
 ```bash
 DB_NAME=desparche_prueba npm test          # PowerShell: $env:DB_NAME="desparche_prueba"; npm test

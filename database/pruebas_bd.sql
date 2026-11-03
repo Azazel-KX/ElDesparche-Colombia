@@ -116,35 +116,36 @@ SELECT pg_temp.igual('estructura', 'la base trabaja en hora de Colombia (NOW() n
 -- 2. DATOS DEL SEED
 -- ==================================================================================================================
 
-SELECT pg_temp.igual('seed', '7 usuarios: 1 admin, 3 clientes, 3 agentes',
+SELECT pg_temp.igual('seed', '45 usuarios: 2 admin, 33 clientes, 10 agentes',
   $$SELECT (SELECT count(*) FROM USUARIO) || '/' || (SELECT count(*) FROM ADMIN) || '/' ||
-           (SELECT count(*) FROM CLIENTE) || '/' || (SELECT count(*) FROM AGENTE)$$, '7/1/3/3');
+           (SELECT count(*) FROM CLIENTE) || '/' || (SELECT count(*) FROM AGENTE)$$, '45/2/33/10');
 SELECT pg_temp.igual('seed', 'todo usuario está en exactamente un subtipo',
   $$SELECT count(*) FROM USUARIO u WHERE
       (SELECT count(*) FROM ADMIN a WHERE a.numero_identificacion = u.numero_identificacion) +
       (SELECT count(*) FROM CLIENTE c WHERE c.numero_identificacion = u.numero_identificacion) +
       (SELECT count(*) FROM AGENTE g WHERE g.numero_identificacion = u.numero_identificacion) <> 1$$, '0');
-SELECT pg_temp.igual('seed', 'agente3 Pendiente, cliente3 Bloqueado, el resto Activo',
+SELECT pg_temp.igual('seed', 'agente3 y agente10 Pendientes, agente9 Suspendido, cliente3 y cliente20 Bloqueados, el resto Activo',
   $$SELECT string_agg(split_part(correo, '@', 1) || '=' || estado_usuario, ',' ORDER BY correo) FROM USUARIO WHERE estado_usuario <> 'Activo'$$,
-  'agente3=Pendiente,cliente3=Bloqueado');
+  'agente10=Pendiente,agente3=Pendiente,agente9=Suspendido,cliente20=Bloqueado,cliente3=Bloqueado');
 SELECT pg_temp.igual('seed', 'las contraseñas son bcrypt de Desparche2026!',
-  $$SELECT count(*) FROM USUARIO WHERE contrasena_hash = crypt('Desparche2026!', contrasena_hash)$$, '7');
-SELECT pg_temp.igual('seed', '7 eventos por estado',
+  $$SELECT count(*) FROM USUARIO WHERE contrasena_hash = crypt('Desparche2026!', contrasena_hash)$$, '45');
+SELECT pg_temp.igual('seed', '68 eventos por estado',
   $$SELECT string_agg(estado || '=' || n, ',' ORDER BY estado) FROM (SELECT estado, count(*) n FROM EVENTO GROUP BY estado) x$$,
-  'En revisión=1,Rechazado=1,Programado=3,En Boletería=1,Cancelado=1');
+  'En revisión=3,Rechazado=3,Programado=42,En Boletería=6,En Vivo=2,Finalizado=8,Cancelado=4');
 SELECT pg_temp.igual('seed', 'el evento rechazado guarda su motivo en observaciones',
   $$SELECT observaciones LIKE '%Rechazado por el administrador. Motivo: %' FROM EVENTO WHERE codigo = 'EVT-2026-0007'$$, 'true');
-SELECT pg_temp.igual('seed', '5 reservas',
-  $$SELECT count(*) FROM RESERVA$$, '5');
-SELECT pg_temp.igual('seed', 'valor_total de las reservas (entradas × precio)',
-  $$SELECT string_agg(valor_total::bigint::text, ',' ORDER BY id_reserva) FROM RESERVA$$,
+SELECT pg_temp.igual('seed', '283 reservas por estado',
+  $$SELECT string_agg(estado || '=' || n, ',' ORDER BY estado) FROM (SELECT estado, count(*) n FROM RESERVA GROUP BY estado) x$$,
+  'Reservada=57,Confirmada=128,Usada=32,Cancelada=66');
+SELECT pg_temp.igual('seed', 'valor_total de las 5 primeras reservas (entradas × precio)',
+  $$SELECT string_agg(valor_total::bigint::text, ',' ORDER BY id_reserva) FROM RESERVA WHERE id_reserva <= 5$$,
   '100000,45000,30000,20000,70000');
 -- (se lee la secuencia sin nextval: una secuencia no se deshace con ROLLBACK)
 SELECT pg_temp.igual('seed', 'la secuencia de códigos va por delante del código más alto',
   $$SELECT (CASE WHEN is_called THEN last_value + 1 ELSE last_value END)
           > (SELECT MAX(SUBSTRING(codigo FROM '[0-9]+$')::int) FROM EVENTO) FROM evento_numero_seq$$, 'true');
-SELECT pg_temp.igual('seed', 'ubicaciones con ciudad',
-  $$SELECT count(*) FROM UBICACION u JOIN CIUDAD c USING (id_ciudad)$$, '5');
+SELECT pg_temp.igual('seed', '47 ubicaciones, todas con ciudad',
+  $$SELECT count(*) FROM UBICACION u JOIN CIUDAD c USING (id_ciudad)$$, '47');
 
 -- ==================================================================================================================
 -- 3. USUARIOS: documento, correo, teléfono, herencia

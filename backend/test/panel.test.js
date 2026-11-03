@@ -131,7 +131,8 @@ test("GET /api/admin/resumen: la forma de resumenLocal() con los datos del seed"
   assert.ok(json.estados.find((e) => e.estado === "Cancelado").total >= 1);
   assert.ok(json.categorias.length >= 3);
   assert.ok(json.categorias.some((c) => c.categoria === "Música"));
-  assert.equal(json.agentes[0].nombre, "Pacífico Producciones");
+  const ingresos = json.agentes.map((a) => a.ingresos);
+  assert.deepEqual(ingresos, [...ingresos].sort((x, y) => y - x), "los agentes vienen del que más ingresos tiene al que menos");
   assert.ok(json.agentes[0].ingresos >= 100000 && json.agentes[0].entradas >= 2 && json.agentes[0].eventos >= 2);
   assert.ok(json.agentes.length <= 5);
   assert.ok(json.actividad.length >= 1);

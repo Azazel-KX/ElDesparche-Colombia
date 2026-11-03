@@ -43,7 +43,8 @@ test("GET /api/eventos: público, con la forma de EVENTOS de la web", async () =
   assert.equal(json.paginacion.pagina, 1);
   assert.equal(json.paginacion.limite, 20);
 
-  const e = json.eventos.find((x) => x.id === "EVT-2026-0001");
+  // La semilla trae 68 eventos: el 0001 no cae en la primera página de 20, por eso se piden hasta 100
+  const e = (await llamar("/api/eventos?limite=100")).json.eventos.find((x) => x.id === "EVT-2026-0001");
   assert.equal(e.titulo, "Concierto Música Colombiana");
   assert.equal(e.teatro, "Teatro Municipal Enrique Buenaventura");
   assert.equal(e.categoria, "musica");
@@ -91,7 +92,7 @@ test("GET /api/eventos: filtra por categoría, estado y ciudad", async () => {
 
   const cancelados = await llamar("/api/eventos?estado=Cancelado");
   assert.ok(cancelados.json.eventos.every((e) => e.estado === "Cancelado"));
-  assert.match(cancelados.json.eventos[0].observaciones, /^Cancelado por el agente\. Causa: Fuerza mayor o clima\./, "la causa va en observaciones");
+  assert.match(cancelados.json.eventos.find((x) => x.id === "EVT-2026-0005").observaciones, /^Cancelado por el agente\. Causa: Fuerza mayor o clima\./, "la causa va en observaciones");
 
   const { json: ciudades } = await llamar("/api/ciudades");
   const idCali = ciudades.ciudades.find((c) => c.nombre === "Cali").id_ciudad;

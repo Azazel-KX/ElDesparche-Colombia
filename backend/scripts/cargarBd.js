@@ -1,8 +1,7 @@
 // Carga el esquema y los datos en la base del .env (Neon o local) sin necesitar psql.
 //
 // Uso (desde backend/):
-//   npm run bd:cargar            → schema_ElDesparche.sql + seed.sql
-//   npm run bd:cargar -- --demo  → además seed_demo.sql (más eventos, ciudades, clientes y reservas para la web)
+//   npm run bd:cargar   → schema_ElDesparche.sql (tablas) + seed.sql (la semilla: todos los datos de ejemplo)
 //
 // Solo trabaja sobre una base VACÍA: si ya existe la tabla USUARIO se detiene sin tocar nada. Para empezar de cero en
 // Neon, borra y vuelve a crear la base desde la consola de Neon (o crea una rama nueva).
@@ -21,7 +20,6 @@ const CARPETA_BD = path.join(__dirname, "..", "..", "database");
 
 async function cargar() {
   const archivos = ["schema_ElDesparche.sql", "seed.sql"];
-  if (process.argv.includes("--demo")) archivos.push("seed_demo.sql");
 
   // Un Client y no el pool: los archivos traen varias sentencias (y transacciones propias) y deben ir por la misma conexión
   const cliente = new Client(config);

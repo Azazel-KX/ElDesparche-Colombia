@@ -29,11 +29,9 @@ Necesitas Node.js 20 o superior y Docker.
 docker compose up -d database
 docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql
 docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql
-# Opcional, para ver la web con mucho contenido (8 países, 68 eventos, unas 280 reservas):
-docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed_demo.sql
 ```
 
-Para correr las pruebas carga solo el esquema y `seed.sql` (de preferencia en una base aparte): ver [`database/README.md`](database/README.md).
+Con eso la base queda con 8 países, 45 usuarios, 68 eventos y 283 reservas. Para las pruebas conviene una base aparte: ver [`database/README.md`](database/README.md).
 
 ```bash
 # 2. API en http://localhost:5000
@@ -54,7 +52,7 @@ Si la base ya tiene las tablas, no hace falta repetir el paso de carga. Para usa
 
 ### Cuentas de prueba
 
-El seed crea un administrador, clientes y agentes (y `seed_demo.sql`, muchos más) (`admin@eldesparche.test`, `cliente1@eldesparche.test`,
+El seed crea administradores, clientes y agentes (`admin@eldesparche.test`, `cliente1@eldesparche.test`,
 `agente1@eldesparche.test`…). Su contraseña y la lista completa están en [`database/README.md`](database/README.md).
 **Son solo para desarrollo:** antes de publicar la web en internet hay que borrarlas o cambiarles la contraseña.
 

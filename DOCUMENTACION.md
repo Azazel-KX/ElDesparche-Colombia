@@ -50,8 +50,7 @@ Regla de oro de cada lado:
 | Archivo | Para qué sirve |
 |---|---|
 | `schema_ElDesparche.sql` | **Estructura.** Crea los tipos, las 11 tablas, índices, la secuencia de códigos de evento y los triggers. No tiene datos. |
-| `seed.sql` | **Datos mínimos.** Cuentas de prueba (admin, clientes, agentes), ciudades y 7 eventos (`EVT-2026-0001` a `0007`). Las fechas son relativas al día de carga, así los eventos siempre están en el futuro. Es lo que esperan las pruebas del backend. |
-| `seed_demo.sql` | **Datos grandes para demostración.** Se carga después de `seed.sql`: 8 países más, ciudades, 7 agentes, 30 clientes, 61 eventos con fotos y cientos de reservas en todos los estados. **No usarla con `npm test`.** |
+| `seed.sql` | **La semilla (única).** Todos los datos de ejemplo en un solo archivo, ordenado por secciones y comentado: 8 países, 46 ciudades, 45 usuarios (2 administradores, 10 agentes, 33 clientes), 68 eventos con fotos (`EVT-2026-0001` a `0068`, en todos los estados) y 283 reservas. Las fechas son relativas al día de carga. Es lo que esperan las pruebas del backend y de la base. |
 | `pruebas_bd.sql` | **88 pruebas de la base.** Comprueba estructura, datos y que las restricciones y triggers acepten lo válido y rechacen lo inválido. Corre en una transacción que termina en `ROLLBACK`: no deja cambios. |
 | `README.md` | Qué cargar y en qué orden, cómo empezar de cero, tablas, relaciones, decisiones de diseño y cuentas del seed. |
 
@@ -92,7 +91,7 @@ API REST en Express. Corre en `http://localhost:5000`.
 | `package.json` | Dependencias (`express`, `pg`, `jsonwebtoken`, `bcryptjs`, `helmet`, `cors`, `express-rate-limit`, `dotenv`) y scripts: `start`, `dev`, `bd:cargar`, `test`, `test:cobertura`, `test:bd`. |
 | `.env.example` | Plantilla de variables de entorno: puerto, JWT, CORS, conexión a la base (local o `DATABASE_URL` de Neon), zona horaria. Se copia a `.env`. |
 | `README.md` | Puesta en marcha, seguridad, lista completa de endpoints y pruebas. |
-| `scripts/cargarBd.js` | `npm run bd:cargar`: carga el esquema y el seed en la base del `.env` (local o Neon) sin necesitar `psql`. Con `--demo` agrega también `seed_demo.sql`. |
+| `scripts/cargarBd.js` | `npm run bd:cargar`: carga el esquema y el seed en la base del `.env` (local o Neon) sin necesitar `psql`.  |
 | `src/server.js` | **Punto de entrada.** Verifica que la base responda (con reintentos) y recién entonces empieza a escuchar. |
 | `src/app.js` | **Arma la aplicación Express:** `helmet`, CORS, lectura del cuerpo JSON, servicio de `/uploads`, `/api/health` (estado del API y de la base) y monta cada grupo de rutas. Al final van el 404 y el manejador de errores. |
 | `src/config/env.js` | Lee y valida las variables de entorno. Falla al arrancar si falta una obligatoria. Arma la configuración de la base y describe la conexión sin mostrar la contraseña. |
@@ -337,7 +336,7 @@ Un archivo por HTML. Solo conecta: llama a `iniciarLayout()` y al controlador de
 
 | Dónde | Qué prueba | Cómo correrlas |
 |---|---|---|
-| `backend/test/*.test.js` | 172 pruebas del API | `cd backend && npm test` (con la base cargada solo con `schema` y `seed.sql`) |
+| `backend/test/*.test.js` | 172 pruebas del API | `cd backend && npm test` (con la base cargada con `schema` y `seed.sql`) |
 | `database/pruebas_bd.sql` | 88 pruebas de estructura, datos, restricciones y triggers | `cd backend && npm run test:bd` |
 
 | Archivo de prueba | Cubre |

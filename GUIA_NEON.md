@@ -53,8 +53,7 @@ El backend (`backend/src/config/env.js`):
 Sobre la base **vacía** de Neon, desde `backend/` (no hace falta tener `psql`):
 
 ```bash
-npm run bd:cargar            # schema_ElDesparche.sql + seed.sql (lo que usan las pruebas)
-npm run bd:cargar -- --demo  # además seed_demo.sql (más eventos, ciudades, clientes y reservas para la web)
+npm run bd:cargar   # schema_ElDesparche.sql (tablas) + seed.sql (la semilla con todos los datos de ejemplo)
 ```
 
 El script usa la `DATABASE_URL_UNPOOLED` del `.env` si existe (conexión directa, la que recomienda Neon para cargar

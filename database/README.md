@@ -4,31 +4,24 @@ PostgreSQL 13+ · 11 tablas · 3FN. Alineada con el diagrama corregido y con el 
 
 | Archivo | Contenido |
 |---|---|
-| `schema_ElDesparche.sql` | Tipos ENUM, 11 tablas, índices y triggers de reglas de negocio |
-| `seed.sql` | Datos de prueba básicos (una sola transacción): los que esperan las pruebas del backend y de la base |
-| `seed_demo.sql` | Semilla grande de demostración (opcional): se carga después de `seed.sql` y suma países, ciudades, agentes, clientes, eventos y reservas |
-| `pruebas_bd.sql` | 88 pruebas de la estructura, el seed y las reglas; no deja cambios (termina en `ROLLBACK`) |
+| `schema_ElDesparche.sql` | Tipos ENUM, 11 tablas, índices y triggers de reglas de negocio. Sin datos |
+| `seed.sql` | **La semilla (única):** todos los datos de ejemplo, en una sola transacción. Está dividida en secciones numeradas y comentadas para poder leerla de arriba abajo |
+| `pruebas_bd.sql` | 88 pruebas de la estructura, la semilla y las reglas; no deja cambios (termina en `ROLLBACK`) |
 | `../documents/BD/Diagrama_corregido.drawio` | Diagrama entidad-relación (fuente de verdad) |
 | `../documents/BD/Avance_El_desparche_PI_2026-2_Corte_2.docx` | Análisis del enunciado, entidades, relaciones, cardinalidades y esquema relacional |
 | `../documents/BD/Diccionario_Datos_ElDesparche.txt` | Diccionario de datos, campo por campo |
 
 ## Qué se carga y en qué orden
 
-| Orden | Archivo | ¿Cuándo? | Qué deja |
-|---|---|---|---|
-| 1 | `schema_ElDesparche.sql` | Siempre, sobre una base **vacía** | Tipos, 11 tablas, índices y triggers. Sin datos |
-| 2 | `seed.sql` | Siempre (lo usan las pruebas y es la base de la demo) | Colombia con 4 departamentos y 7 ciudades, 7 usuarios, 7 eventos y 5 reservas |
-| 3 | `seed_demo.sql` | Opcional: para ver la web con mucho contenido | 8 países, más agentes, clientes, eventos y reservas (ver abajo) |
+Son dos archivos, siempre en este orden y sobre una base **vacía**:
 
-Después de cada carga no hace falta nada más: los códigos de eventos siguen solos desde el número más alto.
-Cada archivo corre en una sola transacción: si algo falla, no queda nada a medias.
-
-Dos formas de dejar la base según lo que necesites:
-
-| Para | Carga | Notas |
+| Orden | Archivo | Qué deja |
 |---|---|---|
-| Correr las pruebas (`npm test`, `npm run test:bd`) | 1 + 2 | **Sin** `seed_demo.sql`: las pruebas esperan exactamente los datos de `seed.sql` (por ejemplo, 5 reservas) |
-| Ver y probar la web | 1 + 2 + 3 | Es lo que carga `encender.bat` cuando la base está vacía |
+| 1 | `schema_ElDesparche.sql` | Tipos, 11 tablas, índices y triggers. Sin datos |
+| 2 | `seed.sql` | Todos los datos de ejemplo (ver abajo) |
+
+Cada archivo corre en una sola transacción: si algo falla, no queda nada a medias. Los códigos de eventos nuevos siguen
+solos desde el número más alto (el próximo es `EVT-2026-0069`).
 
 ### Cargar la base (local con Docker)
 
@@ -36,10 +29,10 @@ Dos formas de dejar la base según lo que necesites:
 docker compose up -d
 docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql
 docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql
-docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed_demo.sql   # opcional
 ```
 
 (En PowerShell no existe `<`: usa Git Bash o cmd, o `Get-Content archivo.sql | docker exec -i ... psql ...`.)
+Sin `psql` (por ejemplo, para Neon), desde `backend/`: `npm run bd:cargar`.
 
 ### Empezar de cero (borra todo)
 
@@ -49,14 +42,13 @@ El esquema no se puede cargar dos veces sobre la misma base. Para dejarla como n
 docker exec desparche_db_container psql -U postgres -d desparche_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/schema_ElDesparche.sql
 docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed.sql
-docker exec -i desparche_db_container psql -U postgres -d desparche_db < database/seed_demo.sql   # opcional
 ```
 
-**Pierdes todos los datos.** `seed_demo.sql` tampoco se puede cargar dos veces: choca con lo ya existente.
+**Pierdes todos los datos.** La semilla tampoco se puede cargar dos veces sobre la misma base: choca con lo ya existente.
 
 ### Una base aparte para las pruebas
 
-Para no pisar los datos de demostración, las pruebas se pueden correr contra otra base del mismo contenedor, con solo el paso 1 y el 2:
+Para no pisar los datos con los que trabajas en la web, las pruebas se pueden correr contra otra base del mismo contenedor:
 
 ```bash
 docker exec desparche_db_container psql -U postgres -c "CREATE DATABASE desparche_prueba"
@@ -65,20 +57,29 @@ docker exec -i desparche_db_container psql -U postgres -d desparche_prueba < dat
 cd backend && DB_NAME=desparche_prueba npm test      # en PowerShell: $env:DB_NAME="desparche_prueba"; npm test
 ```
 
-### Semilla grande de demostración (`seed_demo.sql`)
-
-Suma datos **sin tocar** los de `seed.sql`:
+### Qué trae la semilla (`seed.sql`)
 
 | Qué | Cuánto |
 |---|---|
-| Países | 8 en total (Colombia, Perú, México, Argentina, Ecuador, Chile, España y Estados Unidos), con 33 departamentos y 46 ciudades |
-| Sitios para eventos | 42 nuevos: 33 en Colombia y 9 en el exterior (la base admite cualquier coordenada del planeta) |
-| Personas | 7 agentes (uno suspendido y uno pendiente), 30 clientes (5 del exterior y uno bloqueado) y un administrador |
-| Eventos | 61 nuevos (`EVT-2026-0008` a `0068`, 68 en total) en todos los estados, en los 8 países y con las 32 fotos de `frontend/img` |
-| Reservas | Unas 280 en total, en los 4 estados; hay un evento casi agotado y otro agotado |
+| Países | 8 (Colombia, Perú, México, Argentina, Ecuador, Chile, España y Estados Unidos), con 33 departamentos y 46 ciudades |
+| Sitios para eventos | 47: 38 en Colombia y 9 en el exterior (la base admite cualquier coordenada del planeta) |
+| Personas | 2 administradores, 10 agentes (uno suspendido y dos pendientes) y 33 clientes (5 del exterior y dos bloqueados) |
+| Eventos | 68 (`EVT-2026-0001` a `0068`) en todos los estados, en los 8 países y con las fotos de `frontend/img` |
+| Reservas | 283 en los 4 estados; hay un evento casi agotado (`EVT-2026-0020`) y otro agotado (`EVT-2026-0034`) |
 
-Las fechas de los eventos son relativas al día en que se carga. Las cuentas nuevas usan la misma contraseña
-(`Desparche2026!`): `admin2@`, `agente4@` a `agente10@` y `cliente04@` a `cliente33@` `eldesparche.test`.
+**Cómo está armado el archivo** (pensado para leerlo de arriba abajo):
+
+| Sección | Qué llena | Tablas |
+|---|---|---|
+| 0. Ayudas temporales | La contraseña de las cuentas, calculada una sola vez | (temporal) |
+| 1. Geografía | Países, departamentos, ciudades y sitios de eventos | `PAIS` → `DEPARTAMENTO` → `CIUDAD` → `UBICACION` |
+| 2. Personas | Administradores, agentes y clientes: usuario, teléfonos y subtipo | `USUARIO`, `USUARIO_TELEFONO`, `ADMIN`, `AGENTE`, `CLIENTE` |
+| 3. Eventos | Los 68 eventos en una sola lista | `EVENTO` |
+| 4. Reservas | 5 escritas a mano, el resto repartidas con una fórmula, y los dos eventos casi agotados | `RESERVA` |
+
+El orden no es casual: una llave foránea solo puede apuntar a una fila que ya existe. Además, los datos usan **nombres y no
+números de id** (un usuario dice `'Cali'`, no `id_ciudad = 1`); cada `INSERT ... SELECT ... FROM (VALUES ...) JOIN ...`
+busca el id real. Las fechas de los eventos son relativas al día en que se carga.
 
 Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 
@@ -133,17 +134,16 @@ Para Neon (PostgreSQL en la nube) ver `GUIA_NEON.md` en la raíz.
 
 ## Cuentas del seed
 
-Contraseña de todas: `Desparche2026!`
+Contraseña de todas: `Desparche2026!` (dominio `eldesparche.test`)
 
 | Correo | Perfil |
 |---|---|
-| `admin@eldesparche.test` | ADMIN |
-| `cliente1@eldesparche.test`, `cliente2@eldesparche.test` | CLIENTE |
-| `agente1@eldesparche.test`, `agente2@eldesparche.test` | AGENTE |
-| `agente3@eldesparche.test` | AGENTE pendiente de aprobación |
-| `cliente3@eldesparche.test` | CLIENTE bloqueado (no puede entrar) |
+| `admin@`, `admin2@` | ADMIN |
+| `agente1@` a `agente10@` | AGENTE (`agente3` y `agente10` pendientes de aprobación, `agente9` suspendido) |
+| `cliente1@`, `cliente2@`, `cliente04@` a `cliente33@` | CLIENTE |
+| `cliente3@`, `cliente20@` | CLIENTE bloqueado (no puede entrar) |
 
-El seed también trae un evento `En revisión` (`EVT-2026-0006`) y uno `Rechazado` con su motivo (`EVT-2026-0007`).
+El seed trae eventos `En revisión` (`EVT-2026-0006`, `0056`, `0057`) y `Rechazado` con su motivo (`EVT-2026-0007`, `0058`, `0059`).
 Las fechas de los eventos son relativas al día en que se carga el seed (`CURRENT_DATE + días`), así sus eventos están
 siempre en el futuro; si la base se cargó hace meses, recárgala para que los eventos vuelvan a estar vigentes.
 
