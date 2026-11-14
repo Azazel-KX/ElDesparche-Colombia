@@ -114,6 +114,19 @@ function describirBd(config) {
 
 const dbConfig = construirConfigBd();
 
+// Cloudflare R2: solo se activa si están las cinco variables
+function construirConfigR2(env) {
+  const r2 = {
+    accountId: (env.R2_ACCOUNT_ID || "").trim(),
+    accessKeyId: (env.R2_ACCESS_KEY_ID || "").trim(),
+    secretAccessKey: (env.R2_SECRET_ACCESS_KEY || "").trim(),
+    bucket: (env.R2_BUCKET || "").trim(),
+    publicUrl: (env.R2_PUBLIC_URL || "").trim().replace(/\/+$/, ""),
+  };
+  r2.habilitado = Boolean(r2.accountId && r2.accessKeyId && r2.secretAccessKey && r2.bucket && r2.publicUrl);
+  return r2;
+}
+
 // Exportar toda la configuración
 module.exports = {
   // Puerto donde escucha el servidor (default 5000)
@@ -127,6 +140,12 @@ module.exports = {
   //   al API (proxy de Vite en desarrollo, túnel o proxy inverso al publicar). Así la permite la CSP de la web ('self').
   // - Con valor (ej. https://api.eldesparche.online): cuando la web y el API están en dominios distintos.
   publicUrl: (process.env.PUBLIC_URL || "").replace(/\/+$/, ""),
+
+  // Almacenamiento de imágenes subidas en Cloudflare R2 (compatible con S3). Es opcional: si falta alguna de estas
+  // variables, las imágenes se quedan solo en backend/uploads/ (desarrollo y pruebas). En un hosting con disco que se
+  // borra (Render gratis) hay que configurarlo o las imágenes se pierden en cada reinicio.
+  //   R2_PUBLIC_URL: dirección pública del bucket (dominio propio o r2.dev), sin "/" al final.
+  r2: construirConfigR2(process.env),
 
   // Configuración de conexión a PostgreSQL
   db: dbConfig,

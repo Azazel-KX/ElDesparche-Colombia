@@ -1,5 +1,5 @@
 const db = require("../config/db");
-const { borrarArchivoSubido } = require("../utils/imagenes");
+const { borrarArchivoSubido, publicarImagen, borrarImagenRemota } = require("../utils/imagenes");
 
 // Modelo de las IMÁGENES SUBIDAS (fotos de eventos y logos de agentes, en backend/uploads).
 // La base solo guarda la ruta ("/uploads/eventos/evento-ab12cd34ef.jpg"); el archivo vive en disco. Cuando una
@@ -15,7 +15,10 @@ async function borrarImagenSinUso(ruta) {
       `SELECT EXISTS (SELECT 1 FROM EVENTO WHERE url_imagen = $1) OR EXISTS (SELECT 1 FROM AGENTE WHERE logo_url = $1) AS en_uso`,
       [ruta]
     );
-    if (!rows[0].en_uso) borrarArchivoSubido(ruta);
+    if (!rows[0].en_uso) {
+      borrarArchivoSubido(ruta);
+      await borrarImagenRemota(ruta);   // y de R2, si está configurado
+    }
   } catch (err) {
     console.warn(`No se pudo borrar la imagen ${ruta}:`, err.message);
   }
@@ -28,6 +31,14 @@ async function borrarImagenSinUso(ruta) {
 // Si la transacción falla o no encuentra el registro, la imagen nueva sobra; si salió bien, sobra la que reemplazó.
 // Se borra después del COMMIT: si la transacción se deshace, la imagen anterior sigue haciendo falta.
 async function escribirConImagenes(imagenNueva, trabajo) {
+  // Con R2, la imagen nueva se sube antes de tocar la base: si la subida falla, no se guarda una ruta a un archivo que
+  // no existe. (Sin R2, publicarImagen no hace nada y el archivo queda en backend/uploads.)
+  try {
+    await publicarImagen(imagenNueva);
+  } catch (err) {
+    await borrarImagenSinUso(imagenNueva);
+    throw err;
+  }
   let resultado;
   try {
     resultado = await db.conTransaccion(trabajo);
