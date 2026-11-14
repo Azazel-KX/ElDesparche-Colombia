@@ -23,6 +23,10 @@ const app = express();
 // 1. Remover header "X-Powered-By: Express" (no ayuda, solo da información al atacante)
 app.disable("x-powered-by");
 
+// Detrás del proxy del hosting (Render, Railway…) la IP real del visitante llega en X-Forwarded-For;
+// sin esto el límite de peticiones vería a todos como una sola IP
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+
 // 2. HELMET: conjunto de middlewares de seguridad
 // - Establece headers HTTP seguros (Content-Security-Policy, X-Frame-Options, etc.)
 // - Evita ataques comunes (clickjacking, inyección de código, etc.)

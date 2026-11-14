@@ -9,10 +9,6 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_uuid(), crypt() para el seed
 
--- Zona horaria: las columnas son TIMESTAMP sin zona y guardan la hora de Colombia (así las escribe la web). Si el
--- servidor está en UTC (Docker, Neon), NOW() y CURRENT_DATE darían la hora de Londres: las fechas automáticas saldrían
--- 5 horas adelantadas y un evento se daría por terminado 5 horas antes. Vale para las conexiones nuevas (el seed y
--- psql); el backend además la fija en cada conexión (backend/src/config/db.js).
 DO $$
 BEGIN
     EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'America/Bogota');
