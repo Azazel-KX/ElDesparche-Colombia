@@ -102,11 +102,11 @@ function validarEvento(body, { exigirFuturo = true, conAgente = false, ahora = n
   const edad = vacio(b.edad) ? 0 : Number(b.edad);
   if (!Number.isInteger(edad) || edad < 0 || edad > 120) errores.edad = "La edad mínima debe ser un entero entre 0 y 120.";
 
-  // Ubicación en el mapa: dentro de Colombia (mismos CHECK de UBICACION)
+  // Ubicación en el mapa: cualquier punto del planeta (mismos CHECK de UBICACION)
   const lat = Number(b.lat);
   const lon = Number(b.lon);
-  if (vacio(b.lat) || !Number.isFinite(lat) || lat < -4.3 || lat > 13.6) errores.lat = "La latitud debe estar entre -4.3 y 13.6 (Colombia).";
-  if (vacio(b.lon) || !Number.isFinite(lon) || lon < -82.0 || lon > -66.8) errores.lon = "La longitud debe estar entre -82.0 y -66.8 (Colombia).";
+  if (vacio(b.lat) || !Number.isFinite(lat) || lat < -90 || lat > 90) errores.lat = "La latitud debe estar entre -90 y 90.";
+  if (vacio(b.lon) || !Number.isFinite(lon) || lon < -180 || lon > 180) errores.lon = "La longitud debe estar entre -180 y 180.";
 
   const observaciones = texto(b.observaciones);
   if (observaciones.length > 1000) errores.observaciones = "Las observaciones no pueden superar los 1000 caracteres.";
@@ -163,6 +163,23 @@ function validarCambioEstado(body) {
   return Object.keys(errores).length ? { errores } : { datos: { estado, observaciones, causa, detalle } };
 }
 
+// Valida lo que un agente puede cambiar de un evento ya publicado: { descripcion, observaciones, imagen }
+function validarEdicionPublicada(body) {
+  const b = body && typeof body === "object" ? body : {};
+  const errores = {};
+
+  const descripcion = texto(b.descripcion);
+  if (descripcion.length < 30) errores.descripcion = "La descripción debe tener al menos 30 caracteres.";
+  else if (descripcion.length > 3000) errores.descripcion = "La descripción no puede superar los 3000 caracteres.";
+
+  const observaciones = texto(b.observaciones);
+  if (observaciones.length > 1000) errores.observaciones = "Las observaciones no pueden superar los 1000 caracteres.";
+
+  return Object.keys(errores).length ? { errores } : {
+    datos: { descripcion, observaciones: observaciones || null, imagen: typeof b.imagen === "string" ? b.imagen : null },
+  };
+}
+
 // Valida la decisión del administrador sobre una solicitud: { estado: "Aprobado" | "Rechazado", motivo }
 function validarDecision(body) {
   const b = body && typeof body === "object" ? body : {};
@@ -212,5 +229,5 @@ function validarFiltros(query) {
 
 module.exports = {
   CATEGORIAS, ESTADOS, ESTADOS_OPERATIVOS, ESTADOS_SOLICITUD, ESTADOS_RESERVABLES, TRANSICIONES, CAUSAS_EVENTO, CAUSAS_RESERVA,
-  validarEvento, validarCambioEstado, validarDecision, validarFiltros,
+  validarEvento, validarEdicionPublicada, validarCambioEstado, validarDecision, validarFiltros,
 };

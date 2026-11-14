@@ -123,7 +123,6 @@ async function crearSolicitudSql({ doc = "900111222", estado = "En revisión", o
 // Borra eventos de prueba y las ubicaciones de prueba que quedaron sin ningún evento
 async function limpiarEventos(codigos) {
   if (codigos.length) {
-    await pool.query("DELETE FROM PAGO WHERE id_reserva IN (SELECT id_reserva FROM RESERVA WHERE codigo_evento = ANY($1))", [codigos]);
     await pool.query("DELETE FROM EVENTO WHERE codigo = ANY($1)", [codigos]);
   }
   await pool.query(

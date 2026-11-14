@@ -169,6 +169,18 @@ function validarRegistro(body) {
 // Solo necesita: correo y contraseña
 // Retorna: { datos } si todo OK
 //          { errores: { campo: "mensaje" } } si hay problemas
+// Valida el cambio de contraseña de quien tiene la sesión abierta: { actual, nueva }
+function validarCambioContrasena(body) {
+  const b = body && typeof body === "object" ? body : {};
+  const errores = {};
+  if (typeof b.actual !== "string" || !b.actual) errores.actual = "Escribe tu contraseña actual.";
+  const aux = {};
+  validarContrasena(b.nueva, aux);
+  if (aux.contrasena) errores.nueva = aux.contrasena.replace("La contraseña", "La contraseña nueva");
+  else if (b.nueva === b.actual) errores.nueva = "La contraseña nueva debe ser distinta de la actual.";
+  return Object.keys(errores).length ? { errores } : { datos: { actual: b.actual, nueva: b.nueva } };
+}
+
 function validarLogin(body) {
   const b = body || {};
   const errores = {};
@@ -185,6 +197,6 @@ function validarLogin(body) {
 }
 
 module.exports = {
-  validarRegistro, validarLogin, normalizarDocumento, texto, validarContrasena, LONGITUD_MIN_CONTRASENA,
+  validarRegistro, validarLogin, validarCambioContrasena, normalizarDocumento, texto, validarContrasena, LONGITUD_MIN_CONTRASENA,
   TIPOS_IDENTIFICACION, REGLAS_IDENTIFICACION, RE_CORREO, RE_TELEFONO, RE_NIT, RE_FECHA,
 };

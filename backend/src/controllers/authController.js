@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { jwt: jwtConfig } = require("../config/env");
 const usuarioModel = require("../models/usuarioModel");
-const { validarRegistro, validarLogin } = require("../utils/validacion");
+const { validarRegistro, validarLogin, validarCambioContrasena } = require("../utils/validacion");
 const { ErrorHttp, asincrono } = require("../utils/errores");
 
 const RONDAS_BCRYPT = 10; // Costo: más alto = más lento (pero más seguro)
@@ -136,6 +136,20 @@ async function iniciarSesion(req, res) {
   });
 }
 
+// Controlador: CAMBIAR MI CONTRASEÑA (quien tiene la sesión abierta; pide la actual)
+// PATCH /api/auth/contrasena  { actual, nueva } -> { ok: true }
+async function cambiarContrasena(req, res) {
+  const { datos, errores } = validarCambioContrasena(req.body);
+  if (errores) throw new ErrorHttp(400, "Datos inválidos.", errores);
+
+  const hash = await usuarioModel.hashDeContrasena(req.usuario.id);
+  if (!hash || !(await bcrypt.compare(datos.actual, hash))) {
+    throw new ErrorHttp(400, "La contraseña actual no es correcta.", { actual: "La contraseña actual no es correcta." });
+  }
+  await usuarioModel.cambiarContrasena(req.usuario.id, await bcrypt.hash(datos.nueva, RONDAS_BCRYPT));
+  res.json({ ok: true });
+}
+
 // Controlador: OBTENER MI PERFIL
 //
 // ¿Cuándo se usa?
@@ -157,4 +171,4 @@ async function miPerfil(req, res) {
   res.json({ usuario: perfil });
 }
 
-module.exports = { registrar, iniciarSesion, miPerfil };
+module.exports = { registrar, iniciarSesion, cambiarContrasena, miPerfil };

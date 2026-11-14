@@ -192,3 +192,69 @@ test("validarAdministrador: al modificar no pide documento ni contraseña", () =
   assert.equal(cambio.errores?.documento, undefined);
   assert.equal(cambio.errores?.contrasena, undefined);
 });
+
+test("PUBLIC_URL: por defecto las imágenes salen con ruta relativa; con valor, con la dirección del API", () => {
+  assert.equal(urlPublica("/uploads/eventos/a.jpg"), `${publicUrl}/uploads/eventos/a.jpg`);
+
+  // Se cargan de nuevo env.js e imagenes.js con PUBLIC_URL definida (la API en otro dominio)
+  const anterior = process.env.PUBLIC_URL;
+  const modulos = ["../src/config/env", "../src/utils/imagenes"].map((m) => require.resolve(m));
+  process.env.PUBLIC_URL = "https://api.ejemplo.test/";
+  modulos.forEach((m) => delete require.cache[m]);
+  try {
+    const imagenes = require("../src/utils/imagenes");
+    assert.equal(imagenes.urlPublica("/uploads/eventos/a.jpg"), "https://api.ejemplo.test/uploads/eventos/a.jpg");
+    // Al editar, la web reenvía la URL completa: en la base vuelve a quedar la ruta corta
+    assert.equal(imagenes.guardarImagen("https://api.ejemplo.test/uploads/eventos/a-1.jpg", "eventos", "x"), "/uploads/eventos/a-1.jpg");
+  } finally {
+    if (anterior === undefined) delete process.env.PUBLIC_URL; else process.env.PUBLIC_URL = anterior;
+    modulos.forEach((m) => delete require.cache[m]);
+  }
+});
+
+test("R2: sin las cinco variables no se activa; con ellas la URL sale del bucket y se sube/borra el archivo", async () => {
+  const nombres = ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET", "R2_PUBLIC_URL"];
+  const anteriores = Object.fromEntries(nombres.map((n) => [n, process.env[n]]));
+  const modulos = ["../src/config/env", "../src/utils/imagenes", "../src/utils/almacenR2"].map((m) => require.resolve(m));
+  const recargar = () => modulos.forEach((m) => delete require.cache[m]);
+  try {
+    // Faltando una variable (aquí R2_BUCKET) no se activa: todo sigue en disco
+    Object.assign(process.env, { R2_ACCOUNT_ID: "cuenta", R2_ACCESS_KEY_ID: "id", R2_SECRET_ACCESS_KEY: "secreto", R2_PUBLIC_URL: "https://cdn.ejemplo.test/" });
+    delete process.env.R2_BUCKET;
+    recargar();
+    assert.equal(require("../src/config/env").r2.habilitado, false);
+    assert.equal(require("../src/utils/imagenes").urlPublica("/uploads/eventos/a.jpg"), `${publicUrl}/uploads/eventos/a.jpg`);
+
+    // Con las cinco: la URL es la del bucket (sin "/" doble) y almacenR2 recibe la clave y los bytes del archivo en disco
+    process.env.R2_BUCKET = "bucket-prueba";
+    recargar();
+    const llamadas = [];
+    const almacen = require("../src/utils/almacenR2");
+    almacen.subir = async (clave, buffer) => llamadas.push(["subir", clave, buffer.length]);
+    almacen.borrar = async (clave) => llamadas.push(["borrar", clave]);
+    const imagenes = require("../src/utils/imagenes");
+    assert.equal(require("../src/config/env").r2.habilitado, true);
+    assert.equal(imagenes.urlPublica("/uploads/eventos/a.jpg"), "https://cdn.ejemplo.test/eventos/a.jpg");
+    assert.equal(imagenes.urlPublica("img/27459.png"), "img/27459.png");
+    // Al editar, la web reenvía la URL del bucket: en la base vuelve a quedar la ruta corta
+    assert.equal(imagenes.guardarImagen("https://cdn.ejemplo.test/eventos/a-1.jpg", "eventos", "x"), "/uploads/eventos/a-1.jpg");
+
+    // Un PNG de 1x1 válido: se guarda en disco, se publica en R2 con la misma clave y se borra de los dos lados
+    const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    const ruta = imagenes.guardarImagen(png, "eventos", "prueba-r2");
+    try {
+      await imagenes.publicarImagen(ruta);
+      assert.deepEqual(llamadas.map((l) => l.slice(0, 2)), [["subir", ruta.replace("/uploads/", "")]]);
+      assert.ok(llamadas[0][2] > 0, "sube los bytes del archivo");
+      await imagenes.publicarImagen("https://ejemplo.com/a.jpg");   // una URL externa no se sube
+      assert.equal(llamadas.length, 1);
+      await imagenes.borrarImagenRemota(ruta);
+      assert.deepEqual(llamadas[1], ["borrar", ruta.replace("/uploads/", "")]);
+    } finally {
+      imagenes.borrarArchivoSubido(ruta);
+    }
+  } finally {
+    nombres.forEach((n) => { if (anteriores[n] === undefined) delete process.env[n]; else process.env[n] = anteriores[n]; });
+    recargar();
+  }
+});

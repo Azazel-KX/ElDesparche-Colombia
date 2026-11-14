@@ -4,6 +4,7 @@ const {
   ESTADOS_AGENTE, ESTADOS_CLIENTE, validarAgente, validarCliente, validarAdministrador, validarEstadoCuenta,
 } = require("../utils/validacionPersonas");
 const { ESTADO_DE_CUENTA } = require("../utils/formato");
+const { validarContrasena } = require("../utils/validacion");
 const { ErrorHttp, esRestriccion } = require("../utils/errores");
 
 // Agentes, clientes y administradores, vistos por el ADMINISTRADOR (rutas /api/admin/agentes, /clientes y
@@ -103,10 +104,10 @@ async function estadoCliente(req, res) {
   res.json({ cliente: await personaModel.obtenerCliente(req.params.documento) });
 }
 
-// DELETE /api/admin/clientes/:documento  (sus reservas se borran en cascada; 409 si alguna tiene un pago)
+// DELETE /api/admin/clientes/:documento  (sus reservas se borran en cascada)
 async function eliminarCliente(req, res) {
   const existe = await borrar(() => personaModel.eliminarCliente(req.params.documento),
-    "No se puede eliminar: el cliente tiene reservas con pagos.");
+    "No se puede eliminar: el cliente tiene datos que dependen de él.");
   if (!existe) throw noExiste("El cliente");
   res.status(204).end();
 }
@@ -141,7 +142,30 @@ async function eliminarAdministrador(req, res) {
   res.status(204).end();
 }
 
+// ---------------------------------------------------------------------------------------------
+// Restablecer la contraseña (el cliente, el agente o el administrador la olvidó)
+// ---------------------------------------------------------------------------------------------
+
+// PATCH /api/admin/{agentes|clientes|administradores}/:clave/contrasena   { contrasena }
+// El administrador le pone una contraseña nueva (la entrega por su cuenta); en el servidor solo queda su hash.
+function restablecer(tabla, columna, parametro, quien) {
+  return async (req, res) => {
+    const errores = {};
+    const contrasena = req.body && req.body.contrasena;
+    validarContrasena(contrasena, errores);
+    if (errores.contrasena) throw new ErrorHttp(400, "Contraseña inválida.", errores);
+
+    const hash = await bcrypt.hash(contrasena, RONDAS_BCRYPT);
+    if (!(await personaModel.cambiarContrasenaDe(tabla, columna, req.params[parametro], hash))) throw noExiste(quien);
+    res.json({ ok: true });
+  };
+}
+const restablecerAgente = restablecer("AGENTE", "nit", "nit", "El agente");
+const restablecerCliente = restablecer("CLIENTE", "numero_identificacion", "documento", "El cliente");
+const restablecerAdministrador = restablecer("ADMIN", "numero_identificacion", "documento", "El administrador");
+
 module.exports = {
+  restablecerAgente, restablecerCliente, restablecerAdministrador,
   listarAgentes, crearAgente, actualizarAgente, estadoAgente, eliminarAgente,
   listarClientes, crearCliente, actualizarCliente, estadoCliente, eliminarCliente,
   listarAdministradores, crearAdministrador, actualizarAdministrador, eliminarAdministrador,

@@ -367,7 +367,7 @@ id_reserva               SERIAL                 NO   PK      auto               
 codigo_qr                UUID                   NO   UQ      gen_random_uuid()    Sistema  Código QR de la reserva (UUID
                                                                                            generado por la base de datos).
 valor_total              NUMERIC(12,2)          NO                                Número   Valor total de la reserva (COP):
-                                                                                           entradas × precio + tarifa de Wompi.
+                                                                                           entradas × precio.
 fecha_hora               TIMESTAMP              NO           NOW()                Sistema  Fecha y hora de la reserva.
 estado                   estado_reserva_t       NO           'Reservada'          Lista    Estado: Reservada, Confirmada, Usada
                                                                                            (la entrada ya se validó en la
@@ -382,8 +382,7 @@ codigo_evento            VARCHAR(20)            NO   FK                         
 Restricciones y reglas:
   - Trigger al insertar: la edad del cliente (de fecha_nacimiento) debe ser ≥ edad_minima del evento, y debe haber cupo en el
     evento.
-  - valor_total = numero_entradas × precio del evento vigente al reservar + tarifa de Wompi (fn_tarifa_wompi: 2,65 % + $700,
-    más IVA; una vez por pago y 0 si el evento es gratis). No se recalcula si el precio cambia después.
+  - valor_total = numero_entradas × precio del evento vigente al reservar  (0 si el evento es gratis). No se recalcula si el precio cambia después.
   - Si cambia numero_entradas, valor_total se recalcula con el precio unitario original.
   - Solo un cliente reserva: numero_identificacion referencia a CLIENTE.
   - Causa de cancelación: se agrega a observaciones, en una línea nueva, con el formato "Cancelada por <quién>. Causa:
@@ -483,7 +482,7 @@ IS-A (total, disjunta) USUARIO → ADMIN, CLIENTE, AGENTE   1:1   PK de la subcl
   - Herencia total y disjunta: todo USUARIO está en exactamente una de ADMIN, CLIENTE o AGENTE (se valida al COMMIT;
     fn_usuario_un_subtipo). Cambiar de perfil es válido si se hace en una sola transacción.
   - Reserva: la edad del cliente ≥ edad_minima del evento y debe haber cupo (fn_reserva_reglas).
-  - valor_total de la reserva = numero_entradas × precio del evento + tarifa de Wompi (fn_tarifa_wompi).
+  - valor_total de la reserva = numero_entradas × precio del evento.
   - El método de pago de un PAGO pertenece al cliente que hizo la RESERVA (fn_pago_coherente).
   - capacidad_total del evento no puede bajar de las entradas ya reservadas (fn_evento_capacidad).
   - El documento de identidad no se edita salvo corrección explícita con app.corregir_documento
@@ -505,7 +504,7 @@ IS-A (total, disjunta) USUARIO → ADMIN, CLIENTE, AGENTE   1:1   PK de la subcl
   - Las llaves foráneas hacia el usuario se llaman numero_identificacion, como su PK: EVENTO (id_agente), RESERVA (id_cliente)
     y METODO_PAGO (id_cliente).
   - EVENTO: nueva columna teatro; la causa de cancelación (EVENTO y RESERVA) va en observaciones, ya no en id_causa.
-  - RESERVA: ya no exige verificación de contacto; valor_total incluye la tarifa de Wompi.
+  - RESERVA: ya no exige verificación de contacto; valor_total = entradas × precio (sin tarifa).
   - Versión 3.1: USUARIO.estado_usuario (suspensión o bloqueo); EVENTO.estado agrega En revisión y Rechazado (revisión de los
     eventos que registran los agentes, con el motivo en observaciones); RESERVA.estado agrega Usada (entrada validada en la
     puerta).

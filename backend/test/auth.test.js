@@ -76,7 +76,7 @@ before(async () => {
 });
 
 after(async () => {
-  // Borrar el USUARIO elimina en cascada su subtipo, teléfonos, reservas y métodos de pago
+  // Borrar el USUARIO elimina en cascada su subtipo, teléfonos, y reservas
   for (const id of creados) {
     await pool.query("DELETE FROM USUARIO WHERE numero_identificacion = $1", [id]);
   }
@@ -88,10 +88,10 @@ after(async () => {
 // Servicio y catálogo
 // ---------------------------------------------------------------------------------------------
 
-test("health responde ok", async () => {
+test("health responde ok y comprueba la base de datos", async () => {
   const { estado, json } = await llamar("/api/health");
   assert.equal(estado, 200);
-  assert.equal(json.estado, "ok");
+  assert.deepEqual(json, { estado: "ok", baseDatos: "ok" });
 });
 
 test("ciudades lista las del seed con su departamento", async () => {
@@ -254,8 +254,8 @@ test("un cliente recién registrado ya puede reservar (no hay verificación de c
      VALUES (1, $1, 'EVT-2026-0004') RETURNING valor_total::float8 AS valor_total`,
     [datos.numero_identificacion]
   );
-  // 1 entrada de $20.000 + tarifa de Wompi (2,65 % + $700, más IVA) = $21.464
-  assert.equal(rows[0].valor_total, 21464);
+  // 1 entrada de $20.000 = $20.000
+  assert.equal(rows[0].valor_total, 20000);
 });
 
 test("la base exige que todo usuario esté en exactamente un subtipo", async () => {
@@ -385,4 +385,28 @@ test("login sin datos responde 400", async () => {
 test("/me exige token válido", async () => {
   assert.equal((await llamar("/api/auth/me")).estado, 401);
   assert.equal((await llamar("/api/auth/me", { token: "abc.def.ghi" })).estado, 401);
+});
+
+test("PATCH /api/auth/contrasena: cambia la contraseña con la actual; con otra actual o una nueva débil 400; sin token 401", async () => {
+  const datos = clienteBase(30);
+  creados.push(datos.numero_identificacion);
+  const reg = await llamar("/api/auth/register", { metodo: "POST", cuerpo: datos });
+  assert.equal(reg.estado, 201);
+  const token = reg.json.token;
+  const cambiar = (cuerpo, tk = token) => llamar("/api/auth/contrasena", { metodo: "PATCH", token: tk, cuerpo });
+
+  assert.equal((await cambiar({ actual: datos.contrasena, nueva: "Otra-clave-456" }, "")).estado, 401);
+  const mala = await cambiar({ actual: "no-es-esa", nueva: "Otra-clave-456" });
+  assert.equal(mala.estado, 400);
+  assert.ok(mala.json.detalles.actual);
+  assert.ok((await cambiar({ actual: datos.contrasena, nueva: "corta" })).json.detalles.nueva);
+  assert.ok((await cambiar({ actual: datos.contrasena, nueva: datos.contrasena })).json.detalles.nueva, "debe ser distinta");
+  assert.ok((await cambiar({ nueva: "Otra-clave-456" })).json.detalles.actual);
+
+  const ok = await cambiar({ actual: datos.contrasena, nueva: "Otra-clave-456" });
+  assert.equal(ok.estado, 200);
+  const viejo = await llamar("/api/auth/login", { metodo: "POST", cuerpo: { correo: datos.correo, contrasena: datos.contrasena } });
+  assert.equal(viejo.estado, 401, "la contraseña vieja ya no sirve");
+  const nuevo = await llamar("/api/auth/login", { metodo: "POST", cuerpo: { correo: datos.correo, contrasena: "Otra-clave-456" } });
+  assert.equal(nuevo.estado, 200);
 });

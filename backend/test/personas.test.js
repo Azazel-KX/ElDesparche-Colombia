@@ -47,7 +47,6 @@ before(async () => {
 
 after(async () => {
   for (const d of creados) {
-    await pool.query("DELETE FROM PAGO WHERE id_reserva IN (SELECT id_reserva FROM RESERVA WHERE numero_identificacion = $1)", [d]);
     await pool.query("DELETE FROM USUARIO WHERE numero_identificacion = $1", [d]);
   }
   await t.terminar();
@@ -90,7 +89,7 @@ test("GET agentes: la forma de AGENTES_DEMO con sus eventos, entradas e ingresos
   assert.ok(a.eventos.includes("EVT-2026-0001") && a.eventos.includes("EVT-2026-0003"));
   assert.ok(!a.eventos.includes("EVT-2026-0006"), "la solicitud en revisión no cuenta");
   assert.ok(a.entradas >= 2, "solo cuentan las entradas válidas: la reserva 2 no está pagada");
-  assert.ok(a.ingresos >= 103987);
+  assert.ok(a.ingresos >= 100000);
   assert.equal(a.ventas.length, 6);
   assert.ok(a.ventas[5] >= 2, "las entradas vendidas son de este mes");
   assert.equal(typeof a.nombres, "string");
@@ -297,12 +296,7 @@ test("un cliente bloqueado del seed no puede entrar", async () => {
   assert.equal(mala.estado, 401);
 });
 
-test("DELETE cliente: 409 si alguna reserva tiene un pago; si no, se elimina con sus reservas", async () => {
-  const conPago = await llamar("/api/admin/clientes/1000000002", { metodo: "DELETE", token: tokenAdmin });
-  assert.equal(conPago.estado, 409);
-  assert.match(conPago.json.error, /pagos/);
-  assert.equal((await pool.query("SELECT 1 FROM CLIENTE WHERE numero_identificacion = '1000000002'")).rowCount, 1);
-
+test("DELETE cliente: se elimina con sus reservas; 404 si no existe", async () => {
   const cuerpo = registrar(clienteBase(14));
   await llamar("/api/admin/clientes", { metodo: "POST", token: tokenAdmin, cuerpo });
   const ev = await t.crearEventoAdmin(); // un evento propio: no se tocan los cupos de los del seed
@@ -352,4 +346,35 @@ test("POST administrador, PUT y DELETE; no se borra la cuenta propia", async () 
   // El administrador del seed sí puede borrar al nuevo
   assert.equal((await llamar(`/api/admin/administradores/${cuerpo.documento}`, { metodo: "DELETE", token: tokenAdmin })).estado, 204);
   assert.equal((await llamar(`/api/admin/administradores/${cuerpo.documento}`, { metodo: "DELETE", token: tokenAdmin })).estado, 404);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Restablecer la contraseña
+// ---------------------------------------------------------------------------------------------
+
+test("PATCH contrasena: el administrador restablece la de un cliente, un agente y un administrador; los demás no", async () => {
+  const cliente = registrar(clienteBase(20));
+  const agente = registrar(agenteBase(21));
+  const adminNuevo = registrar(adminBase(22));
+  for (const [ruta, cuerpo] of [["clientes", cliente], ["agentes", agente], ["administradores", adminNuevo]]) {
+    assert.equal((await llamar(`/api/admin/${ruta}`, { metodo: "POST", token: tokenAdmin, cuerpo })).estado, 201, ruta);
+  }
+
+  const nueva = "Restablecida-789";
+  const casos = [
+    [`/api/admin/clientes/${cliente.documento}/contrasena`, cliente.correo],
+    [`/api/admin/agentes/${agente.nit}/contrasena`, agente.correo],
+    [`/api/admin/administradores/${adminNuevo.documento}/contrasena`, adminNuevo.correo],
+  ];
+  for (const [ruta, correo] of casos) {
+    assert.equal((await llamar(ruta, { metodo: "PATCH", cuerpo: { contrasena: nueva } })).estado, 401, "sin token");
+    assert.equal((await llamar(ruta, { metodo: "PATCH", token: tokenCliente, cuerpo: { contrasena: nueva } })).estado, 403, "un cliente");
+    assert.equal((await llamar(ruta, { metodo: "PATCH", token: tokenAgente, cuerpo: { contrasena: nueva } })).estado, 403, "un agente");
+    assert.equal((await llamar(ruta, { metodo: "PATCH", token: tokenAdmin, cuerpo: { contrasena: "corta" } })).estado, 400, "contraseña débil");
+    assert.equal((await llamar(ruta, { metodo: "PATCH", token: tokenAdmin, cuerpo: { contrasena: nueva } })).estado, 200);
+    assert.equal((await entrarNuevo(correo)).estado, 401, "la anterior ya no sirve");
+    const login = await llamar("/api/auth/login", { metodo: "POST", cuerpo: { correo, contrasena: nueva } });
+    assert.equal(login.estado, 200, correo);
+  }
+  assert.equal((await llamar("/api/admin/clientes/00000000/contrasena", { metodo: "PATCH", token: tokenAdmin, cuerpo: { contrasena: nueva } })).estado, 404);
 });

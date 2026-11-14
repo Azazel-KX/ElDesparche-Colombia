@@ -50,14 +50,14 @@ async function actualizar(req, res) {
   res.json({ evento: await eventoModel.obtenerPublico(req.params.id) });
 }
 
-// DELETE /api/admin/eventos/:id  (sus reservas se borran en cascada; 409 si alguna tiene un pago)
+// DELETE /api/admin/eventos/:id  (sus reservas se borran en cascada)
 async function eliminar(req, res) {
   try {
     const existe = await eventoModel.eliminar(req.params.id);
     if (!existe) throw new ErrorHttp(404, "El evento no existe.");
   } catch (err) {
     if (esRestriccion(err)) {
-      throw new ErrorHttp(409, "No se puede eliminar: el evento tiene reservas con pagos. Cancélalo en lugar de eliminarlo.");
+      throw new ErrorHttp(409, "No se puede eliminar: el evento tiene datos que dependen de él. Cancélalo en lugar de eliminarlo.");
     }
     throw err;
   }

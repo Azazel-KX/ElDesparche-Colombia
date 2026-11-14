@@ -1,5 +1,6 @@
-// Prueba de integración: cada conexión del pool abre con la zona horaria de DB_TIMEZONE (config/env.js, modo local), sin
-// depender de la que tenga configurada el servidor o la base. Se usa una zona distinta de la de Colombia para comprobar
+// Prueba de integración: cada conexión del pool abre con la zona horaria de DB_TIMEZONE, sin depender de la que tenga
+// configurada el servidor o la base. Vale en los dos modos: local (parámetro de arranque, config/env.js) y DATABASE_URL
+// (set_config al abrir cada conexión, config/db.js), que es el que necesita el pooler de Neon. Se usa una zona distinta de la de Colombia para comprobar
 // que la pone el backend.
 // Necesita la base del .env.
 process.env.NODE_ENV = "test";

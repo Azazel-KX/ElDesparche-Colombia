@@ -1,9 +1,10 @@
 const eventoModel = require("../models/eventoModel");
 const reservaModel = require("../models/reservaModel");
 const personaModel = require("../models/personaModel");
-const { validarEvento } = require("../utils/validacionEvento");
+const { validarEvento, validarEdicionPublicada, validarCambioEstado, ESTADOS_RESERVABLES } = require("../utils/validacionEvento");
 const { validarCancelacionPanel } = require("../utils/validacionReserva");
 const { validarPerfilAgente } = require("../utils/validacionPersonas");
+const { agregarNota, notaCancelacion } = require("../utils/formato");
 const { ErrorHttp } = require("../utils/errores");
 
 // Panel del AGENTE (rutas /api/agente). Contrato en frontend/js/agente.js. Un agente solo ve y toca lo SUYO: sus
@@ -78,6 +79,51 @@ async function retirarSolicitud(req, res) {
   res.status(204).end();
 }
 
+// Que el evento sea de este agente y esté publicado. Se responde 404 y no 403 para no revelar eventos de otros.
+function verificarPublicadoDelAgente(req) {
+  return (actual) => {
+    if (actual.doc_agente !== req.usuario.id) throw new ErrorHttp(404, "El evento no existe.");
+    if (SOLICITUD.includes(actual.estado)) throw new ErrorHttp(422, "Este evento todavía es una solicitud: se corrige desde sus solicitudes.");
+  };
+}
+
+// PUT /api/agente/eventos/:id/publicado  { descripcion, observaciones, imagen }
+// Edita lo que no toca a las reservas de un evento ya publicado. Fechas, precio, capacidad y lugar: un administrador.
+async function editarEventoPublicado(req, res) {
+  const { datos, errores } = validarEdicionPublicada(req.body);
+  if (errores) throw new ErrorHttp(400, "Datos del evento inválidos.", errores);
+
+  const verificarDueno = verificarPublicadoDelAgente(req);
+  const verificar = (actual) => {
+    verificarDueno(actual);
+    if (actual.estado === "Cancelado" || actual.estado === "Finalizado") {
+      throw new ErrorHttp(422, `No se puede editar un evento en estado "${actual.estado}".`);
+    }
+  };
+  if (!(await eventoModel.editarPublicado(req.params.id, datos, verificar))) throw new ErrorHttp(404, "El evento no existe.");
+  res.json({ evento: await eventoModel.obtenerPublico(req.params.id) });
+}
+
+// PATCH /api/agente/eventos/:id/cancelar  { causa, detalle }  (o { observaciones } con la nota ya armada)
+// Cancela un evento publicado suyo; sus reservas Reservada y Confirmada se cancelan con él. No hay otros cambios
+// de estado: Programado → En Boletería → En Vivo → Finalizado lo hace un administrador.
+async function cancelarEvento(req, res) {
+  const { datos, errores } = validarCambioEstado({ ...req.body, estado: "Cancelado" });
+  if (errores) throw new ErrorHttp(400, "Datos de la cancelación inválidos.", errores);
+
+  const quien = "el agente";
+  const observaciones = datos.observaciones || ((actual) => agregarNota(actual, notaCancelacion("evento", quien, datos.causa, datos.detalle)));
+  const verificarDueno = verificarPublicadoDelAgente(req);
+  const verificar = (actual) => {
+    verificarDueno(actual);
+    if (actual.estado === "Cancelado") throw new ErrorHttp(409, "El evento ya está cancelado.");
+    if (actual.estado === "Finalizado") throw new ErrorHttp(409, "El evento ya finalizó: no se puede cancelar.");
+  };
+  const existe = await eventoModel.cambiarEstado(req.params.id, { estado: "Cancelado", observaciones }, quien, verificar);
+  if (!existe) throw new ErrorHttp(404, "El evento no existe.");
+  res.json({ evento: await eventoModel.obtenerPublico(req.params.id) });
+}
+
 // ---------------------------------------------------------------------------------------------
 // Reservas y entradas de SUS eventos
 // ---------------------------------------------------------------------------------------------
@@ -99,6 +145,21 @@ async function cancelarReserva(req, res) {
     if (actual.estado === "Usada") throw new ErrorHttp(409, "La entrada ya se usó: no se puede cancelar.");
   };
   const existe = await reservaModel.cancelar(req.params.codigo, datos.observaciones, verificar);
+  if (!existe) throw new ErrorHttp(404, "La reserva no existe.");
+  res.json({ reserva: await reservaModel.obtener(req.params.codigo) });
+}
+
+// PATCH /api/agente/reservas/:codigo/confirmar  -> { reserva }
+// El agente aprueba la reserva (y el pago) de un evento suyo: pasa de Reservada a Confirmada.
+async function confirmarReserva(req, res) {
+  const verificar = (actual) => {
+    if (actual.doc_agente !== req.usuario.id) throw new ErrorHttp(403, "Esta reserva es de un evento de otro organizador.");
+    if (actual.estado !== "Reservada") throw new ErrorHttp(409, "Solo se puede aprobar una reserva que está por aprobar (Reservada).");
+    if (!ESTADOS_RESERVABLES.includes(actual.estado_evento)) {
+      throw new ErrorHttp(409, `El evento está ${actual.estado_evento === "Cancelado" ? "cancelado" : "finalizado"}: ya no se aprueban reservas.`);
+    }
+  };
+  const existe = await reservaModel.actualizar(req.params.codigo, { estado: "Confirmada" }, verificar);
   if (!existe) throw new ErrorHttp(404, "La reserva no existe.");
   res.json({ reserva: await reservaModel.obtener(req.params.codigo) });
 }
@@ -128,6 +189,6 @@ async function actualizarPerfil(req, res) {
 }
 
 module.exports = {
-  listarEventos, crearSolicitud, corregirSolicitud, retirarSolicitud,
-  listarReservas, cancelarReserva, ingreso, actualizarPerfil, agenteActual,
+  listarEventos, crearSolicitud, corregirSolicitud, retirarSolicitud, editarEventoPublicado, cancelarEvento,
+  listarReservas, confirmarReserva, cancelarReserva, ingreso, actualizarPerfil, agenteActual,
 };

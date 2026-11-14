@@ -51,4 +51,9 @@ router.post("/login", limitador, asincrono(auth.iniciarSesion));
 // - asincrono: captura errores
 router.get("/me", requiereToken, asincrono(auth.miPerfil));
 
+// RUTA 4: Cambiar mi contraseña (pide la actual)
+// PATCH /api/auth/contrasena
+// Body: { actual, nueva }
+router.patch("/contrasena", requiereToken, limitador, asincrono(auth.cambiarContrasena));
+
 module.exports = router;

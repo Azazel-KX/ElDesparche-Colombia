@@ -1,8 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { publicUrl } = require("../config/env");
+const { publicUrl, r2 } = require("../config/env");
 const { ErrorHttp } = require("./errores");
+const almacenR2 = require("./almacenR2");
 
 // Las imágenes de eventos y logos llegan de la web como "data URL" (JPEG reducido en base64, de cientos de KB).
 // La base de datos solo guarda una URL corta (columna de 255 caracteres), así que la imagen se guarda como archivo en
@@ -29,6 +30,8 @@ function guardarImagen(valor, subcarpeta, nombre, campo = "imagen") {
   if (!v) return null;
   // Al editar, la web reenvía la URL completa de la imagen que ya tenía: se guarda de nuevo la ruta relativa
   if (v.startsWith(`${publicUrl}/uploads/`)) v = v.slice(publicUrl.length);
+  // Con R2 la web recibe la dirección del bucket ("https://cdn.../eventos/a.jpg"): se vuelve a la ruta guardada
+  if (r2.habilitado && v.startsWith(`${r2.publicUrl}/`)) v = `/uploads/${v.slice(r2.publicUrl.length + 1)}`;
 
   if (!v.startsWith("data:")) {
     const valida = /^https?:\/\//i.test(v) || /^img\/[\w./-]+$/.test(v) || /^\/uploads\/[\w./-]+$/.test(v);
@@ -55,7 +58,38 @@ function guardarImagen(valor, subcarpeta, nombre, campo = "imagen") {
   return `/uploads/${subcarpeta}/${archivo}`;
 }
 
-// Lo que ve la web: una ruta guardada ("/uploads/...") se completa con la dirección pública del API
-const urlPublica = (ruta) => (ruta && ruta.startsWith("/uploads/") ? publicUrl + ruta : ruta || "");
+// Lo que ve la web: una ruta guardada ("/uploads/...") se completa con la dirección pública del bucket de R2 (si está
+// configurado) o con la del API (archivo en disco)
+function urlPublica(ruta) {
+  if (!ruta || !ruta.startsWith("/uploads/")) return ruta || "";
+  return r2.habilitado ? `${r2.publicUrl}/${ruta.slice("/uploads/".length)}` : publicUrl + ruta;
+}
 
-module.exports = { guardarImagen, urlPublica, CARPETA_UPLOADS };
+// Borra el archivo de una ruta guardada ("/uploads/eventos/evento-ab12cd34ef.jpg"). Solo acepta la forma exacta que
+// produce guardarImagen (una subcarpeta y un archivo .jpg, .png o .webp), así nunca sale de la carpeta uploads/.
+// Devuelve true si la ruta era de uploads/ (exista o no el archivo). Quién decide si la imagen ya no se usa: el modelo.
+const RE_RUTA_SUBIDA = /^\/uploads\/([\w-]+)\/([\w-]+\.(?:jpg|png|webp))$/;
+function borrarArchivoSubido(ruta) {
+  const m = RE_RUTA_SUBIDA.exec(ruta || "");
+  if (!m) return false;
+  fs.rmSync(path.join(CARPETA_UPLOADS, m[1], m[2]), { force: true });
+  return true;
+}
+
+// Sube a R2 el archivo que guardarImagen dejó en disco. Sin R2 no hace nada. Si falla, lanza el error (la imagen no
+// quedó publicada y la petición debe fallar en vez de guardar una ruta a una imagen que no existe).
+async function publicarImagen(ruta) {
+  if (!r2.habilitado) return;
+  const m = RE_RUTA_SUBIDA.exec(ruta || "");
+  if (!m) return;
+  await almacenR2.subir(`${m[1]}/${m[2]}`, fs.readFileSync(path.join(CARPETA_UPLOADS, m[1], m[2])));
+}
+
+// Borra de R2 la imagen de una ruta guardada (sin R2 no hace nada)
+async function borrarImagenRemota(ruta) {
+  if (!r2.habilitado) return;
+  const m = RE_RUTA_SUBIDA.exec(ruta || "");
+  if (m) await almacenR2.borrar(`${m[1]}/${m[2]}`);
+}
+
+module.exports = { guardarImagen, urlPublica, borrarArchivoSubido, publicarImagen, borrarImagenRemota, CARPETA_UPLOADS };

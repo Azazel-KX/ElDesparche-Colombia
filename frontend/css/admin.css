@@ -40,7 +40,7 @@
   margin-top: 16px;
   padding: 0 24px;
   border: none;
-  border-radius: 999px;
+  border-radius: 10px;
   background: var(--morado);
   color: var(--blanco);
   font-family: "Geist", "Inter", sans-serif;
@@ -659,7 +659,7 @@
   min-height: 40px;
   padding: 0 16px;
   border: 2px solid var(--morado);
-  border-radius: 999px;
+  border-radius: 10px;
   background: var(--blanco);
   color: var(--morado);
   font-family: "Geist", "Inter", sans-serif;
@@ -2134,26 +2134,35 @@
 
 /* ===== REPORTES (admin.html, sección Reportes) ===== */
 
+/* Los cuatro botones se reparten todo el ancho, como pestañas cuadradas */
 .reporte-indice ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .reporte-indice a {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  min-height: 40px;
-  padding: 0 16px;
+  justify-content: center;
+  min-height: 52px;
+  padding: 8px 16px;
   border: 2px solid var(--morado);
-  border-radius: 999px;
+  border-radius: 10px;
   color: var(--morado);
-  font-size: calc(14px * var(--escala-texto));
+  font-size: calc(15px * var(--escala-texto));
   font-weight: 600;
+  text-align: center;
   text-decoration: none;
+}
+
+@media (min-width: 900px) {
+  .reporte-indice ul {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .reporte-indice a:hover {
@@ -2562,5 +2571,69 @@
   .ubic-columnas {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
+  }
+}
+
+/* ===== PAGINACIÓN DE LAS TABLAS ===== */
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.paginacion[hidden] {
+  display: none;
+}
+
+.paginacion-texto {
+  color: var(--gris-texto);
+  font-size: calc(14px * var(--escala-texto));
+}
+
+.paginacion button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Filtros de eventos del administrador: Buscar y Ordenar a la vista, y Estado y lugar en un menú desplegable */
+.barra-filtros-admin {
+  margin-bottom: 12px;
+}
+
+.barra-filtros-admin .barra-filtros-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-filtro-etiqueta {
+  color: var(--texto);
+  font-size: calc(14px * var(--escala-texto));
+  font-weight: 600;
+}
+
+/* El botón del menú mide lo mismo que los campos que tiene al lado */
+.barra-filtros-admin .boton-filtros {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 0 16px;
+}
+
+.barra-filtros-admin .filtro-panel {
+  top: calc(100% + 8px);
+}
+
+@media (min-width: 700px) {
+  .barra-filtros-admin .barra-filtros-fila {
+    grid-template-columns: minmax(0, 1fr) 220px auto;
+  }
+
+  .barra-filtros-admin .boton-filtros {
+    width: auto;
   }
 }

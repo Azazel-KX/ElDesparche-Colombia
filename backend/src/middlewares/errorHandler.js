@@ -14,6 +14,19 @@ const RESTRICCIONES_CONOCIDAS = {
   usuario_correo_check: ["correo", "Escribe un correo electrónico válido."],
 };
 
+// La base no está disponible: no es culpa de quien hizo la petición, así que no es un 500 con traza sino un 503
+// (puede reintentar en un momento). Pasa si PostgreSQL se apaga, si Neon está despertando o si se corta la red.
+// - Códigos de Node: ECONNREFUSED, ECONNRESET, ETIMEDOUT, ENOTFOUND, EAI_AGAIN
+// - Códigos de PostgreSQL: 08xxx (connection_exception), 53300 (demasiadas conexiones), 57P01 a 57P03 (apagado)
+// - Mensajes de node-postgres sin código: tiempo de espera del pool, de la consulta (query_timeout) y conexión terminada
+const CODIGOS_SIN_CONEXION = ["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EAI_AGAIN", "53300", "57P01", "57P02", "57P03"];
+
+function esErrorDeConexion(err) {
+  if (!err) return false;
+  if (CODIGOS_SIN_CONEXION.includes(err.code) || /^08/.test(err.code || "")) return true;
+  return /timeout exceeded when trying to connect|Query read timeout|Connection terminated/i.test(err.message || "");
+}
+
 // Códigos de error:
 // - 23505: Duplicate key (violación de UNIQUE)
 // - 23503: Foreign key (referencia que no existe)
@@ -120,6 +133,13 @@ function errorHandler(err, _req, res, _next) {
     return res.status(error.estado).json(cuerpo);
   }
 
+  // La base de datos no responde → 503 con un mensaje que la web puede mostrar tal cual
+  if (esErrorDeConexion(err)) {
+    console.error("Sin conexión con la base de datos:", err.code || "", err.message);
+    res.set("Retry-After", "5");
+    return res.status(503).json({ error: "El servicio no está disponible en este momento. Inténtalo de nuevo en unos segundos." });
+  }
+
   // Error desconocido (bug del servidor, no del usuario)
   console.error("Error no controlado:", err);
   res.status(500).json({ error: "Error interno del servidor." });
@@ -134,4 +154,4 @@ function noEncontrado(_req, res) {
   res.status(404).json({ error: "Ruta no encontrada." });
 }
 
-module.exports = { errorHandler, noEncontrado };
+module.exports = { errorHandler, noEncontrado, esErrorDeConexion };

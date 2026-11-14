@@ -46,7 +46,7 @@ function validarReservaNueva(body) {
   return Object.keys(errores).length ? { errores } : { datos: { documento, eventoId, entradas, estado, observaciones } };
 }
 
-// El administrador modifica una reserva: { entradas, estado, observaciones }. Con un pago, solo cambian las observaciones
+// El administrador modifica una reserva: { entradas, estado, observaciones }. Aprobar la reserva y el pago es pasarla a Confirmada
 // (la web manda { observaciones } nada más), así que las entradas y el estado son opcionales.
 function validarReservaEdicion(body) {
   const b = body && typeof body === "object" ? body : {};

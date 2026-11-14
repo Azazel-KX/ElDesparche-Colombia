@@ -1,0 +1,33 @@
+# Despliegue del backend en Render (Blueprint). En Render: New -> Blueprint -> elegir este repo.
+# Las variables con sync:false se piden al crear el servicio (no se guardan en el repo).
+services:
+  - type: web
+    name: eldesparche-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL        # cadena de Neon (Connect -> Connection string)
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true      # Render genera uno aleatorio
+      - key: CORS_ORIGIN         # URL del frontend, ej. https://eldesparche.online
+        sync: false
+      - key: PUBLIC_URL          # URL pública del API, ej. https://api.eldesparche.online
+        sync: false
+      # Imágenes subidas en Cloudflare R2 (sin ellas se pierden en cada reinicio del plan gratis)
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET           # ej. eldesparche-imagenes
+        sync: false
+      - key: R2_PUBLIC_URL       # ej. https://cdn.eldesparche.online
+        sync: false

@@ -45,15 +45,11 @@ Su buscador declara los filtros **como datos**, no como HTML escrito a mano:
 
 ---
 
-## 2. El archivo `data/eventos.json`
+## 2. El archivo `data/eventos.json` (retirado)
 
-Se genera desde `js/script.js` para no mantener los datos en dos sitios:
-
-```bash
-node scripts/generar-json.cjs
-```
-
-Lee de `script.js` tanto el array `EVENTOS` como la lista `DESTACADOS`.
+> Este archivo y `scripts/generar-json.cjs` ya no existen: los eventos salen de la base de datos
+> (`GET /api/eventos`) y `EVENTOS` (`src/modelos/eventoModelo.js`) se llena al cargar la página.
+> La estructura de abajo se conserva solo como referencia del modelo.
 
 ### Estructura raíz
 
