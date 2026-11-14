@@ -1,6 +1,23 @@
 import { defineConfig, loadEnv } from 'vite';
 import { resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { readFileSync, cpSync } from 'node:fs';
+
+/* Las fotos de los eventos las escribe la base de datos como "img/xxxxx.png": ningún HTML las nombra, así que Vite no
+   las incluye en el build y en producción salían rotas (el servidor devolvía la página de inicio en su lugar). Aquí se
+   copia la carpeta img/ completa a dist/img con los mismos nombres. En desarrollo no hace falta: Vite sirve la raíz. */
+function copiarImagenes() {
+  let salida;
+  return {
+    name: 'copiar-imagenes',
+    apply: 'build',
+    configResolved(config) {
+      salida = resolve(config.root, config.build.outDir, 'img');
+    },
+    closeBundle() {
+      cpSync(resolve(import.meta.dirname, 'img'), salida, { recursive: true });
+    }
+  };
+}
 
 /* La cabecera y el pie son iguales en todas las páginas: viven en parciales/ y cada HTML los pide con un
    comentario (<!--@incluir cabecera-->, <!--@incluir pie--> o <!--@incluir pie-panel-->). Se arman al servir
@@ -69,7 +86,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: '.',
-    plugins: [incluirParciales(), permitirApiEnCsp(env.VITE_API_URL)].filter(Boolean),
+    plugins: [incluirParciales(), copiarImagenes(), permitirApiEnCsp(env.VITE_API_URL)].filter(Boolean),
     server: {
       // 'true' escucha en IPv4 (0.0.0.0) e IPv6 (::) a la vez.
       // cloudflared resuelve 'localhost' y puede elegir ::1; si Vite solo
